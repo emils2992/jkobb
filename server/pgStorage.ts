@@ -87,8 +87,12 @@ export class PgStorage implements IStorage {
     if (existing) {
       // Eğer onlyUpdateWeekly true ise, sadece haftalık değeri güncelle
       // FIX: Nitelik taleplerini daima değer olarak ekleyeceğiz, çarpma yerine
-      // NOT: (absoluteValue parametresi artık önemsiz olacak)
+      // KESIN FIX: Değerleri her zaman direkt toplayarak güncelliyoruz
+      
+      // onlyUpdateWeekly true ise ana değeri değiştirmiyoruz, false ise verilen değeri ekliyoruz (+2 dediyse +2 ekleniyor)
       const newValue = onlyUpdateWeekly ? existing.value : existing.value + value;
+      
+      // Haftalık değer için de aynı mantık: verilen değeri direkt ekliyoruz (çarpmıyoruz)
       const newWeeklyValue = weeklyValue !== undefined ? 
                              (existing.weeklyValue + weeklyValue) : 
                              existing.weeklyValue + value;
@@ -103,6 +107,7 @@ export class PgStorage implements IStorage {
       return this.pgAttributeToAttribute(result.rows[0]);
     } else {
       // Yeni nitelik oluştur
+      // Eğer yeni nitelik oluşturuyorsak, değerin tam olarak kullanıcı tarafından istenen değer olduğundan emin olalım
       console.log(`Creating new attribute ${attributeName} for user ${userId} with value=${value}`);
       
       const result = await this.pool.query(
