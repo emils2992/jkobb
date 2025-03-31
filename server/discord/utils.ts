@@ -1,5 +1,6 @@
 import { EmbedBuilder } from 'discord.js';
-import { User, AttributeRequest } from '@shared/schema';
+import { User, AttributeRequest, Attribute } from '@shared/schema';
+import { isValidAttribute, getRequiredHours, getCategoryForAttribute } from './training-config';
 
 // Format date for display
 export function formatDate(date: Date): string {
@@ -87,4 +88,112 @@ export function createAttributeEmbed(
   });
   
   return embed;
+}
+
+/**
+ * Antrenman mesajı analizini yapar, seviye bilgisine göre doğrular
+ * @param content Mesaj içeriği
+ * @param attributes Kullanıcının nitelikleri
+ * @param lastTrainingTime Kullanıcının son antrenman zamanı (her nitelik için)
+ * @returns Eğer mesaj geçerli bir antrenman mesajıysa antrenman detayları, değilse null
+ */
+export function parseTrainingMessage(
+  content: string,
+  attributes: Attribute[],
+  lastTrainingTime: Date | null
+): { 
+  attributeName: string; 
+  duration: number; 
+  intensity: number;
+  points: number;
+  attributeValue: number;
+  hoursRequired: number;
+  isAllowed: boolean;
+  timeSinceLastTraining: number;
+} | null {
+  // Antrenman formatını kontrol et (örn: "1/1 kısa pas")
+  const trainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
+  const matches = content.match(trainingPattern);
+  
+  if (!matches || matches.length < 4) return null;
+  
+  const duration = parseInt(matches[1], 10) || 0;
+  const intensity = parseInt(matches[2], 10) || 0;
+  const attributeRaw = matches[3].trim();
+  
+  if (duration <= 0 || intensity <= 0) return null;
+  
+  // Nitelik adını normalleştir
+  let attributeName = attributeRaw;
+  const validAttributes = getValidAttributes();
+  
+  // Eğer bu adla bir nitelik yoksa, en yakın eşleşeni bulmaya çalış
+  if (!validAttributes.includes(attributeName)) {
+    // Kısa pas -> Uzun Pas, Sprint -> Sprint Hızı gibi kısmi eşleşmeleri kontrol et
+    for (const validAttr of validAttributes) {
+      if (validAttr.toLowerCase().includes(attributeName.toLowerCase()) || 
+          attributeName.toLowerCase().includes(validAttr.toLowerCase())) {
+        attributeName = validAttr;
+        break;
+      }
+    }
+  }
+  
+  // Hala geçerli değilse varsayılan bir nitelik kullan
+  if (!validAttributes.includes(attributeName)) {
+    attributeName = 'Genel Antrenman';
+  }
+  
+  // Kullanıcının bu nitelikteki mevcut değerini al
+  const attribute = attributes.find(attr => attr.name === attributeName);
+  const attributeValue = attribute ? attribute.value : 50; // Varsayılan başlangıç değeri
+  
+  // Kazanılan nitelik puanı hesapla (süre * yoğunluk)
+  // Basit formül: süre * yoğunluk / 10, minimum 1, maksimum 5 puan
+  const points = Math.min(5, Math.max(1, Math.floor(duration * intensity / 10)));
+  
+  // Bu nitelik için gereken bekleme süresini al
+  const hoursRequired = getRequiredHours(attributeName, attributeValue);
+  
+  // Kullanıcının son antrenmanından bu yana geçen süreyi hesapla
+  const now = new Date();
+  const timeSinceLastTraining = lastTrainingTime
+    ? (now.getTime() - lastTrainingTime.getTime()) / (1000 * 60 * 60) // saat cinsinden
+    : 24; // Eğer daha önce antrenman yapılmadıysa 24 saat (varsayılan olarak izin verir)
+  
+  // Antrenman yapılabilir mi kontrol et
+  const isAllowed = timeSinceLastTraining >= hoursRequired;
+  
+  return {
+    attributeName,
+    duration,
+    intensity,
+    points,
+    attributeValue,
+    hoursRequired,
+    isAllowed,
+    timeSinceLastTraining
+  };
+}
+
+/**
+ * Geçerli niteliklerin listesini döndürür
+ */
+export function getValidAttributes(): string[] {
+  return [
+    // Savunma
+    'Ayakta Müdahale', 'Kayarak Müdahale',
+    // Beceri
+    'Dribbling', 'Falso', 'Serbest Vuruş İsabeti', 'Uzun Pas', 'Top Kontrolü',
+    // Güç
+    'Şut Gücü', 'Zıplama', 'Dayanıklılık', 'Güç', 'Uzaktan Şut',
+    // Hareket
+    'Hızlanma', 'Sprint Hızı', 'Çeviklik', 'Reaksiyonlar', 'Denge',
+    // Mantalite
+    'Agresiflik', 'Top Kesme', 'Pozisyon Alma', 'Görüş', 'Penaltı',
+    // Kaleci
+    'Kaleci Atlayışı', 'KL Top Kontrolü', 'KL Vuruş', 'KL Pozisyon Alma', 'KL Refleksler',
+    // Genel
+    'Genel Antrenman'
+  ];
 }

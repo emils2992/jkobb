@@ -13,13 +13,13 @@ import {
 import { client } from './bot';
 import { commands } from './commands';
 import { storage } from '../storage';
-import { parseAttributeRequest } from './utils';
+import { parseAttributeRequest, parseTrainingMessage } from './utils';
 
 export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     // Handle slash commands
-    if (interaction.isCommand()) {
+    if (interaction.isChatInputCommand()) {
       const { commandName } = interaction;
       const command = commands.get(commandName);
       
@@ -54,44 +54,134 @@ export function setupEventHandlers() {
     }
   });
 
-  // Handle messages for attribute requests in tickets
+  // Handle messages for attribute requests in tickets and training
   client.on(Events.MessageCreate, async (message: Message) => {
     if (message.author.bot) return;
     
-    // Check if this is in a ticket channel
-    const ticketId = message.channelId;
-    const ticket = await storage.getTicket(ticketId);
-    
-    if (!ticket || ticket.status === 'closed') return;
-    
-    // Parse attribute requests from message
-    const attributeRequest = parseAttributeRequest(message.content);
-    
-    if (attributeRequest) {
-      try {
-        // Save the attribute request
-        await storage.createAttributeRequest({
-          ticketId,
-          attributeName: attributeRequest.name,
-          valueRequested: attributeRequest.value,
-          approved: false
-        });
+    try {
+      // Önce ticket channel kontrolü yap
+      const ticketId = message.channelId;
+      const ticket = await storage.getTicket(ticketId);
+      
+      if (ticket && ticket.status !== 'closed') {
+        // Bu bir ticket kanalıdır, nitelik taleplerini işle
+        const attributeRequest = parseAttributeRequest(message.content);
         
-        // Acknowledge the request
-        const embed = new EmbedBuilder()
-          .setTitle('📝 Nitelik Talebi Alındı')
-          .setColor('#5865F2')
-          .addFields(
-            { name: 'Nitelik', value: attributeRequest.name, inline: true },
-            { name: 'Değer', value: `+${attributeRequest.value}`, inline: true }
-          )
-          .setTimestamp();
-        
-        await message.reply({ embeds: [embed] });
-      } catch (error) {
-        console.error('Error processing attribute request:', error);
-        await message.reply('Nitelik talebi işlenirken bir hata oluştu.');
+        if (attributeRequest) {
+          try {
+            // Save the attribute request
+            await storage.createAttributeRequest({
+              ticketId,
+              attributeName: attributeRequest.name,
+              valueRequested: attributeRequest.value,
+              approved: false
+            });
+            
+            // Acknowledge the request
+            const embed = new EmbedBuilder()
+              .setTitle('📝 Nitelik Talebi Alındı')
+              .setColor('#5865F2')
+              .addFields(
+                { name: 'Nitelik', value: attributeRequest.name, inline: true },
+                { name: 'Değer', value: `+${attributeRequest.value}`, inline: true }
+              )
+              .setTimestamp();
+            
+            await message.reply({ embeds: [embed] });
+          } catch (error) {
+            console.error('Error processing attribute request:', error);
+            await message.reply('Nitelik talebi işlenirken bir hata oluştu.');
+          }
+        }
       }
+      
+      // Antrenman mesajlarını kontrol et
+      if (message.guild) {
+        const serverConfig = await storage.getServerConfig(message.guild.id);
+        
+        // Antrenman kanalındaysa kontrol et
+        if (serverConfig?.trainingChannelId && message.channelId === serverConfig.trainingChannelId) {
+          // Kullanıcıyı oluştur veya al
+          const user = await storage.getOrCreateUser(
+            message.author.id,
+            message.author.username,
+            message.author.displayAvatarURL()
+          );
+          
+          // Kullanıcının niteliklerini al
+          const attributes = await storage.getAttributes(user.userId);
+          
+          // Kullanıcının son antrenman kaydını al
+          const trainingSessions = await storage.getTrainingSessions(user.userId);
+          let lastTrainingTime: Date | null = null;
+          
+          if (trainingSessions.length > 0) {
+            const lastSession = trainingSessions.sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )[0];
+            lastTrainingTime = new Date(lastSession.createdAt);
+          }
+          
+          // Antrenman mesajını analiz et
+          const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
+          
+          if (trainingInfo) {
+            // Antrenman yapılabilir mi kontrol et
+            if (!trainingInfo.isAllowed) {
+              // Daha çok beklenmesi gerekiyorsa bilgilendir
+              const hoursLeft = Math.max(0, trainingInfo.hoursRequired - trainingInfo.timeSinceLastTraining).toFixed(1);
+              
+              const embed = new EmbedBuilder()
+                .setTitle('⏱️ Antrenman Limiti')
+                .setColor('#e74c3c')
+                .setDescription(`${message.author} henüz bu nitelikte antrenman yapamazsın!`)
+                .addFields(
+                  { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
+                  { name: 'Mevcut Değer', value: `${trainingInfo.attributeValue}`, inline: true },
+                  { name: 'Gereken Bekleme', value: `${trainingInfo.hoursRequired} saat`, inline: true },
+                  { name: 'Kalan Süre', value: `${hoursLeft} saat`, inline: true }
+                )
+                .setTimestamp();
+              
+              await message.reply({ embeds: [embed] });
+              await message.react('⏱️');
+              return;
+            }
+            
+            // Antrenman oturumu oluştur
+            const session = await storage.createTrainingSession({
+              userId: user.userId,
+              ticketId: "", // Boş string kullanıyoruz, null yerine
+              duration: trainingInfo.duration,
+              attributesGained: trainingInfo.points
+            });
+            
+            // Kullanıcının niteliklerini güncelle
+            await storage.updateAttribute(user.userId, trainingInfo.attributeName, trainingInfo.points);
+            
+            // Onaylamak için emoji ekle
+            await message.react('🏋️');
+            
+            // Antrenmanı kaydet
+            const embed = new EmbedBuilder()
+              .setTitle('🏋️ Antrenman Kaydı')
+              .setColor('#43B581')
+              .setDescription(`${message.author} adlı oyuncunun antrenman kaydı oluşturuldu.`)
+              .addFields(
+                { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
+                { name: 'Süre/Yoğunluk', value: `${trainingInfo.duration}/${trainingInfo.intensity}`, inline: true },
+                { name: 'Kazanılan Puan', value: `+${trainingInfo.points}`, inline: true },
+                { name: 'Mevcut Değer', value: `${trainingInfo.attributeValue + trainingInfo.points}`, inline: true },
+                { name: 'Sonraki Antrenman', value: `${trainingInfo.hoursRequired} saat sonra yapılabilir`, inline: false }
+              )
+              .setTimestamp();
+            
+            await message.reply({ embeds: [embed] });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
     }
   });
 }
