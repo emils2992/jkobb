@@ -330,9 +330,9 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         interaction.user.displayAvatarURL()
       );
       
-      // Create ticket channel - visible to everyone
+      // Create ticket channel - visible to everyone but only user can send messages
       const channel = await guild.channels.create({
-        name: `ticket-${Date.now().toString().slice(-4)}`,
+        name: `ticket-${interaction.user.username}-${Date.now().toString().slice(-4)}`,
         type: ChannelType.GuildText,
         permissionOverwrites: [
           {
@@ -341,10 +341,21 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
               PermissionFlagsBits.ViewChannel,
               PermissionFlagsBits.ReadMessageHistory
             ],
-            deny: []
+            deny: [
+              PermissionFlagsBits.SendMessages
+            ]
           },
           {
             id: interaction.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory
+            ]
+          },
+          // Yöneticilere her zaman yazma yetkisi ver
+          {
+            id: guild.roles.cache.find(r => r.permissions.has(PermissionFlagsBits.Administrator))?.id || guild.id,
             allow: [
               PermissionFlagsBits.ViewChannel,
               PermissionFlagsBits.SendMessages,

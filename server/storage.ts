@@ -91,7 +91,13 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const now = new Date();
-    const user: User = { ...insertUser, id, createdAt: now };
+    // avatarUrl null olarak ayarla, undefined olmasını engelle
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: now,
+      avatarUrl: insertUser.avatarUrl || null 
+    };
     this.users.set(id, user);
     this.usersByDiscordId.set(user.userId, user);
     return user;
@@ -158,11 +164,15 @@ export class MemStorage implements IStorage {
   }
 
   async resetWeeklyAttributes(guildId: string): Promise<void> {
-    for (const [id, attribute] of this.attributes.entries()) {
+    // Yineleyicileri kullanmak yerine Array.from kullanıyoruz
+    const allAttributes = Array.from(this.attributes.entries());
+    const now = new Date();
+    
+    for (const [id, attribute] of allAttributes) {
       this.attributes.set(id, {
         ...attribute,
         weeklyValue: 0,
-        updatedAt: new Date()
+        updatedAt: now
       });
     }
     
@@ -214,9 +224,14 @@ export class MemStorage implements IStorage {
   async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
     const id = this.currentTicketId++;
     const now = new Date();
+    
+    // Ticket için gerekli tüm alanları açıkça belirt, undefined değerleri engelle
     const ticket: Ticket = { 
-      ...insertTicket, 
-      id, 
+      id,
+      type: insertTicket.type || 'attribute', // Default olarak 'attribute' kullan
+      status: insertTicket.status || 'open',  // Default olarak 'open' kullan
+      userId: insertTicket.userId,
+      ticketId: insertTicket.ticketId,
       createdAt: now, 
       updatedAt: now,
       closedAt: null
@@ -254,7 +269,16 @@ export class MemStorage implements IStorage {
   async createAttributeRequest(insertRequest: InsertAttributeRequest): Promise<AttributeRequest> {
     const id = this.currentRequestId++;
     const now = new Date();
-    const request: AttributeRequest = { ...insertRequest, id, createdAt: now };
+    
+    // Tüm gerekli alanları açıkça belirt, undefined değerleri engelle
+    const request: AttributeRequest = { 
+      id, 
+      createdAt: now,
+      ticketId: insertRequest.ticketId,
+      attributeName: insertRequest.attributeName,
+      valueRequested: insertRequest.valueRequested,
+      approved: insertRequest.approved !== undefined ? insertRequest.approved : false // Default değer
+    };
     
     this.attributeRequests.set(id, request);
     return request;
@@ -282,7 +306,16 @@ export class MemStorage implements IStorage {
   async createTrainingSession(insertSession: InsertTrainingSession): Promise<TrainingSession> {
     const id = this.currentSessionId++;
     const now = new Date();
-    const session: TrainingSession = { ...insertSession, id, createdAt: now };
+    
+    // Tüm gerekli alanları açıkça belirt, undefined değerleri engelle
+    const session: TrainingSession = {
+      id, 
+      createdAt: now,
+      userId: insertSession.userId,
+      ticketId: insertSession.ticketId || "", // Boş string varsayılan değer
+      duration: insertSession.duration,
+      attributesGained: insertSession.attributesGained
+    };
     
     this.trainingSessions.set(id, session);
     return session;
@@ -304,18 +337,26 @@ export class MemStorage implements IStorage {
     const now = new Date();
     
     if (existing) {
+      // Tüm gerekli alanları açıkça belirt
       const updated: ServerConfig = {
-        ...existing,
-        ...insertConfig,
+        id: existing.id,
+        guildId: insertConfig.guildId,
+        fixLogChannelId: insertConfig.fixLogChannelId !== undefined ? insertConfig.fixLogChannelId : existing.fixLogChannelId,
+        trainingChannelId: insertConfig.trainingChannelId !== undefined ? insertConfig.trainingChannelId : existing.trainingChannelId,
+        lastResetAt: existing.lastResetAt,
+        createdAt: existing.createdAt,
         updatedAt: now
       };
       this.configs.set(existing.id, updated);
       return updated;
     } else {
       const id = this.currentConfigId++;
+      // Yeni yapılandırma için tüm alanları açıkça belirt
       const newConfig: ServerConfig = {
         id,
-        ...insertConfig,
+        guildId: insertConfig.guildId,
+        fixLogChannelId: insertConfig.fixLogChannelId || null,
+        trainingChannelId: insertConfig.trainingChannelId || null,
         lastResetAt: now,
         createdAt: now,
         updatedAt: now
@@ -365,10 +406,17 @@ export class MemStorage implements IStorage {
       throw new Error(`No config found for guild ${guildId}`);
     }
     
+    const now = new Date();
+    
+    // Tüm gerekli alanları açıkça belirt
     const updated: ServerConfig = {
-      ...config,
-      lastResetAt: new Date(),
-      updatedAt: new Date()
+      id: config.id,
+      guildId: config.guildId,
+      fixLogChannelId: config.fixLogChannelId,
+      trainingChannelId: config.trainingChannelId,
+      lastResetAt: now,
+      createdAt: config.createdAt,
+      updatedAt: now
     };
     
     this.configs.set(config.id, updated);
