@@ -7,10 +7,10 @@ import {
   TextInputStyle, 
   ActionRowBuilder, 
   ButtonInteraction, 
-  ModalSubmitInteraction, 
+  ModalSubmitInteraction,
+  PermissionFlagsBits, 
   EmbedBuilder,
   ChannelType,
-  PermissionFlagsBits,
   ButtonStyle,
   ButtonBuilder,
   TextChannel
@@ -91,12 +91,18 @@ export function setupEventHandlers() {
     if (message.author.bot) return;
     
     try {
+      // Önce mesaj içeriğinde "evet", "hayır" veya emoji olup olmadığını kontrol et
+      const isReactionMessage = message.content.toLowerCase().includes('evet') || 
+                             message.content.toLowerCase().includes('hayır') ||
+                             message.content.includes('✅') || 
+                             message.content.includes('❌');
+      
       // Önce ticket channel kontrolü yap
       const ticketId = message.channelId;
       const ticket = await storage.getTicket(ticketId);
       
-      if (ticket && ticket.status !== 'closed') {
-        // Bu bir ticket kanalıdır, nitelik taleplerini işle
+      if (ticket && ticket.status !== 'closed' && !isReactionMessage) {
+        // Bu bir ticket kanalıdır ve reaksiyon mesajı değildir, nitelik taleplerini işle
         const attributeRequest = parseAttributeRequest(message.content);
         
         if (attributeRequest) {
@@ -137,7 +143,7 @@ export function setupEventHandlers() {
           if (referencedMessage.embeds.length > 0 && 
               referencedMessage.embeds[0].title === '❓ Ticket Kapatma Onayı') {
             
-            // Evet (✅) reaksiyonu varsa
+            // Evet (✅) reaksiyonu varsa, ya da mesaj içeriğinde "evet" veya ✅ emojisi varsa
             if (message.content.includes('✅') || message.content.toLowerCase().includes('evet')) {
               // Ticket kapatma işlemini burada ele alıyoruz
               const ticketId = message.channel.id;
@@ -451,6 +457,14 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     if (!ticketId) {
       return interaction.reply({
         content: 'Kanal bilgisi alınamadı.',
+        ephemeral: true
+      });
+    }
+    
+    // Yalnızca yönetici yetkisine sahip kullanıcıların nitelik eklemesine izin ver
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+      return interaction.reply({
+        content: 'Bu işlemi yapmak için yönetici yetkisine sahip olmanız gerekiyor.',
         ephemeral: true
       });
     }

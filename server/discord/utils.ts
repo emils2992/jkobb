@@ -57,9 +57,16 @@ export function createAttributeEmbed(
   const approvedRequests = attributeRequests.filter(req => req.approved);
   const pendingRequests = attributeRequests.filter(req => !req.approved);
   
+  // Toplam değeri göster
+  embed.addFields({
+    name: '📊 Toplam Kazanılan Nitelik',
+    value: `**+${totalAttributes}** puan`,
+    inline: false
+  });
+  
   if (approvedRequests.length > 0) {
     const requestsText = approvedRequests
-      .map(req => `${req.attributeName}: +${req.valueRequested}`)
+      .map(req => `**${req.attributeName}**: +${req.valueRequested}`)
       .join('\n');
     
     embed.addFields({
@@ -71,7 +78,7 @@ export function createAttributeEmbed(
   
   if (pendingRequests.length > 0) {
     const requestsText = pendingRequests
-      .map(req => `${req.attributeName}: +${req.valueRequested}`)
+      .map(req => `**${req.attributeName}**: +${req.valueRequested}`)
       .join('\n');
     
     embed.addFields({
@@ -80,12 +87,6 @@ export function createAttributeEmbed(
       inline: false
     });
   }
-  
-  embed.addFields({
-    name: '📊 Toplam Kazanılan Nitelik',
-    value: `+${totalAttributes} puan`,
-    inline: false
-  });
   
   return embed;
 }

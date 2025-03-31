@@ -129,17 +129,19 @@ export class MemStorage implements IStorage {
     const now = new Date();
     
     if (existing) {
+      // Nitelik değerleri sıfırlamak yerine daima mevcut değere ekleme yapıyoruz
       const updated: Attribute = {
         ...existing,
-        value: existing.value + value,
+        value: existing.value + value, // Mevcut değere ekleme yap
         weeklyValue: weeklyValue !== undefined 
           ? weeklyValue 
-          : existing.weeklyValue + value,
+          : existing.weeklyValue + value, // Haftalık değere de ekleme yap
         updatedAt: now
       };
       this.attributes.set(existing.id, updated);
       return updated;
     } else {
+      // Yeni nitelik oluşturulduğunda ilk değerleri ayarla
       const id = this.currentAttributeId++;
       const newAttribute: Attribute = {
         id,
