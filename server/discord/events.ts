@@ -371,11 +371,15 @@ export function setupEventHandlers() {
               });
               
               // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
+              // source parametresi olarak 'message' ekleyerek bu değişikliğin antrenman kaynağını belirt
               await storage.updateAttribute(
                 user.userId, 
                 attributeName, 
                 attributeValue, // Toplam değeri artır
-                attributeValue  // Haftalık değeri de artır
+                attributeValue, // Haftalık değeri de artır
+                false, // absoluteValue
+                false, // onlyUpdateWeekly
+                'message' // source - antrenman kaynaklı olduğunu belirt
               );
               
               // Yanıt olarak oturumu doğrula

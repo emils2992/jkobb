@@ -19,11 +19,13 @@ export interface IStorage {
   
   // Attribute operations
   getAttributes(userId: string): Promise<Attribute[]>;
+  getTrainingAttributes(userId: string): Promise<Attribute[]>; // Yalnızca antrenman kaynaklı nitelikler
   getAttribute(userId: string, attributeName: string): Promise<Attribute | undefined>;
-  updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue?: boolean, onlyUpdateWeekly?: boolean): Promise<Attribute>;
+  updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue?: boolean, onlyUpdateWeekly?: boolean, source?: string): Promise<Attribute>;
   resetWeeklyAttributes(guildId: string): Promise<void>;
   resetAllAttributes(guildId: string): Promise<void>;
   getPlayerAttributeStats(userId?: string): Promise<any[]>;
+  getPlayerTrainingStats(userId?: string): Promise<any[]>; // Antrenman liderlik tablosu için
   
   // Ticket operations
   getTicket(ticketId: string): Promise<Ticket | undefined>;
@@ -232,6 +234,76 @@ export class MemStorage implements IStorage {
         lastFixDate,
         attributes
       };
+    }));
+  }
+  
+  async getPlayerTrainingStats(userId?: string): Promise<any[]> {
+    const userList = userId 
+      ? [await this.getUserById(userId)].filter(Boolean) as User[]
+      : Array.from(this.users.values());
+    
+    return await Promise.all(userList.map(async (user) => {
+      // Kullanıcının antrenman kayıtlarını al
+      const trainingSessions = Array.from(this.trainingSessions.values())
+        .filter(s => s.userId === user.userId && (s.source === 'message' || s.source === 'training'))
+        .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+      
+      // Antrenman nitelik puanlarını hesapla
+      const attributeMap = new Map<string, number>();
+      trainingSessions.forEach(session => {
+        if (session.attributeName) {
+          const attrName = session.attributeName;
+          const attrValue = session.attributesGained || 0;
+          
+          attributeMap.set(attrName, (attributeMap.get(attrName) || 0) + attrValue);
+        }
+      });
+      
+      // Nitelikler listesini oluştur
+      const attributes = Array.from(attributeMap.entries()).map(([name, value]) => ({
+        name, 
+        value
+      }));
+      
+      // Toplam antrenman puanını hesapla
+      const totalTrainingValue = trainingSessions.reduce((sum, s) => sum + (s.attributesGained || 0), 0);
+      
+      return {
+        user,
+        totalTrainingValue,
+        trainingCount: trainingSessions.length,
+        attributes,
+        trainingSessions
+      };
+    }));
+  }
+  
+  async getTrainingAttributes(userId: string): Promise<Attribute[]> {
+    // Sadece antrenman kaynaklı kazanılmış nitelikleri hesapla
+    const trainingSessions = Array.from(this.trainingSessions.values())
+      .filter(s => s.userId === userId && (s.source === 'message' || s.source === 'training'));
+    
+    // Nitelik başına toplam puanları hesapla
+    const attributeMap = new Map<string, number>();
+    trainingSessions.forEach(session => {
+      if (session.attributeName) {
+        const attrName = session.attributeName;
+        const attrValue = session.attributesGained || 0;
+        
+        attributeMap.set(attrName, (attributeMap.get(attrName) || 0) + attrValue);
+      }
+    });
+    
+    // Nitelikler listesini döndür
+    const now = new Date();
+    return Array.from(attributeMap.entries()).map(([name, value], index) => ({
+      id: index, // Geçici bir ID
+      userId,
+      name,
+      value,
+      weeklyValue: 0, // Bu görünümde haftalık değeri hesaplamıyoruz
+      createdAt: now,
+      updatedAt: now
     }));
   }
 

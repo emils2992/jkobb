@@ -219,6 +219,112 @@ export class PgStorage implements IStorage {
     
     return playerStats;
   }
+  
+  async getPlayerTrainingStats(userId?: string): Promise<any[]> {
+    let userQuery = '';
+    let params: any[] = [];
+    
+    if (userId) {
+      userQuery = 'AND u.user_id = $1';
+      params.push(userId);
+    }
+    
+    // Sadece antrenman kaynaklı nitelik puanlarını topla (message ya da training source olan)
+    const query = `
+      SELECT 
+        u.id, u.user_id, u.username, u.avatar_url, u.created_at,
+        COALESCE(SUM(ts.attributes_gained), 0) AS total_training_value,
+        COUNT(DISTINCT ts.id) AS training_count
+      FROM 
+        users u
+      LEFT JOIN 
+        training_sessions ts ON u.user_id = ts.user_id
+      WHERE
+        (ts.source = 'message' OR ts.source = 'training')
+        ${userQuery}
+      GROUP BY 
+        u.id
+      ORDER BY 
+        total_training_value DESC
+    `;
+    
+    const result = await this.pool.query(query, params);
+    const trainingStats = [];
+    
+    for (const row of result.rows) {
+      // Her kullanıcı için antrenman oturumlarını al
+      const trainingSessions = await this.pool.query(
+        `SELECT * FROM training_sessions 
+         WHERE user_id = $1 AND (source = 'message' OR source = 'training')
+         ORDER BY created_at DESC`,
+        [row.user_id]
+      );
+      
+      // Nitelikler bazında antrenman puanlarını hesapla
+      const attributeQuery = `
+        SELECT 
+          attribute_name,
+          COALESCE(SUM(attributes_gained), 0) AS total_gained
+        FROM 
+          training_sessions
+        WHERE 
+          user_id = $1
+          AND (source = 'message' OR source = 'training')
+        GROUP BY 
+          attribute_name
+      `;
+      
+      const attributeResult = await this.pool.query(attributeQuery, [row.user_id]);
+      const attributes = attributeResult.rows.map((attr: any) => ({
+        name: attr.attribute_name,
+        value: parseInt(attr.total_gained) || 0
+      }));
+      
+      trainingStats.push({
+        user: {
+          id: row.id,
+          userId: row.user_id,
+          username: row.username,
+          avatarUrl: row.avatar_url,
+          createdAt: new Date(row.created_at)
+        },
+        totalTrainingValue: parseInt(row.total_training_value) || 0,
+        trainingCount: parseInt(row.training_count) || 0,
+        attributes: attributes,
+        trainingSessions: trainingSessions.rows.map((session: any) => this.pgTrainingSessionToTrainingSession(session))
+      });
+    }
+    
+    return trainingStats;
+  }
+  
+  async getTrainingAttributes(userId: string): Promise<Attribute[]> {
+    // Sadece antrenman kaynaklı nitelikleri hesapla
+    const query = `
+      SELECT 
+        attribute_name AS name,
+        COALESCE(SUM(attributes_gained), 0) AS training_value
+      FROM 
+        training_sessions
+      WHERE 
+        user_id = $1
+        AND (source = 'message' OR source = 'training')
+      GROUP BY 
+        attribute_name
+    `;
+    
+    const result = await this.pool.query(query, [userId]);
+    
+    return result.rows.map(row => ({
+      id: 0, // Sadece görünüm olduğu için gerçek bir ID vermiyoruz
+      userId,
+      name: row.name,
+      value: parseInt(row.training_value) || 0,
+      weeklyValue: 0, // Bu görünümde haftalık değer dönmüyoruz
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }));
+  }
 
   // Ticket operations
   async getTicket(ticketId: string): Promise<Ticket | undefined> {
