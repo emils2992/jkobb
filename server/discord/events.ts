@@ -493,20 +493,99 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       });
     }
     
-    // Instead of opening a modal, directly send a confirmation message with emojis
     await interaction.deferReply();
     
-    const embed = new EmbedBuilder()
-      .setTitle('❓ Ticket Kapatma Onayı')
-      .setColor('#e74c3c')
-      .setDescription('Bu ticket\'ı kapatmak istediğinize emin misiniz?')
-      .setTimestamp();
+    try {
+      // Get attribute requests for this ticket
+      const attributeRequests = await storage.getAttributeRequests(ticketId);
+      const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
       
-    const message = await interaction.editReply({ embeds: [embed] });
-    
-    // Emojiler ekleyelim
-    await message.react('✅'); // Evet
-    await message.react('❌'); // Hayır
+      // Get user
+      const user = await storage.getUserById(ticket.userId);
+      if (!user) {
+        return interaction.editReply('Bu ticketin sahibi bulunamadı.');
+      }
+      
+      // Process approved attribute requests
+      for (const request of attributeRequests) {
+        if (request.approved) {
+          await storage.updateAttribute(
+            user.userId,
+            request.attributeName,
+            request.valueRequested
+          );
+        }
+      }
+      
+      // Auto-approve remaining attribute requests
+      for (const request of attributeRequests) {
+        if (!request.approved) {
+          await storage.approveAttributeRequest(request.id);
+        }
+      }
+      
+      // Get updated attribute requests
+      const approvedRequests = await storage.getAttributeRequests(ticketId);
+      
+      // Update attributes again to ensure all are processed
+      for (const request of approvedRequests) {
+        await storage.updateAttribute(
+          user.userId,
+          request.attributeName,
+          request.valueRequested
+        );
+      }
+      
+      // Close the ticket
+      await storage.closeTicket(ticketId);
+      
+      // Get updated total attribute count
+      const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+      
+      // Create embed for response
+      const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
+      await interaction.editReply({ embeds: [embed] });
+      
+      // Post to fix log channel if configured
+      if (interaction.guild?.id) {
+        const serverConfig = await storage.getServerConfig(interaction.guild.id);
+        if (serverConfig?.fixLogChannelId) {
+          try {
+            const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
+            if (logChannel) {
+              await logChannel.send({ 
+                content: `${user.username} için ticket kapatıldı:`,
+                embeds: [embed] 
+              });
+              console.log(`Fix log mesajı #${logChannel.name} kanalına gönderildi.`);
+            }
+          } catch (error) {
+            console.error('Fix log kanalına mesaj gönderilirken hata:', error);
+          }
+        }
+      }
+      
+      // Delete the channel after a delay
+      setTimeout(async () => {
+        try {
+          if (interaction.channel?.type === ChannelType.GuildText) {
+            const textChannel = interaction.channel as TextChannel;
+            if (textChannel.deletable) {
+              await textChannel.send('Bu kanal 5 saniye içinde silinecek...');
+              await new Promise(resolve => setTimeout(resolve, 5000));
+              await textChannel.delete('Ticket kapatıldı');
+              console.log(`Ticket kanalı silindi: ${textChannel.name}`);
+            }
+          }
+        } catch (error) {
+          console.error('Kanal silinirken hata:', error);
+        }
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error closing ticket with button:', error);
+      await interaction.editReply('Ticket kapatılırken bir hata oluştu.');
+    }
   }
   
   // Handle add attribute button
