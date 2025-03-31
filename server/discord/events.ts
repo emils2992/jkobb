@@ -537,8 +537,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Aynı nitelik için olan istekleri topla
       for (const request of approvedRequests) {
-        const currentValue = attributeMap.get(request.attributeName) || 0;
-        attributeMap.set(request.attributeName, currentValue + request.valueRequested);
+        attributeMap.set(request.attributeName, request.valueRequested); // Corrected line
       }
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
@@ -726,8 +725,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
       for (const request of attributeRequests) {
         if (request.approved) {
-          const currentValue = attributeMap.get(request.attributeName) || 0;
-          attributeMap.set(request.attributeName, currentValue + request.valueRequested);
+          attributeMap.set(request.attributeName, request.valueRequested); // Corrected line
         }
       }
 
