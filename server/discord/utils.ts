@@ -24,6 +24,8 @@ export function parseAttributeRequest(content: string): { name: string, value: n
     /(.+)\s+\+(\d+)/i
   ];
   
+  console.log(`[parseAttributeRequest] Parsing: "${content}"`);
+  
   for (const pattern of patterns) {
     const match = content.match(pattern);
     if (match) {

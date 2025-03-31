@@ -197,7 +197,7 @@ export function setupEventHandlers() {
                 for (const request of approvedRequests) {
                   // Nitelik adını ve tam olarak istenen değeri kullan
                   attributeMap.set(request.attributeName, request.valueRequested);
-                  console.log(`[TAMAMEN YENİ METOT] Nitelik talebi: ${request.attributeName} için +${request.valueRequested}`);
+                  console.log(`[TAMAMEN YENİ METOT] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested}`);
                 }
 
                 // Her nitelik için sadece bir kez güncelleme yapacağız
@@ -588,9 +588,10 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
       for (const request of sortedRequests) {
-        // Nitelik adını ve tam olarak istenen değeri kullan
+        // Nitelik adını ve tam olarak istenen değeri kullan - kesinlikle çarpma yok
+        // Değerler yazılırken son güncellenen değeri yazıyoruz (nitelik başına tek güncelleme)
         attributeMap.set(request.attributeName, request.valueRequested);
-        console.log(`[YENİ METOT - BUTON] Nitelik talebi: ${request.attributeName} için +${request.valueRequested}`);
+        console.log(`[YENİ METOT - BUTON] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested}`);
       }
 
       // Her nitelik için sadece bir kez güncelleme yapacağız
@@ -814,7 +815,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
         // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
         attributeMap.set(request.attributeName, request.valueRequested);
-        console.log(`[YENİ METOT - MODAL] Nitelik talebi: ${request.attributeName} için +${request.valueRequested}`);
+        console.log(`[YENİ METOT - MODAL] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested}`);
       }
 
       // Her nitelik için sadece bir kez güncelleme yapacağız
