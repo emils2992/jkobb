@@ -14,7 +14,7 @@ interface NavItem {
   label: string;
   href: string;
   isBotCommand?: boolean;
-  isHidden?: boolean;
+  hasShortcut?: boolean;
 }
 
 interface NavSection {
@@ -33,22 +33,26 @@ export default function Sidebar() {
         {
           icon: "fas fa-ticket-alt",
           label: "Aktif Ticketlar",
-          href: "/"
+          href: "/",
+          hasShortcut: true
         },
         {
           icon: "fas fa-chart-line",
           label: "Nitelik İstatistikleri",
-          href: "/player-stats"
+          href: "/player-stats",
+          hasShortcut: true
         },
         {
           icon: "fas fa-running",
           label: "Antrenman Takibi",
-          href: "/training"
+          href: "/training",
+          hasShortcut: true
         },
         {
           icon: "fas fa-cog",
           label: "Ayarlar",
-          href: "/settings"
+          href: "/settings",
+          hasShortcut: true
         }
       ]
     },
@@ -66,35 +70,6 @@ export default function Sidebar() {
           label: "/fixreset",
           isBotCommand: true,
           href: "/player-stats"
-        },
-        // Gizlenecek komutlar - menüde görünmeyecek, dropdown'dan erişilebilecek
-        {
-          icon: "fas fa-check-circle",
-          label: "/dogrula",
-          isBotCommand: true,
-          href: "/player-stats",
-          isHidden: true
-        },
-        {
-          icon: "fas fa-times-circle",
-          label: "/kapat",
-          isBotCommand: true,
-          href: "/player-stats",
-          isHidden: true
-        },
-        {
-          icon: "fas fa-clipboard-list",
-          label: "/antrenmanlog",
-          isBotCommand: true,
-          href: "/training",
-          isHidden: true
-        },
-        {
-          icon: "fas fa-clipboard-check",
-          label: "/fixlog",
-          isBotCommand: true,
-          href: "/player-stats",
-          isHidden: true
         }
       ]
     }
@@ -113,9 +88,13 @@ export default function Sidebar() {
       
       <nav className="p-2">
         {navItems.map((section, index) => {
-          // Her bölüm için gizli öğeleri filtrele
-          const visibleItems = section.items.filter(item => !item.isHidden);
-          const hiddenItems = section.items.filter(item => item.isHidden);
+          // Menüde her zaman görünecek öğeler
+          const sectionItems = section.items;
+          
+          // Kısayol dropdown menüsüne eklenecek öğeler
+          const shortcutItems = section.title === "Kontrol Paneli" 
+            ? section.items.filter(item => item.hasShortcut)
+            : [];
           
           return (
             <div key={index}>
@@ -124,8 +103,8 @@ export default function Sidebar() {
                   {section.title}
                 </h2>
                 
-                {/* 3 nokta menüsü - sadece gizli öğeler varsa göster */}
-                {hiddenItems.length > 0 && (
+                {/* 3 nokta menüsü - Kontrol Paneli bölümünde */}
+                {section.title === "Kontrol Paneli" && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="p-1 rounded hover:bg-gray-700 text-discord-light">
@@ -134,9 +113,9 @@ export default function Sidebar() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 bg-gray-800 border border-gray-700 text-discord-light">
                       <div className="py-1 px-2 border-b border-gray-700 mb-1 text-xs font-semibold uppercase">
-                        Diğer Komutlar
+                        Hızlı Erişim
                       </div>
-                      {hiddenItems.map((item, hiddenIndex) => (
+                      {shortcutItems.map((item, hiddenIndex) => (
                         <DropdownMenuItem key={hiddenIndex} className="focus:bg-gray-700 focus:text-white">
                           <Link href={item.href}>
                             <div className="flex items-center space-x-2 w-full text-left py-1">
@@ -152,7 +131,7 @@ export default function Sidebar() {
               </div>
               
               <ul>
-                {visibleItems.map((item, itemIndex) => (
+                {sectionItems.map((item, itemIndex) => (
                   <li key={itemIndex}>
                     <Link href={item.href}>
                       <div className={cn(
