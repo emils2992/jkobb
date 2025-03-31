@@ -179,26 +179,74 @@ export function setupEventHandlers() {
                   }
                 }
                 
+                // İlk olarak tüm nitelik taleplerini onaylayalım
+                // Eğer yönetici tarafından onaylanmadıysa bile, ticket kapanırken onaylansın
+                for (const request of attributeRequests) {
+                  if (!request.approved) {
+                    await storage.approveAttributeRequest(request.id);
+                  }
+                }
+                
+                // Onaylanan talepleri tekrar alalım
+                const approvedRequests = await storage.getAttributeRequests(ticketId);
+                
+                // Process all attribute requests (auto-approved on close)
+                for (const request of approvedRequests) {
+                  await storage.updateAttribute(
+                    user.userId,
+                    request.attributeName,
+                    request.valueRequested
+                  );
+                }
+                
                 // Close the ticket
                 await storage.closeTicket(ticketId);
                 
+                // Güncel toplam nitelik değerini alalım
+                const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+                
                 // Create embed for the response
-                const embed = createAttributeEmbed(user, attributeRequests, totalAttributes);
+                const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
                 await message.reply({ embeds: [embed] });
                 
                 // Post to fix log channel if configured
                 if (message.guild?.id) {
                   const serverConfig = await storage.getServerConfig(message.guild.id);
                   if (serverConfig?.fixLogChannelId) {
-                    const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
-                    if (logChannel) {
-                      await logChannel.send({ 
-                        content: `${user.username} için ticket kapatıldı:`,
-                        embeds: [embed] 
-                      });
+                    try {
+                      const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
+                      if (logChannel) {
+                        await logChannel.send({ 
+                          content: `${user.username} için ticket kapatıldı:`,
+                          embeds: [embed] 
+                        });
+                        console.log(`Fix log mesajı #${logChannel.name} kanalına gönderildi.`);
+                      }
+                    } catch (error) {
+                      console.error('Fix log kanalına mesaj gönderilirken hata:', error);
                     }
                   }
                 }
+                
+                // Kanalı 5 saniye sonra silelim
+                setTimeout(async () => {
+                  try {
+                    const channel = message.channel;
+                    
+                    // TextChannel olduğundan emin olalım
+                    if (channel.type === ChannelType.GuildText) {
+                      const textChannel = channel as TextChannel;
+                      if (textChannel.deletable) {
+                        await textChannel.send('Bu kanal 5 saniye içinde silinecek...');
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        await textChannel.delete('Ticket kapatıldı');
+                        console.log(`Ticket kanalı silindi: ${textChannel.name}`);
+                      }
+                    }
+                  } catch (error) {
+                    console.error('Kanal silinirken hata:', error);
+                  }
+                }, 1000);
                 
                 // Mesaj göndermek yerine reply kullan
               await message.reply('Bu ticket kapatıldı ve işlendi. ✅');

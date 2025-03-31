@@ -6,6 +6,9 @@ import {
   trainingSessions, TrainingSession, InsertTrainingSession,
   serverConfig, ServerConfig, InsertServerConfig
 } from "@shared/schema";
+import pg from 'pg';
+const { Pool } = pg;
+import { PgStorage } from './pgStorage';
 
 export interface IStorage {
   // User operations
@@ -424,4 +427,13 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// PostgreSQL veritabanı bağlantısını kur
+console.log('PostgreSQL veritabanı depolaması kullanılıyor');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+let storage: IStorage = new PgStorage(pool);
+
+export { storage };

@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initDiscordBot } from "./discord";
+import { initDatabase } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -65,12 +66,19 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     log(`serving on port ${port}`);
     
-    // Initialize Discord bot
-    initDiscordBot()
-      .then(() => log('Discord bot initialization process completed'))
-      .catch(error => console.error('Error in Discord bot initialization:', error));
+    try {
+      // Veritabanını başlat
+      await initDatabase();
+      log('Veritabanı başarıyla başlatıldı');
+      
+      // Initialize Discord bot
+      await initDiscordBot();
+      log('Discord bot initialization process completed');
+    } catch (error) {
+      console.error('Error in initialization:', error);
+    }
   });
 })();

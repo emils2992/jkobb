@@ -51,20 +51,47 @@ export function createAttributeEmbed(
   const embed = new EmbedBuilder()
     .setTitle('🎫 Ticket Kapatıldı')
     .setColor('#43B581')
-    .setDescription(`${user.username} adlı oyuncunun nitelik talebi tamamlandı.`)
+    .setDescription(`**${user.username}** adlı oyuncunun nitelik talebi tamamlandı.`)
     .setTimestamp();
   
   const approvedRequests = attributeRequests.filter(req => req.approved);
   const pendingRequests = attributeRequests.filter(req => !req.approved);
   
-  // Toplam değeri göster
+  // Toplam değeri ve nitelik listesini göster
   embed.addFields({
     name: '📊 Toplam Kazanılan Nitelik',
     value: `**+${totalAttributes}** puan`,
     inline: false
   });
+
+  // Nitelik kategorilerine göre gruplandırma
+  const attributesByCategory: Record<string, AttributeRequest[]> = {};
   
-  if (approvedRequests.length > 0) {
+  for (const request of approvedRequests) {
+    const category = getCategoryForAttribute(request.attributeName) || 'Diğer';
+    if (!attributesByCategory[category]) {
+      attributesByCategory[category] = [];
+    }
+    attributesByCategory[category].push(request);
+  }
+  
+  // Her kategori için ayrı alan ekle
+  for (const [category, requests] of Object.entries(attributesByCategory)) {
+    if (requests.length > 0) {
+      const requestsText = requests
+        .map(req => `**${req.attributeName}**: +${req.valueRequested}`)
+        .join('\n');
+      
+      embed.addFields({
+        name: `✅ ${category} Nitelikleri`,
+        value: requestsText,
+        inline: true
+      });
+    }
+  }
+  
+  // Eğer hiç kategorize edilmiş nitelik yoksa genel liste göster
+  if (Object.keys(attributesByCategory).length === 0 && approvedRequests.length > 0) {
     const requestsText = approvedRequests
       .map(req => `**${req.attributeName}**: +${req.valueRequested}`)
       .join('\n');
@@ -82,7 +109,7 @@ export function createAttributeEmbed(
       .join('\n');
     
     embed.addFields({
-      name: '❌ Reddedilen Nitelikler',
+      name: '❌ Onaylanmayan Nitelikler',
       value: requestsText,
       inline: false
     });
