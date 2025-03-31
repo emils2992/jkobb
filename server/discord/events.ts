@@ -28,14 +28,14 @@ export function setupEventHandlers() {
       if (interaction.isChatInputCommand()) {
         const { commandName } = interaction;
         const command = commands.get(commandName);
-        
+
         if (!command) return;
-        
+
         try {
           await command(interaction);
         } catch (error) {
           console.error(`Error executing command ${commandName}:`, error);
-          
+
           // Hata mesajları tek bir yerden yönetiliyor
           if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ 
@@ -51,7 +51,7 @@ export function setupEventHandlers() {
           }
         }
       }
-      
+
       // Handle button interactions
       else if (interaction.isButton()) {
         try {
@@ -66,7 +66,7 @@ export function setupEventHandlers() {
           }
         }
       }
-      
+
       // Handle modal submissions
       else if (interaction.isModalSubmit()) {
         try {
@@ -89,22 +89,22 @@ export function setupEventHandlers() {
   // Handle messages for attribute requests in tickets and training
   client.on(Events.MessageCreate, async (message: Message) => {
     if (message.author.bot) return;
-    
+
     try {
       // Önce mesaj içeriğinde "evet", "hayır" veya emoji olup olmadığını kontrol et
       const isReactionMessage = message.content.toLowerCase().includes('evet') || 
                              message.content.toLowerCase().includes('hayır') ||
                              message.content.includes('✅') || 
                              message.content.includes('❌');
-      
+
       // Önce ticket channel kontrolü yap
       const ticketId = message.channelId;
       const ticket = await storage.getTicket(ticketId);
-      
+
       if (ticket && ticket.status !== 'closed' && !isReactionMessage) {
         // Bu bir ticket kanalıdır ve reaksiyon mesajı değildir, nitelik taleplerini işle
         const attributeRequest = parseAttributeRequest(message.content);
-        
+
         if (attributeRequest) {
           try {
             // Save the attribute request
@@ -114,7 +114,7 @@ export function setupEventHandlers() {
               valueRequested: attributeRequest.value,
               approved: false
             });
-            
+
             // Acknowledge the request
             const embed = new EmbedBuilder()
               .setTitle('📝 Nitelik Talebi Alındı')
@@ -124,7 +124,7 @@ export function setupEventHandlers() {
                 { name: 'Değer', value: `+${attributeRequest.value}`, inline: true }
               )
               .setTimestamp();
-            
+
             await message.reply({ embeds: [embed] });
           } catch (error) {
             console.error('Error processing attribute request:', error);
@@ -132,42 +132,42 @@ export function setupEventHandlers() {
           }
         }
       }
-      
+
       // Emoji reaksiyonlarını işle - ticket kapatma
       if (message.reference && message.reference.messageId) {
         // Mesaj bir yanıt ise
         try {
           const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
-          
+
           // Reaksiyonları ve ticket kapatma mesajını kontrol et
           if (referencedMessage.embeds.length > 0 && 
               referencedMessage.embeds[0].title === '❓ Ticket Kapatma Onayı') {
-            
+
             // Evet (✅) reaksiyonu varsa, ya da mesaj içeriğinde "evet" veya ✅ emojisi varsa
             if (message.content.includes('✅') || message.content.toLowerCase().includes('evet')) {
               // Ticket kapatma işlemini burada ele alıyoruz
               const ticketId = message.channel.id;
               const ticket = await storage.getTicket(ticketId);
-              
+
               if (!ticket) {
                 return message.reply('Bu bir ticket kanalı değil.');
               }
-              
+
               if (ticket.status === 'closed') {
                 return message.reply('Bu ticket zaten kapatılmış.');
               }
-              
+
               try {
                 // Get attribute requests for this ticket
                 const attributeRequests = await storage.getAttributeRequests(ticketId);
                 const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-                
+
                 // Update user's attributes
                 const user = await storage.getUserById(ticket.userId);
                 if (!user) {
                   return message.reply('Bu ticketin sahibi bulunamadı.');
                 }
-                
+
                 // İlk olarak tüm nitelik taleplerini onaylayalım
                 // Eğer yönetici tarafından onaylanmadıysa bile, ticket kapanırken onaylansın
                 for (const request of attributeRequests) {
@@ -175,19 +175,19 @@ export function setupEventHandlers() {
                     await storage.approveAttributeRequest(request.id);
                   }
                 }
-                
+
                 // Onaylanan talepleri tekrar alalım
                 const approvedRequests = await storage.getAttributeRequests(ticketId);
-                
+
                 // Process all attribute requests (auto-approved on close) - ONLY ONCE
                 // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
                 const attributeMap = new Map<string, number>();
-                
+
                 for (const request of approvedRequests) {
                   const currentValue = attributeMap.get(request.attributeName) || 0;
                   attributeMap.set(request.attributeName, currentValue + request.valueRequested);
                 }
-                
+
                 // Şimdi tek seferde güncelleyelim
                 // entries() kullanmak yerine Array.from kullanarak uyumluluk sorunu çözülür
                 for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
@@ -200,17 +200,17 @@ export function setupEventHandlers() {
                     true // 'absoluteValue' parametresini true olarak ayarlıyoruz, böylece değer doğrudan atanacak
                   );
                 }
-                
+
                 // Close the ticket
                 await storage.closeTicket(ticketId);
-                
+
                 // Güncel toplam nitelik değerini alalım
                 const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-                
+
                 // Create embed for the response
                 const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
                 await message.reply({ embeds: [embed] });
-                
+
                 // Post to fix log channel if configured
                 if (message.guild?.id) {
                   const serverConfig = await storage.getServerConfig(message.guild.id);
@@ -229,12 +229,12 @@ export function setupEventHandlers() {
                     }
                   }
                 }
-                
+
                 // Kanalı 5 saniye sonra silelim
                 setTimeout(async () => {
                   try {
                     const channel = message.channel;
-                    
+
                     // TextChannel olduğundan emin olalım
                     if (channel.type === ChannelType.GuildText) {
                       const textChannel = channel as TextChannel;
@@ -249,7 +249,7 @@ export function setupEventHandlers() {
                     console.error('Kanal silinirken hata:', error);
                   }
                 }, 1000);
-                
+
                 // Mesaj göndermek yerine reply kullan
               await message.reply('Bu ticket kapatıldı ve işlendi. ✅');
               } catch (error) {
@@ -257,7 +257,7 @@ export function setupEventHandlers() {
                 await message.reply('Ticket kapatılırken bir hata oluştu.');
               }
             }
-            
+
             // Hayır (❌) reaksiyonu varsa
             if (message.content.includes('❌') || message.content.toLowerCase().includes('hayır')) {
               await message.reply('Ticket kapatma işlemi iptal edildi.');
@@ -267,11 +267,11 @@ export function setupEventHandlers() {
           console.error('Error processing reaction message:', error);
         }
       }
-      
+
       // Antrenman mesajlarını kontrol et
       if (message.guild) {
         const serverConfig = await storage.getServerConfig(message.guild.id);
-        
+
         // Antrenman kanalındaysa kontrol et
         if (serverConfig?.trainingChannelId && message.channelId === serverConfig.trainingChannelId) {
           // Kullanıcıyı oluştur veya al
@@ -280,30 +280,30 @@ export function setupEventHandlers() {
             message.author.username,
             message.author.displayAvatarURL()
           );
-          
+
           // Kullanıcının niteliklerini al
           const attributes = await storage.getAttributes(user.userId);
-          
+
           // Kullanıcının son antrenman kaydını al
           const trainingSessions = await storage.getTrainingSessions(user.userId);
           let lastTrainingTime: Date | null = null;
-          
+
           if (trainingSessions.length > 0) {
             const lastSession = trainingSessions.sort((a, b) => 
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             )[0];
             lastTrainingTime = new Date(lastSession.createdAt);
           }
-          
+
           // Antrenman mesajını analiz et
           const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
-          
+
           if (trainingInfo) {
             // Antrenman yapılabilir mi kontrol et
             if (!trainingInfo.isAllowed) {
               // Daha çok beklenmesi gerekiyorsa bilgilendir
               const hoursLeft = Math.max(0, trainingInfo.hoursRequired - trainingInfo.timeSinceLastTraining).toFixed(1);
-              
+
               const embed = new EmbedBuilder()
                 .setTitle('⏱️ Antrenman Limiti')
                 .setColor('#e74c3c')
@@ -315,12 +315,12 @@ export function setupEventHandlers() {
                   { name: 'Kalan Süre', value: `${hoursLeft} saat`, inline: true }
                 )
                 .setTimestamp();
-              
+
               await message.reply({ embeds: [embed] });
               await message.react('⏱️');
               return;
             }
-            
+
             // Antrenman oturumu oluştur
             const session = await storage.createTrainingSession({
               userId: user.userId,
@@ -333,7 +333,7 @@ export function setupEventHandlers() {
               messageId: message.id,
               channelId: message.channelId
             });
-            
+
             // Kullanıcının niteliklerini güncelle (sadece haftalık değeri artırıyoruz)
             // SADECE haftalık değeri artır, toplam değeri değiştirme
             await storage.updateAttribute(
@@ -344,10 +344,10 @@ export function setupEventHandlers() {
               false, // absoluteValue false ise çarpılma olabilir
               true // onlyUpdateWeekly - sadece haftalık değeri güncelle
             );
-            
+
             // Onaylamak için emoji ekle
             await message.react('🏋️');
-            
+
             // Antrenmanı kaydet
             const embed = new EmbedBuilder()
               .setTitle('🏋️ Antrenman Kaydı')
@@ -361,7 +361,7 @@ export function setupEventHandlers() {
                 { name: 'Sonraki Antrenman', value: `${trainingInfo.hoursRequired} saat sonra yapılabilir`, inline: false }
               )
               .setTimestamp();
-            
+
             await message.reply({ embeds: [embed] });
           }
         }
@@ -375,24 +375,24 @@ export function setupEventHandlers() {
 // Handle button interactions
 async function handleButtonInteraction(interaction: ButtonInteraction) {
   const { customId } = interaction;
-  
+
   // Handle create ticket button
   if (customId === 'create_ticket') {
     await interaction.deferReply({ ephemeral: true });
-    
+
     try {
       const guild = interaction.guild;
       if (!guild) {
         return interaction.editReply('Bu komut sadece sunucularda kullanılabilir.');
       }
-      
+
       // Create user if doesn't exist
       await storage.getOrCreateUser(
         interaction.user.id,
         interaction.user.username,
         interaction.user.displayAvatarURL()
       );
-      
+
       // Create ticket channel - visible to everyone but only user can send messages
       const channel = await guild.channels.create({
         name: `ticket-${interaction.user.username}-${Date.now().toString().slice(-4)}`,
@@ -427,7 +427,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           }
         ]
       });
-      
+
       // Create ticket in database
       const ticket = await storage.createTicket({
         ticketId: channel.id,
@@ -435,16 +435,16 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         status: 'open',
         type: 'attribute'
       });
-      
+
       // Get player stats to show in the ticket
       const playerStats = await storage.getPlayerAttributeStats(interaction.user.id);
       const playerStat = playerStats && playerStats.length > 0 ? playerStats[0] : null;
-      
+
       // Prepare player stats text
       let statsText = '';
       if (playerStat) {
         statsText = `\n\n**Mevcut Nitelik Durumu:**\nToplam Nitelik: **${playerStat.totalValue}**\nBu Hafta: **${playerStat.weeklyValue}**`;
-        
+
         if (playerStat.attributes && playerStat.attributes.length > 0) {
           statsText += '\n\n**Detaylı Nitelikler:**\n';
           playerStat.attributes.forEach((attr: { name: string, value: number }) => {
@@ -452,14 +452,14 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           });
         }
       }
-      
+
       // Send initial message in the ticket channel
       const embed = new EmbedBuilder()
         .setTitle('🎫 Yeni Nitelik Talebi')
         .setColor('#5865F2')
         .setDescription(`${interaction.user} tarafından açıldı.\n\nNitelik talebini aşağıdaki formatta gönderebilirsin:\n\`\`\`Nitelik: +2 Hız\nNitelik: +1 Şut\n\`\`\`${statsText}`)
         .setTimestamp();
-      
+
       const row = new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
           new ButtonBuilder()
@@ -471,16 +471,16 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             .setLabel('Nitelik Ekle')
             .setStyle(ButtonStyle.Primary)
         );
-      
+
       await channel.send({ embeds: [embed], components: [row] });
-      
+
       await interaction.editReply(`Ticket oluşturuldu: <#${channel.id}>`);
     } catch (error) {
       console.error('Error creating ticket:', error);
       await interaction.editReply('Ticket oluşturulurken bir hata oluştu.');
     }
   }
-  
+
   // Handle close ticket button
   if (customId === 'close_ticket') {
     // Check if this is a ticket channel
@@ -491,80 +491,80 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         ephemeral: true
       });
     }
-    
+
     const ticket = await storage.getTicket(ticketId);
-    
+
     if (!ticket) {
       return interaction.reply({
         content: 'Bu bir ticket kanalı değil.',
         ephemeral: true
       });
     }
-    
+
     if (ticket.status === 'closed') {
       return interaction.reply({
         content: 'Bu ticket zaten kapatılmış.',
         ephemeral: true
       });
     }
-    
+
     await interaction.deferReply();
-    
+
     try {
       // Get attribute requests for this ticket
       const attributeRequests = await storage.getAttributeRequests(ticketId);
       const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-      
+
       // Get user
       const user = await storage.getUserById(ticket.userId);
       if (!user) {
         return interaction.editReply('Bu ticketin sahibi bulunamadı.');
       }
-      
+
       // Auto-approve remaining attribute requests
       for (const request of attributeRequests) {
         if (!request.approved) {
           await storage.approveAttributeRequest(request.id);
         }
       }
-      
+
       // Get updated attribute requests
       const approvedRequests = await storage.getAttributeRequests(ticketId);
-      
+
       // Process all approved attribute requests ONCE
       // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
       const attributeMap = new Map<string, number>();
-                
+
       for (const request of approvedRequests) {
         const currentValue = attributeMap.get(request.attributeName) || 0;
         attributeMap.set(request.attributeName, currentValue + request.valueRequested);
       }
-                
-      
+
+
 // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          totalValue, 
+          request.valueRequested,
           undefined,
-          true // absoluteValue parametresini true olarak ayarlıyoruz
+          false // absoluteValue parametresini false olarak ayarlıyoruz
         );
       }
       // Close the ticket
       await storage.closeTicket(ticketId);
-      
+
       // Get updated total attribute count
       const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-      
+
       // Create embed for response
       const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
       await interaction.editReply({ embeds: [embed] });
-      
+
       // Post to fix log channel if configured
       if (interaction.guild?.id) {
-        const serverConfig = await storage.getServerConfig(interaction.guild.id);
+        const serverConfig = await storage.getServerConfig(interaction.guild?.id);
         if (serverConfig?.fixLogChannelId) {
           try {
             const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
@@ -580,7 +580,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           }
         }
       }
-      
+
       // Delete the channel after a delay
       setTimeout(async () => {
         try {
@@ -597,13 +597,13 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           console.error('Kanal silinirken hata:', error);
         }
       }, 3000);
-      
+
     } catch (error) {
       console.error('Error closing ticket with button:', error);
       await interaction.editReply('Ticket kapatılırken bir hata oluştu.');
     }
   }
-  
+
   // Handle add attribute button
   if (customId === 'add_attribute') {
     // Check if this is a ticket channel
@@ -614,7 +614,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         ephemeral: true
       });
     }
-    
+
     // Yalnızca yönetici yetkisine sahip kullanıcıların nitelik eklemesine izin ver
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
       return interaction.reply({
@@ -622,47 +622,47 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         ephemeral: true
       });
     }
-    
+
     const ticket = await storage.getTicket(ticketId);
-    
+
     if (!ticket) {
       return interaction.reply({
         content: 'Bu bir ticket kanalı değil.',
         ephemeral: true
       });
     }
-    
+
     if (ticket.status === 'closed') {
       return interaction.reply({
         content: 'Bu ticket kapatılmış, nitelik eklenemez.',
         ephemeral: true
       });
     }
-    
+
     // Create attribute modal
     const modal = new ModalBuilder()
       .setCustomId('add_attribute_modal')
       .setTitle('Nitelik Ekle');
-    
+
     const nameInput = new TextInputBuilder()
       .setCustomId('attribute_name')
       .setLabel('Nitelik Adı')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('Örn: Hız, Şut, Pas')
       .setRequired(true);
-    
+
     const valueInput = new TextInputBuilder()
       .setCustomId('attribute_value')
       .setLabel('Nitelik Değeri')
       .setStyle(TextInputStyle.Short)
       .setPlaceholder('Pozitif bir sayı girin (1-10)')
       .setRequired(true);
-    
+
     const nameRow = new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput);
     const valueRow = new ActionRowBuilder<TextInputBuilder>().addComponents(valueInput);
-    
+
     modal.addComponents(nameRow, valueRow);
-    
+
     await interaction.showModal(modal);
   }
 }
@@ -670,19 +670,19 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 // Handle modal submissions
 async function handleModalSubmit(interaction: ModalSubmitInteraction) {
   const { customId } = interaction;
-  
+
   // Handle ticket close confirmation
   if (customId === 'close_ticket_confirm') {
     try {
       const confirmation = interaction.fields.getTextInputValue('confirmation');
-      
+
       if (confirmation !== 'KAPAT') {
         return await interaction.reply({
           content: 'Ticket kapatma işlemi iptal edildi.',
           ephemeral: true
         });
       }
-      
+
       // Direkt işlemi burada yapıyoruz, command kullanmak yerine
       const ticketId = interaction.channelId;
       if (!ticketId) {
@@ -691,65 +691,65 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           ephemeral: true
         });
       }
-      
+
       const ticket = await storage.getTicket(ticketId);
-      
+
       if (!ticket) {
         return await interaction.reply({
           content: 'Bu bir ticket kanalı değil.',
           ephemeral: true
         });
       }
-      
+
       if (ticket.status === 'closed') {
         return await interaction.reply({
           content: 'Bu ticket zaten kapatılmış.',
           ephemeral: true
         });
       }
-      
+
       await interaction.deferReply();
-      
+
       // Ticket kapatma işlemleri
       const attributeRequests = await storage.getAttributeRequests(ticketId);
       const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-      
+
       // Update user's attributes
       const user = await storage.getUserById(ticket.userId);
       if (!user) {
         return await interaction.editReply('Bu ticketin sahibi bulunamadı.');
       }
-      
+
       // Process approved attribute requests
       // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
       const attributeMap = new Map<string, number>();
-      
+
       for (const request of attributeRequests) {
         if (request.approved) {
           const currentValue = attributeMap.get(request.attributeName) || 0;
           attributeMap.set(request.attributeName, currentValue + request.valueRequested);
         }
       }
-      
-      
+
+
 // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          totalValue, 
+          request.valueRequested,
           undefined,
-          true // absoluteValue parametresini true olarak ayarlıyoruz
+          false // absoluteValue parametresini false olarak ayarlıyoruz
         );
       }
       // Close the ticket
       await storage.closeTicket(ticketId);
-      
+
       // Create embed for the response
       const embed = createAttributeEmbed(user, attributeRequests, totalAttributes);
       await interaction.editReply({ embeds: [embed] });
-      
+
       // Post to fix log channel if configured
       if (interaction.guildId) {
         const serverConfig = await storage.getServerConfig(interaction.guildId);
@@ -776,39 +776,39 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       }
     }
   }
-  
+
   // Handle add attribute modal
   if (customId === 'add_attribute_modal') {
     const attributeName = interaction.fields.getTextInputValue('attribute_name');
     const attributeValueStr = interaction.fields.getTextInputValue('attribute_value');
-    
+
     const attributeValue = parseInt(attributeValueStr, 10);
-    
+
     if (isNaN(attributeValue) || attributeValue < 1 || attributeValue > 10) {
       return interaction.reply({
         content: 'Geçersiz nitelik değeri. 1 ile 10 arasında bir sayı girin.',
         ephemeral: true
       });
     }
-    
+
     try {
       // Save attribute request
       const ticketId = interaction.channelId;
-      
+
       if (!ticketId) {
         return interaction.reply({
           content: 'Kanal bilgisi alınamadı.',
           ephemeral: true
         });
       }
-      
+
       await storage.createAttributeRequest({
         ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
         attributeName,
         valueRequested: attributeValue,
         approved: false
       });
-      
+
       // Create response embed
       const embed = new EmbedBuilder()
         .setTitle('📝 Nitelik Talebi Eklendi')
@@ -818,7 +818,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           { name: 'Değer', value: `+${attributeValue}`, inline: true }
         )
         .setTimestamp();
-      
+
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error adding attribute request:', error);
