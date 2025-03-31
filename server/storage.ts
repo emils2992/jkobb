@@ -133,19 +133,20 @@ export class MemStorage implements IStorage {
     userId: string, 
     attributeName: string, 
     value: number, 
-    weeklyValue?: number
+    weeklyValue?: number,
+    absoluteValue: boolean = false
   ): Promise<Attribute> {
     const existing = await this.getAttribute(userId, attributeName);
     const now = new Date();
     
     if (existing) {
-      // Nitelik değerleri sıfırlamak yerine daima mevcut değere ekleme yapıyoruz
+      // Eğer absoluteValue true ise, değeri doğrudan atıyoruz
       const updated: Attribute = {
         ...existing,
-        value: existing.value + value, // Mevcut değere ekleme yap
+        value: absoluteValue ? value : existing.value + value, // absoluteValue true ise değeri doğrudan ayarla, değilse ekle
         weeklyValue: weeklyValue !== undefined 
           ? weeklyValue 
-          : existing.weeklyValue + value, // Haftalık değere de ekleme yap
+          : existing.weeklyValue + value, // Haftalık değeri ayarla veya ekle
         updatedAt: now
       };
       this.attributes.set(existing.id, updated);
@@ -333,9 +334,14 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: now,
       userId: insertSession.userId,
-      ticketId: insertSession.ticketId || "", // Boş string varsayılan değer
+      ticketId: insertSession.ticketId || null, // null varsayılan değer
+      attributeName: insertSession.attributeName || "Genel Antrenman",
       duration: insertSession.duration,
-      attributesGained: insertSession.attributesGained
+      intensity: insertSession.intensity || 1,
+      attributesGained: insertSession.attributesGained,
+      source: insertSession.source || "training",
+      messageId: insertSession.messageId || null,
+      channelId: insertSession.channelId || null
     };
     
     this.trainingSessions.set(id, session);

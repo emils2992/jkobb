@@ -119,7 +119,14 @@ export class PgStorage implements IStorage {
   async resetAllAttributes(guildId: string): Promise<void> {
     // Tüm nitelikleri tamamen sıfırla (value ve weekly_value)
     await this.pool.query('UPDATE attributes SET value = 0, weekly_value = 0, updated_at = NOW()');
+    
+    // Ayrıca antrenman kayıtlarını da sıfırla
+    // NOT: Antrenman kayıtlarını tamamen silmiyoruz, sadece istatistiksel amaçlar için tutuyoruz
+    
+    // Son sıfırlama zamanını güncelle
     await this.updateLastReset(guildId);
+    
+    console.log(`Tüm nitelikler ve haftalık değerler sıfırlandı - ${new Date().toISOString()}`);
   }
 
   async getPlayerAttributeStats(userId?: string): Promise<any[]> {
@@ -275,12 +282,27 @@ export class PgStorage implements IStorage {
   // Training session operations
   async createTrainingSession(insertSession: InsertTrainingSession): Promise<TrainingSession> {
     const result = await this.pool.query(
-      'INSERT INTO training_sessions(user_id, ticket_id, duration, attributes_gained) VALUES($1, $2, $3, $4) RETURNING *',
+      `INSERT INTO training_sessions(
+        user_id, 
+        ticket_id, 
+        attribute_name,
+        duration, 
+        intensity,
+        attributes_gained,
+        source,
+        message_id,
+        channel_id
+      ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
       [
         insertSession.userId, 
         insertSession.ticketId || "", 
+        insertSession.attributeName || "Genel Antrenman",
         insertSession.duration, 
-        insertSession.attributesGained
+        insertSession.intensity || 1,
+        insertSession.attributesGained,
+        insertSession.source || "training",
+        insertSession.messageId || null,
+        insertSession.channelId || null
       ]
     );
     
@@ -447,8 +469,13 @@ export class PgStorage implements IStorage {
       id: pgSession.id,
       userId: pgSession.user_id,
       ticketId: pgSession.ticket_id,
+      attributeName: pgSession.attribute_name || "Genel Antrenman",
       duration: pgSession.duration,
+      intensity: pgSession.intensity || 1,
       attributesGained: pgSession.attributes_gained,
+      source: pgSession.source || "training",
+      messageId: pgSession.message_id,
+      channelId: pgSession.channel_id,
       createdAt: new Date(pgSession.created_at)
     };
   }

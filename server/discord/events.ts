@@ -189,7 +189,8 @@ export function setupEventHandlers() {
                 }
                 
                 // Şimdi tek seferde güncelleyelim
-                for (const [attributeName, totalValue] of attributeMap.entries()) {
+                // entries() kullanmak yerine Array.from kullanarak uyumluluk sorunu çözülür
+                for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
                   console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
                   await storage.updateAttribute(
                     user.userId,
@@ -324,12 +325,23 @@ export function setupEventHandlers() {
             const session = await storage.createTrainingSession({
               userId: user.userId,
               ticketId: "", // Boş string kullanıyoruz, null yerine
+              attributeName: trainingInfo.attributeName,
               duration: trainingInfo.duration,
-              attributesGained: trainingInfo.points
+              intensity: trainingInfo.intensity,
+              attributesGained: trainingInfo.points,
+              source: 'training',
+              messageId: message.id,
+              channelId: message.channelId
             });
             
-            // Kullanıcının niteliklerini güncelle
-            await storage.updateAttribute(user.userId, trainingInfo.attributeName, trainingInfo.points);
+            // Kullanıcının niteliklerini güncelle (sadece haftalık değeri artırıyoruz)
+            await storage.updateAttribute(
+              user.userId, 
+              trainingInfo.attributeName, 
+              0, // Toplam değeri artırmıyoruz
+              trainingInfo.points, // Haftalık değeri artırıyoruz
+              false
+            );
             
             // Onaylamak için emoji ekle
             await message.react('🏋️');
@@ -343,7 +355,7 @@ export function setupEventHandlers() {
                 { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
                 { name: 'Süre/Yoğunluk', value: `${trainingInfo.duration}/${trainingInfo.intensity}`, inline: true },
                 { name: 'Kazanılan Puan', value: `+${trainingInfo.points}`, inline: true },
-                { name: 'Mevcut Değer', value: `${trainingInfo.attributeValue + trainingInfo.points}`, inline: true },
+                { name: 'Haftalık İlerleme', value: `+${trainingInfo.points}`, inline: true },
                 { name: 'Sonraki Antrenman', value: `${trainingInfo.hoursRequired} saat sonra yapılabilir`, inline: false }
               )
               .setTimestamp();
@@ -528,7 +540,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
                 
       
 // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
-      for (const [attributeName, totalValue] of attributeMap.entries()) {
+      for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
@@ -719,7 +731,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       
       
 // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
-      for (const [attributeName, totalValue] of attributeMap.entries()) {
+      for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,

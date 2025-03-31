@@ -76,16 +76,26 @@ export const trainingSessions = pgTable("training_sessions", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(), // Discord user ID
   ticketId: text("ticket_id"), // Optional reference to a ticket
+  attributeName: text("attribute_name").notNull(), // The attribute being trained (e.g., 'kısa pas')
   duration: integer("duration").notNull(), // in minutes
-  attributesGained: integer("attributes_gained").notNull(),
+  intensity: integer("intensity").default(1).notNull(), // Training intensity (1-5)
+  attributesGained: integer("attributes_gained").notNull(), // Points gained from this training
+  source: text("source").default("training").notNull(), // 'training' or 'ticket'
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  messageId: text("message_id"), // Discord message ID for reference
+  channelId: text("channel_id"), // Discord channel ID where the training was posted
 });
 
 export const insertTrainingSessionSchema = createInsertSchema(trainingSessions).pick({
   userId: true,
   ticketId: true,
+  attributeName: true,
   duration: true,
+  intensity: true,
   attributesGained: true,
+  source: true,
+  messageId: true,
+  channelId: true,
 });
 
 // Server configuration
