@@ -20,6 +20,9 @@ import { commands } from './commands';
 import { storage } from '../storage';
 import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed } from './utils';
 
+// İşlenmiş mesaj ID'lerini global olarak saklayacak bir set
+const processedMessageIds = new Set<string>();
+
 export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
@@ -319,12 +322,21 @@ export function setupEventHandlers() {
           const matches = message.content.match(simpleTrainingPattern);
           
           if (matches && matches.length >= 4) {
-            // Depolama tarafında kontrol yapacağız, message_id değerini kullanarak
+            // Mesajın kimliğini kontrol et
             if (!message.id) {
               console.log('[ANTRENMAN] Mesaj ID bulunamadı, işlem yapılamıyor.');
               return;
             }
-            console.log(`[ANTRENMAN] Mesaj işleniyor: ${message.id}`);
+            
+            // Bu mesaj zaten işlendi mi kontrol et
+            if (processedMessageIds.has(message.id)) {
+              console.log(`[ANTRENMAN] Bu mesaj zaten bellek içinde işaretli, tekrar işlenmeyecek: ${message.id}`);
+              return;
+            }
+            
+            // Mesajı işlenmiş olarak işaretle
+            processedMessageIds.add(message.id);
+            console.log(`[ANTRENMAN] Yeni mesaj işleniyor, bellekte işaretlendi: ${message.id} (toplam işlenen mesaj: ${processedMessageIds.size})`);
             
             const duration = parseInt(matches[1], 10);
             const attributeName = matches[3].trim();
@@ -343,8 +355,10 @@ export function setupEventHandlers() {
               // Sabit olarak +1 puan ekleyeceğiz
               const attributeValue = 1;
               
+              // Veritabanında bu mesaj zaten var mı diye kontrol et
+              // Bu kontrol artık sadece günlük bilgi içindir, gerçek kontrol daha yukarıda yapılıyor
               // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
-              await storage.createTrainingSession({
+              const session = await storage.createTrainingSession({
                 userId: user.userId,
                 attributeName: attributeName,
                 ticketId: null,
