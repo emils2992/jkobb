@@ -8,12 +8,17 @@ import {
   ActionRowBuilder, 
   ButtonInteraction, 
   ModalSubmitInteraction, 
-  EmbedBuilder
+  EmbedBuilder,
+  ChannelType,
+  PermissionFlagsBits,
+  ButtonStyle,
+  ButtonBuilder,
+  TextChannel
 } from 'discord.js';
 import { client } from './bot';
 import { commands } from './commands';
 import { storage } from '../storage';
-import { parseAttributeRequest, parseTrainingMessage } from './utils';
+import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed } from './utils';
 
 export function setupEventHandlers() {
   // Handle command interactions
@@ -92,6 +97,91 @@ export function setupEventHandlers() {
             console.error('Error processing attribute request:', error);
             await message.reply('Nitelik talebi işlenirken bir hata oluştu.');
           }
+        }
+      }
+      
+      // Emoji reaksiyonlarını işle - ticket kapatma
+      if (message.reference && message.reference.messageId) {
+        // Mesaj bir yanıt ise
+        try {
+          const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
+          
+          // Reaksiyonları ve ticket kapatma mesajını kontrol et
+          if (referencedMessage.embeds.length > 0 && 
+              referencedMessage.embeds[0].title === '❓ Ticket Kapatma Onayı') {
+            
+            // Evet (✅) reaksiyonu varsa
+            if (message.content.includes('✅') || message.content.toLowerCase().includes('evet')) {
+              // Ticket kapatma işlemini burada ele alıyoruz
+              const ticketId = message.channel.id;
+              const ticket = await storage.getTicket(ticketId);
+              
+              if (!ticket) {
+                return message.reply('Bu bir ticket kanalı değil.');
+              }
+              
+              if (ticket.status === 'closed') {
+                return message.reply('Bu ticket zaten kapatılmış.');
+              }
+              
+              try {
+                // Get attribute requests for this ticket
+                const attributeRequests = await storage.getAttributeRequests(ticketId);
+                const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+                
+                // Update user's attributes
+                const user = await storage.getUserById(ticket.userId);
+                if (!user) {
+                  return message.reply('Bu ticketin sahibi bulunamadı.');
+                }
+                
+                // Process approved attribute requests
+                for (const request of attributeRequests) {
+                  if (request.approved) {
+                    await storage.updateAttribute(
+                      user.userId,
+                      request.attributeName,
+                      request.valueRequested
+                    );
+                  }
+                }
+                
+                // Close the ticket
+                await storage.closeTicket(ticketId);
+                
+                // Create embed for the response
+                const embed = createAttributeEmbed(user, attributeRequests, totalAttributes);
+                await message.reply({ embeds: [embed] });
+                
+                // Post to fix log channel if configured
+                if (message.guild?.id) {
+                  const serverConfig = await storage.getServerConfig(message.guild.id);
+                  if (serverConfig?.fixLogChannelId) {
+                    const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
+                    if (logChannel) {
+                      await logChannel.send({ 
+                        content: `${user.username} için ticket kapatıldı:`,
+                        embeds: [embed] 
+                      });
+                    }
+                  }
+                }
+                
+                // Mesaj göndermek yerine reply kullan
+              await message.reply('Bu ticket kapatıldı ve işlendi. ✅');
+              } catch (error) {
+                console.error('Error closing ticket:', error);
+                await message.reply('Ticket kapatılırken bir hata oluştu.');
+              }
+            }
+            
+            // Hayır (❌) reaksiyonu varsa
+            if (message.content.includes('❌') || message.content.toLowerCase().includes('hayır')) {
+              await message.reply('Ticket kapatma işlemi iptal edildi.');
+            }
+          }
+        } catch (error) {
+          console.error('Error processing reaction message:', error);
         }
       }
       
@@ -190,6 +280,100 @@ export function setupEventHandlers() {
 async function handleButtonInteraction(interaction: ButtonInteraction) {
   const { customId } = interaction;
   
+  // Handle create ticket button
+  if (customId === 'create_ticket') {
+    await interaction.deferReply({ ephemeral: true });
+    
+    try {
+      const guild = interaction.guild;
+      if (!guild) {
+        return interaction.editReply('Bu komut sadece sunucularda kullanılabilir.');
+      }
+      
+      // Create user if doesn't exist
+      await storage.getOrCreateUser(
+        interaction.user.id,
+        interaction.user.username,
+        interaction.user.displayAvatarURL()
+      );
+      
+      // Create ticket channel - visible to everyone
+      const channel = await guild.channels.create({
+        name: `ticket-${Date.now().toString().slice(-4)}`,
+        type: ChannelType.GuildText,
+        permissionOverwrites: [
+          {
+            id: guild.id, // @everyone role
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.ReadMessageHistory
+            ],
+            deny: []
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory
+            ]
+          }
+        ]
+      });
+      
+      // Create ticket in database
+      const ticket = await storage.createTicket({
+        ticketId: channel.id,
+        userId: interaction.user.id,
+        status: 'open',
+        type: 'attribute'
+      });
+      
+      // Get player stats to show in the ticket
+      const playerStats = await storage.getPlayerAttributeStats(interaction.user.id);
+      const playerStat = playerStats && playerStats.length > 0 ? playerStats[0] : null;
+      
+      // Prepare player stats text
+      let statsText = '';
+      if (playerStat) {
+        statsText = `\n\n**Mevcut Nitelik Durumu:**\nToplam Nitelik: **${playerStat.totalValue}**\nBu Hafta: **${playerStat.weeklyValue}**`;
+        
+        if (playerStat.attributes && playerStat.attributes.length > 0) {
+          statsText += '\n\n**Detaylı Nitelikler:**\n';
+          playerStat.attributes.forEach((attr: { name: string, value: number }) => {
+            statsText += `${attr.name}: **${attr.value}**\n`;
+          });
+        }
+      }
+      
+      // Send initial message in the ticket channel
+      const embed = new EmbedBuilder()
+        .setTitle('🎫 Yeni Nitelik Talebi')
+        .setColor('#5865F2')
+        .setDescription(`${interaction.user} tarafından açıldı.\n\nNitelik talebini aşağıdaki formatta gönderebilirsin:\n\`\`\`Nitelik: +2 Hız\nNitelik: +1 Şut\n\`\`\`${statsText}`)
+        .setTimestamp();
+      
+      const row = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('close_ticket')
+            .setLabel('Ticket\'ı Kapat')
+            .setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId('add_attribute')
+            .setLabel('Nitelik Ekle')
+            .setStyle(ButtonStyle.Primary)
+        );
+      
+      await channel.send({ embeds: [embed], components: [row] });
+      
+      await interaction.editReply(`Ticket oluşturuldu: <#${channel.id}>`);
+    } catch (error) {
+      console.error('Error creating ticket:', error);
+      await interaction.editReply('Ticket oluşturulurken bir hata oluştu.');
+    }
+  }
+  
   // Handle close ticket button
   if (customId === 'close_ticket') {
     // Check if this is a ticket channel
@@ -210,21 +394,20 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       });
     }
     
-    // Create confirmation modal
-    const modal = new ModalBuilder()
-      .setCustomId('close_ticket_confirm')
-      .setTitle('Ticket\'ı Kapat');
+    // Instead of opening a modal, directly send a confirmation message with emojis
+    await interaction.deferReply();
     
-    const confirmInput = new TextInputBuilder()
-      .setCustomId('confirmation')
-      .setLabel('Onaylamak için "KAPAT" yazın')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
+    const embed = new EmbedBuilder()
+      .setTitle('❓ Ticket Kapatma Onayı')
+      .setColor('#e74c3c')
+      .setDescription('Bu ticket\'ı kapatmak istediğinize emin misiniz?')
+      .setTimestamp();
+      
+    const message = await interaction.editReply({ embeds: [embed] });
     
-    const confirmRow = new ActionRowBuilder<TextInputBuilder>().addComponents(confirmInput);
-    modal.addComponents(confirmRow);
-    
-    await interaction.showModal(modal);
+    // Emojiler ekleyelim
+    await message.react('✅'); // Evet
+    await message.react('❌'); // Hayır
   }
   
   // Handle add attribute button
@@ -328,12 +511,16 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       // Save attribute request
       const ticketId = interaction.channelId;
       
-      await storage.createAttributeRequest({
-        ticketId,
-        attributeName,
-        valueRequested: attributeValue,
-        approved: false
-      });
+      if (ticketId) {
+        await storage.createAttributeRequest({
+          ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
+          attributeName,
+          valueRequested: attributeValue,
+          approved: false
+        });
+      } else {
+        throw new Error('Channel ID is null or undefined.');
+      }
       
       // Create response embed
       const embed = new EmbedBuilder()
