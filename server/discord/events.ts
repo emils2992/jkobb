@@ -191,13 +191,13 @@ export function setupEventHandlers() {
                 // Şimdi tek seferde güncelleyelim
                 // entries() kullanmak yerine Array.from kullanarak uyumluluk sorunu çözülür
                 for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-                  console.log(`Setting ${attributeName} value to ${totalValue} for user ${user.userId}`);
+                  console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
                   await storage.updateAttribute(
                     user.userId,
                     attributeName,
                     totalValue,
                     undefined,
-                    true // 'absoluteValue' parametresini true olarak ayarlıyoruz, böylece değer doğrudan atanacak
+                    false // 'absoluteValue' parametresini false yaparak ekleme yapmasını sağlıyoruz
                   );
                 }
 
@@ -537,18 +537,20 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Aynı nitelik için olan istekleri topla
       for (const request of approvedRequests) {
-        attributeMap.set(request.attributeName, request.valueRequested); // Corrected line
+        // Nitelik yoksa ata, varsa mevcut değere ekle
+        const currentValue = attributeMap.get(request.attributeName) || 0;
+        attributeMap.set(request.attributeName, currentValue + request.valueRequested);
       }
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-        console.log(`Setting ${attributeName} value to ${totalValue} for user ${user.userId}`);
+        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
           totalValue, // Use totalValue from attributeMap
           undefined,
-          true // absoluteValue parametresini true olarak ayarlıyoruz
+          false // absoluteValue parametresini false yaparak ekleme yapmasını sağlıyoruz
         );
       }
       // Close the ticket
@@ -725,20 +727,22 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
       for (const request of attributeRequests) {
         if (request.approved) {
-          attributeMap.set(request.attributeName, request.valueRequested); // Corrected line
+          // Nitelik yoksa ata, varsa mevcut değere ekle
+          const currentValue = attributeMap.get(request.attributeName) || 0;
+          attributeMap.set(request.attributeName, currentValue + request.valueRequested);
         }
       }
 
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-        console.log(`Setting ${attributeName} value to ${totalValue} for user ${user.userId}`);
+        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
           totalValue, // Use totalValue from attributeMap
           undefined,
-          true // absoluteValue parametresini true olarak ayarlıyoruz
+          false // absoluteValue parametresini false yaparak ekleme yapmasını sağlıyoruz
         );
       }
       // Close the ticket
