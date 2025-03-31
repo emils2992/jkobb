@@ -190,21 +190,23 @@ export function setupEventHandlers() {
 
                 // Her nitelik için sadece en son talebi haritaya ekleyelim
                 for (const request of sortedRequests) {
-                  // Burada her yeni talebi önceki değerin üzerine yazıyoruz
-                  // böylece en son eklenen talep haritada kalıyor
+                  // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
+                  // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
                   attributeMap.set(request.attributeName, request.valueRequested);
+                  console.log(`[KAPAT BUTONU] Ekleniyor: ${request.attributeName} için ${request.valueRequested} puan`);
                 }
 
                 // Şimdi tek seferde güncelleyelim
                 // entries() kullanmak yerine Array.from kullanarak uyumluluk sorunu çözülür
-                for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-                  console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
+                for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
+                  console.log(`[KAPAT BUTONU] Tam olarak ${valueToAdd} puan ekleniyor, ${attributeName} için, kullanıcı: ${user.userId}`);
+                  // Burada değer direkt olarak ekleniyor, çarpılmıyor
                   await storage.updateAttribute(
                     user.userId,
                     attributeName,
-                    totalValue,
+                    valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
                     undefined,
-                    false // absoluteValue false olsa bile artık güvenli çünkü pgStorage'da düzenleme yaptık
+                    false // absoluteValue=false: değeri ekle, değiştirme
                   );
                 }
 
@@ -549,20 +551,22 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Her nitelik için sadece en son talebi haritaya ekleyelim
       for (const request of sortedRequests) {
-        // Burada her yeni talebi önceki değerin üzerine yazıyoruz
-        // böylece en son eklenen talep haritada kalıyor
+        // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
+        // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
         attributeMap.set(request.attributeName, request.valueRequested);
+        console.log(`[CLOSE BUTTON] Ekleniyor: ${request.attributeName} için ${request.valueRequested} puan`);
       }
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
-      for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
+      for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
+        console.log(`[CLOSE BUTTON] Tam olarak ${valueToAdd} puan ekleniyor, ${attributeName} için, kullanıcı: ${user.userId}`);
+        // Burada değer direkt olarak ekleniyor, çarpılmıyor
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          totalValue, // Use totalValue from attributeMap
+          valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
           undefined,
-          false // absoluteValue parametresi artık önemsiz, değer her zaman doğrudan ekleniyor
+          false // absoluteValue=false: değeri ekle, değiştirme
         );
       }
       // Close the ticket
@@ -744,21 +748,22 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
       // Her nitelik için sadece en son talebi haritaya ekleyelim
       for (const request of approvedSortedRequests) {
-        // Burada her yeni talebi önceki değerin üzerine yazıyoruz
-        // böylece en son eklenen talep haritada kalıyor
+        // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
+        // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
         attributeMap.set(request.attributeName, request.valueRequested);
+        console.log(`[MODAL SUBMIT] Ekleniyor: ${request.attributeName} için ${request.valueRequested} puan`);
       }
 
-
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
-      for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
+      for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
+        console.log(`[MODAL SUBMIT] Tam olarak ${valueToAdd} puan ekleniyor, ${attributeName} için, kullanıcı: ${user.userId}`);
+        // Burada değer direkt olarak ekleniyor, çarpılmıyor
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          totalValue, // Use totalValue from attributeMap
+          valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
           undefined,
-          false // absoluteValue parametresi artık önemsiz, değer her zaman doğrudan ekleniyor
+          false // absoluteValue=false: değeri ekle, değiştirme
         );
       }
       // Close the ticket
