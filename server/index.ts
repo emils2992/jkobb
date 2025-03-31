@@ -69,6 +69,8 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
     
     // Initialize Discord bot
-    initDiscordBot();
+    initDiscordBot()
+      .then(() => log('Discord bot initialization process completed'))
+      .catch(error => console.error('Error in Discord bot initialization:', error));
   });
 })();

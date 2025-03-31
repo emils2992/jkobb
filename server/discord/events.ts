@@ -23,39 +23,66 @@ import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed } fro
 export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
-    // Handle slash commands
-    if (interaction.isChatInputCommand()) {
-      const { commandName } = interaction;
-      const command = commands.get(commandName);
-      
-      if (!command) return;
-      
-      try {
-        await command(interaction);
-      } catch (error) {
-        console.error(`Error executing command ${commandName}:`, error);
+    try {
+      // Handle slash commands
+      if (interaction.isChatInputCommand()) {
+        const { commandName } = interaction;
+        const command = commands.get(commandName);
         
-        const errorContent = { 
-          content: 'Komut çalıştırılırken bir hata oluştu.', 
-          ephemeral: true 
-        };
+        if (!command) return;
         
-        if (interaction.replied || interaction.deferred) {
-          await interaction.editReply(errorContent);
-        } else {
-          await interaction.reply(errorContent);
+        try {
+          await command(interaction);
+        } catch (error) {
+          console.error(`Error executing command ${commandName}:`, error);
+          
+          // Hata mesajları tek bir yerden yönetiliyor
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ 
+              content: 'Komut çalıştırılırken bir hata oluştu.', 
+              ephemeral: true 
+            }).catch(err => {
+              console.error('Error sending error message:', err);
+            });
+          } else if (interaction.deferred) {
+            await interaction.editReply('Komut çalıştırılırken bir hata oluştu.').catch(err => {
+              console.error('Error editing reply with error message:', err);
+            });
+          }
         }
       }
-    }
-    
-    // Handle button interactions
-    if (interaction.isButton()) {
-      await handleButtonInteraction(interaction);
-    }
-    
-    // Handle modal submissions
-    if (interaction.isModalSubmit()) {
-      await handleModalSubmit(interaction);
+      
+      // Handle button interactions
+      else if (interaction.isButton()) {
+        try {
+          await handleButtonInteraction(interaction);
+        } catch (error) {
+          console.error('Error handling button interaction:', error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ 
+              content: 'İşlem sırasında bir hata oluştu.', 
+              ephemeral: true 
+            }).catch(err => console.error('Failed to reply with error message:', err));
+          }
+        }
+      }
+      
+      // Handle modal submissions
+      else if (interaction.isModalSubmit()) {
+        try {
+          await handleModalSubmit(interaction);
+        } catch (error) {
+          console.error('Error handling modal submission:', error);
+          if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ 
+              content: 'İşlem sırasında bir hata oluştu.', 
+              ephemeral: true 
+            }).catch(err => console.error('Failed to reply with error message:', err));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error handling interaction:', error);
     }
   });
 
@@ -378,6 +405,13 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
   if (customId === 'close_ticket') {
     // Check if this is a ticket channel
     const ticketId = interaction.channelId;
+    if (!ticketId) {
+      return interaction.reply({
+        content: 'Kanal bilgisi alınamadı.',
+        ephemeral: true
+      });
+    }
+    
     const ticket = await storage.getTicket(ticketId);
     
     if (!ticket) {
@@ -414,6 +448,13 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
   if (customId === 'add_attribute') {
     // Check if this is a ticket channel
     const ticketId = interaction.channelId;
+    if (!ticketId) {
+      return interaction.reply({
+        content: 'Kanal bilgisi alınamadı.',
+        ephemeral: true
+      });
+    }
+    
     const ticket = await storage.getTicket(ticketId);
     
     if (!ticket) {
@@ -464,32 +505,95 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
   
   // Handle ticket close confirmation
   if (customId === 'close_ticket_confirm') {
-    const confirmation = interaction.fields.getTextInputValue('confirmation');
-    
-    if (confirmation !== 'KAPAT') {
-      return interaction.reply({
-        content: 'Ticket kapatma işlemi iptal edildi.',
-        ephemeral: true
-      });
-    }
-    
     try {
-      // Use the kapat command to handle the ticket closing
-      const command = commands.get('kapat');
-      if (command) {
-        await command(interaction);
-      } else {
-        await interaction.reply({
-          content: 'Ticket kapatma komutu bulunamadı.',
+      const confirmation = interaction.fields.getTextInputValue('confirmation');
+      
+      if (confirmation !== 'KAPAT') {
+        return await interaction.reply({
+          content: 'Ticket kapatma işlemi iptal edildi.',
           ephemeral: true
         });
       }
+      
+      // Direkt işlemi burada yapıyoruz, command kullanmak yerine
+      const ticketId = interaction.channelId;
+      if (!ticketId) {
+        return await interaction.reply({
+          content: 'Kanal bilgisi alınamadı.',
+          ephemeral: true
+        });
+      }
+      
+      const ticket = await storage.getTicket(ticketId);
+      
+      if (!ticket) {
+        return await interaction.reply({
+          content: 'Bu bir ticket kanalı değil.',
+          ephemeral: true
+        });
+      }
+      
+      if (ticket.status === 'closed') {
+        return await interaction.reply({
+          content: 'Bu ticket zaten kapatılmış.',
+          ephemeral: true
+        });
+      }
+      
+      await interaction.deferReply();
+      
+      // Ticket kapatma işlemleri
+      const attributeRequests = await storage.getAttributeRequests(ticketId);
+      const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+      
+      // Update user's attributes
+      const user = await storage.getUserById(ticket.userId);
+      if (!user) {
+        return await interaction.editReply('Bu ticketin sahibi bulunamadı.');
+      }
+      
+      // Process approved attribute requests
+      for (const request of attributeRequests) {
+        if (request.approved) {
+          await storage.updateAttribute(
+            user.userId,
+            request.attributeName,
+            request.valueRequested
+          );
+        }
+      }
+      
+      // Close the ticket
+      await storage.closeTicket(ticketId);
+      
+      // Create embed for the response
+      const embed = createAttributeEmbed(user, attributeRequests, totalAttributes);
+      await interaction.editReply({ embeds: [embed] });
+      
+      // Post to fix log channel if configured
+      if (interaction.guildId) {
+        const serverConfig = await storage.getServerConfig(interaction.guildId);
+        if (serverConfig?.fixLogChannelId) {
+          const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
+          if (logChannel) {
+            await logChannel.send({ 
+              content: `${user.username} için ticket kapatıldı:`,
+              embeds: [embed] 
+            });
+          }
+        }
+      }
     } catch (error) {
       console.error('Error closing ticket:', error);
-      await interaction.reply({
-        content: 'Ticket kapatılırken bir hata oluştu.',
-        ephemeral: true
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: 'Ticket kapatılırken bir hata oluştu.',
+          ephemeral: true
+        }).catch(console.error);
+      } else if (interaction.deferred) {
+        await interaction.editReply('Ticket kapatılırken bir hata oluştu.')
+          .catch(console.error);
+      }
     }
   }
   
@@ -511,16 +615,19 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       // Save attribute request
       const ticketId = interaction.channelId;
       
-      if (ticketId) {
-        await storage.createAttributeRequest({
-          ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
-          attributeName,
-          valueRequested: attributeValue,
-          approved: false
+      if (!ticketId) {
+        return interaction.reply({
+          content: 'Kanal bilgisi alınamadı.',
+          ephemeral: true
         });
-      } else {
-        throw new Error('Channel ID is null or undefined.');
       }
+      
+      await storage.createAttributeRequest({
+        ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
+        attributeName,
+        valueRequested: attributeValue,
+        approved: false
+      });
       
       // Create response embed
       const embed = new EmbedBuilder()
