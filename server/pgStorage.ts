@@ -115,6 +115,12 @@ export class PgStorage implements IStorage {
     await this.pool.query('UPDATE attributes SET weekly_value = 0, updated_at = NOW()');
     await this.updateLastReset(guildId);
   }
+  
+  async resetAllAttributes(guildId: string): Promise<void> {
+    // Tüm nitelikleri tamamen sıfırla (value ve weekly_value)
+    await this.pool.query('UPDATE attributes SET value = 0, weekly_value = 0, updated_at = NOW()');
+    await this.updateLastReset(guildId);
+  }
 
   async getPlayerAttributeStats(userId?: string): Promise<any[]> {
     let userQuery;

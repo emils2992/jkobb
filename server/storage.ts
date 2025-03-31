@@ -20,8 +20,9 @@ export interface IStorage {
   // Attribute operations
   getAttributes(userId: string): Promise<Attribute[]>;
   getAttribute(userId: string, attributeName: string): Promise<Attribute | undefined>;
-  updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number): Promise<Attribute>;
+  updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue?: boolean): Promise<Attribute>;
   resetWeeklyAttributes(guildId: string): Promise<void>;
+  resetAllAttributes(guildId: string): Promise<void>;
   getPlayerAttributeStats(userId?: string): Promise<any[]>;
   
   // Ticket operations
@@ -174,6 +175,23 @@ export class MemStorage implements IStorage {
     for (const [id, attribute] of allAttributes) {
       this.attributes.set(id, {
         ...attribute,
+        weeklyValue: 0,
+        updatedAt: now
+      });
+    }
+    
+    await this.updateLastReset(guildId);
+  }
+
+  async resetAllAttributes(guildId: string): Promise<void> {
+    // Tüm nitelikleri sıfırla
+    const allAttributes = Array.from(this.attributes.entries());
+    const now = new Date();
+    
+    for (const [id, attribute] of allAttributes) {
+      this.attributes.set(id, {
+        ...attribute,
+        value: 0,
         weeklyValue: 0,
         updatedAt: now
       });

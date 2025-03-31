@@ -526,18 +526,16 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         attributeMap.set(request.attributeName, currentValue + request.valueRequested);
       }
                 
-      
-// Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
-      for (const [attributeName, totalValue] of attributeMap.entries()) {
+      // Şimdi tek seferde güncelleyelim
+      attributeMap.forEach(async (totalValue, attributeName) => {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          totalValue, 
-          undefined,
-          true // absoluteValue parametresini true olarak ayarlıyoruz
+          totalValue
         );
-      }
+      });
+      
       // Close the ticket
       await storage.closeTicket(ticketId);
       
@@ -717,18 +715,16 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         }
       }
       
-      
-// Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
-      for (const [attributeName, totalValue] of attributeMap.entries()) {
+      // Şimdi tek seferde güncelleyelim
+      attributeMap.forEach(async (totalValue, attributeName) => {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          totalValue, 
-          undefined,
-          true // absoluteValue parametresini true olarak ayarlıyoruz
+          totalValue
         );
-      }
+      });
+      
       // Close the ticket
       await storage.closeTicket(ticketId);
       
