@@ -81,12 +81,14 @@ export class PgStorage implements IStorage {
     return this.pgAttributeToAttribute(result.rows[0]);
   }
 
-  async updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue: boolean = false): Promise<Attribute> {
+  async updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue: boolean = false, onlyUpdateWeekly: boolean = false): Promise<Attribute> {
     const existing = await this.getAttribute(userId, attributeName);
     
     if (existing) {
+      // Eğer onlyUpdateWeekly true ise, sadece haftalık değeri güncelle
       // Eğer absoluteValue true ise, mevcut değerin üzerine yaz, yoksa ekle
-      const newValue = absoluteValue ? value : existing.value + value;
+      const newValue = onlyUpdateWeekly ? existing.value : 
+                       (absoluteValue ? value : existing.value + value);
       const newWeeklyValue = weeklyValue !== undefined ? weeklyValue : 
                             absoluteValue ? value : existing.weeklyValue + value;
       

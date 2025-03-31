@@ -20,7 +20,7 @@ export interface IStorage {
   // Attribute operations
   getAttributes(userId: string): Promise<Attribute[]>;
   getAttribute(userId: string, attributeName: string): Promise<Attribute | undefined>;
-  updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue?: boolean): Promise<Attribute>;
+  updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue?: boolean, onlyUpdateWeekly?: boolean): Promise<Attribute>;
   resetWeeklyAttributes(guildId: string): Promise<void>;
   resetAllAttributes(guildId: string): Promise<void>;
   getPlayerAttributeStats(userId?: string): Promise<any[]>;
@@ -134,16 +134,18 @@ export class MemStorage implements IStorage {
     attributeName: string, 
     value: number, 
     weeklyValue?: number,
-    absoluteValue: boolean = false
+    absoluteValue: boolean = false,
+    onlyUpdateWeekly: boolean = false
   ): Promise<Attribute> {
     const existing = await this.getAttribute(userId, attributeName);
     const now = new Date();
     
     if (existing) {
-      // Eğer absoluteValue true ise, değeri doğrudan atıyoruz
+      // Eğer onlyUpdateWeekly true ise, sadece haftalık değeri güncelle
       const updated: Attribute = {
         ...existing,
-        value: absoluteValue ? value : existing.value + value, // absoluteValue true ise değeri doğrudan ayarla, değilse ekle
+        // onlyUpdateWeekly true ise value değişmez, değilse normal güncelleme yapılır
+        value: onlyUpdateWeekly ? existing.value : (absoluteValue ? value : existing.value + value),
         weeklyValue: weeklyValue !== undefined 
           ? weeklyValue 
           : existing.weeklyValue + value, // Haftalık değeri ayarla veya ekle

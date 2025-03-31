@@ -335,12 +335,14 @@ export function setupEventHandlers() {
             });
             
             // Kullanıcının niteliklerini güncelle (sadece haftalık değeri artırıyoruz)
+            // SADECE haftalık değeri artır, toplam değeri değiştirme
             await storage.updateAttribute(
               user.userId, 
               trainingInfo.attributeName, 
               0, // Toplam değeri artırmıyoruz
               trainingInfo.points, // Haftalık değeri artırıyoruz
-              false
+              false, // absoluteValue false ise çarpılma olabilir
+              true // onlyUpdateWeekly - sadece haftalık değeri güncelle
             );
             
             // Onaylamak için emoji ekle
