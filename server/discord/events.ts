@@ -179,13 +179,20 @@ export function setupEventHandlers() {
                 // Onaylanan talepleri tekrar alalım
                 const approvedRequests = await storage.getAttributeRequests(ticketId);
 
-                // Process all attribute requests (auto-approved on close) - ONLY ONCE
-                // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
+                // Process all attribute requests (auto-approved on close)
+                // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
                 const attributeMap = new Map<string, number>();
 
-                for (const request of approvedRequests) {
-                  const currentValue = attributeMap.get(request.attributeName) || 0;
-                  attributeMap.set(request.attributeName, currentValue + request.valueRequested);
+                // Önce tüm talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
+                const sortedRequests = [...approvedRequests].sort((a, b) => 
+                  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                );
+
+                // Her nitelik için sadece en son talebi haritaya ekleyelim
+                for (const request of sortedRequests) {
+                  // Burada her yeni talebi önceki değerin üzerine yazıyoruz
+                  // böylece en son eklenen talep haritada kalıyor
+                  attributeMap.set(request.attributeName, request.valueRequested);
                 }
 
                 // Şimdi tek seferde güncelleyelim
@@ -197,7 +204,7 @@ export function setupEventHandlers() {
                     attributeName,
                     totalValue,
                     undefined,
-                    false // 'absoluteValue' parametresini false yaparak ekleme yapmasını sağlıyoruz
+                    false // absoluteValue false olsa bile artık güvenli çünkü pgStorage'da düzenleme yaptık
                   );
                 }
 
@@ -341,7 +348,7 @@ export function setupEventHandlers() {
               trainingInfo.attributeName, 
               0, // Toplam değeri artırmıyoruz
               trainingInfo.points, // Haftalık değeri artırıyoruz
-              false, // absoluteValue false ise çarpılma olabilir
+              false, // absoluteValue parametresi artık önemsiz, bu değer dikkate alınmıyor
               true // onlyUpdateWeekly - sadece haftalık değeri güncelle
             );
 
@@ -532,14 +539,19 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       const approvedRequests = await storage.getAttributeRequests(ticketId);
 
       // Process all approved attribute requests ONCE
-      // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
+      // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
       const attributeMap = new Map<string, number>();
 
-      // Aynı nitelik için olan istekleri topla
-      for (const request of approvedRequests) {
-        // Nitelik yoksa ata, varsa mevcut değere ekle
-        const currentValue = attributeMap.get(request.attributeName) || 0;
-        attributeMap.set(request.attributeName, currentValue + request.valueRequested);
+      // Önce tüm talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
+      const sortedRequests = [...approvedRequests].sort((a, b) => 
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      // Her nitelik için sadece en son talebi haritaya ekleyelim
+      for (const request of sortedRequests) {
+        // Burada her yeni talebi önceki değerin üzerine yazıyoruz
+        // böylece en son eklenen talep haritada kalıyor
+        attributeMap.set(request.attributeName, request.valueRequested);
       }
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
@@ -550,7 +562,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           attributeName,
           totalValue, // Use totalValue from attributeMap
           undefined,
-          false // absoluteValue parametresini false yaparak ekleme yapmasını sağlıyoruz
+          false // absoluteValue parametresi artık önemsiz, değer her zaman doğrudan ekleniyor
         );
       }
       // Close the ticket
@@ -722,15 +734,19 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       }
 
       // Process approved attribute requests
-      // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
+      // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
       const attributeMap = new Map<string, number>();
 
-      for (const request of attributeRequests) {
-        if (request.approved) {
-          // Nitelik yoksa ata, varsa mevcut değere ekle
-          const currentValue = attributeMap.get(request.attributeName) || 0;
-          attributeMap.set(request.attributeName, currentValue + request.valueRequested);
-        }
+      // Önce onaylanmış talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
+      const approvedSortedRequests = attributeRequests
+        .filter(req => req.approved)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+      // Her nitelik için sadece en son talebi haritaya ekleyelim
+      for (const request of approvedSortedRequests) {
+        // Burada her yeni talebi önceki değerin üzerine yazıyoruz
+        // böylece en son eklenen talep haritada kalıyor
+        attributeMap.set(request.attributeName, request.valueRequested);
       }
 
 
@@ -742,7 +758,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           attributeName,
           totalValue, // Use totalValue from attributeMap
           undefined,
-          false // absoluteValue parametresini false yaparak ekleme yapmasını sağlıyoruz
+          false // absoluteValue parametresi artık önemsiz, değer her zaman doğrudan ekleniyor
         );
       }
       // Close the ticket
@@ -804,6 +820,10 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         });
       }
 
+      // Burada aynı nitelik için birden fazla talep olması durumunu
+      // ticket kapatılırken ele alacağız, şimdilik yeni talebi ekliyoruz
+      
+      // Şimdi yeni talebi ekleyelim
       await storage.createAttributeRequest({
         ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
         attributeName,

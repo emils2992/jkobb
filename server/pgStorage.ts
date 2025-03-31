@@ -86,11 +86,12 @@ export class PgStorage implements IStorage {
     
     if (existing) {
       // Eğer onlyUpdateWeekly true ise, sadece haftalık değeri güncelle
-      // Eğer absoluteValue true ise, mevcut değerin üzerine yaz, yoksa ekle
-      const newValue = onlyUpdateWeekly ? existing.value : 
-                       (absoluteValue ? value : existing.value + value);
-      const newWeeklyValue = weeklyValue !== undefined ? weeklyValue : 
-                            absoluteValue ? value : existing.weeklyValue + value;
+      // FIX: Nitelik taleplerini daima değer olarak ekleyeceğiz, çarpma yerine
+      // NOT: (absoluteValue parametresi artık önemsiz olacak)
+      const newValue = onlyUpdateWeekly ? existing.value : existing.value + value;
+      const newWeeklyValue = weeklyValue !== undefined ? 
+                             (existing.weeklyValue + weeklyValue) : 
+                             existing.weeklyValue + value;
       
       console.log(`Updating attribute ${attributeName} for user ${userId}: Current value=${existing.value}, Adding=${value}, New value=${newValue}`);
       

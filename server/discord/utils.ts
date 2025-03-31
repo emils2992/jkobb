@@ -74,7 +74,7 @@ export function createAttributeEmbed(
   // Nitelik kategorilerine göre gruplandırma
   const attributesByCategory: Record<string, Map<string, number>> = {};
   
-  for (const [attributeName, totalValue] of attributeSummary.entries()) {
+  for (const [attributeName, totalValue] of Array.from(attributeSummary.entries())) {
     const category = getCategoryForAttribute(attributeName) || 'Diğer';
     if (!attributesByCategory[category]) {
       attributesByCategory[category] = new Map<string, number>();
