@@ -168,17 +168,6 @@ export function setupEventHandlers() {
                   return message.reply('Bu ticketin sahibi bulunamadı.');
                 }
                 
-                // Process approved attribute requests
-                for (const request of attributeRequests) {
-                  if (request.approved) {
-                    await storage.updateAttribute(
-                      user.userId,
-                      request.attributeName,
-                      request.valueRequested
-                    );
-                  }
-                }
-                
                 // İlk olarak tüm nitelik taleplerini onaylayalım
                 // Eğer yönetici tarafından onaylanmadıysa bile, ticket kapanırken onaylansın
                 for (const request of attributeRequests) {
@@ -190,7 +179,7 @@ export function setupEventHandlers() {
                 // Onaylanan talepleri tekrar alalım
                 const approvedRequests = await storage.getAttributeRequests(ticketId);
                 
-                // Process all attribute requests (auto-approved on close)
+                // Process all attribute requests (auto-approved on close) - ONLY ONCE
                 for (const request of approvedRequests) {
                   await storage.updateAttribute(
                     user.userId,
@@ -506,17 +495,6 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         return interaction.editReply('Bu ticketin sahibi bulunamadı.');
       }
       
-      // Process approved attribute requests
-      for (const request of attributeRequests) {
-        if (request.approved) {
-          await storage.updateAttribute(
-            user.userId,
-            request.attributeName,
-            request.valueRequested
-          );
-        }
-      }
-      
       // Auto-approve remaining attribute requests
       for (const request of attributeRequests) {
         if (!request.approved) {
@@ -527,7 +505,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Get updated attribute requests
       const approvedRequests = await storage.getAttributeRequests(ticketId);
       
-      // Update attributes again to ensure all are processed
+      // Process all approved attribute requests ONCE
       for (const request of approvedRequests) {
         await storage.updateAttribute(
           user.userId,

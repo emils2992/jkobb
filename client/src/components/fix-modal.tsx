@@ -58,6 +58,7 @@ export function FixModal({ isOpen, onClose, playerStats }: FixModalProps) {
                 <TableRow className="border-b border-gray-700">
                   <TableHead className="font-medium">Oyuncu</TableHead>
                   <TableHead className="font-medium">ID</TableHead>
+                  <TableHead className="font-medium">Nitelikler</TableHead>
                   <TableHead className="font-medium">Bu Hafta</TableHead>
                   <TableHead className="font-medium">Toplam</TableHead>
                   <TableHead className="font-medium">Son Fix</TableHead>
@@ -73,6 +74,15 @@ export function FixModal({ isOpen, onClose, playerStats }: FixModalProps) {
                       <span>{player.user.username}</span>
                     </TableCell>
                     <TableCell>#{player.user.userId.slice(0, 4)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {player.attributes?.map((attr: any, idx: number) => (
+                          <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-discord-blue bg-opacity-20 text-discord-blue">
+                            {attr.name}: {attr.value}
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
                     <TableCell>{player.weeklyValue}</TableCell>
                     <TableCell>{player.totalValue}</TableCell>
                     <TableCell>{formatDate(player.lastFixDate)}</TableCell>
@@ -80,7 +90,7 @@ export function FixModal({ isOpen, onClose, playerStats }: FixModalProps) {
                 ))}
                 {playerStats.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4">
+                    <TableCell colSpan={6} className="text-center py-4">
                       Oyuncu verisi bulunamadı
                     </TableCell>
                   </TableRow>

@@ -45,6 +45,28 @@ export default function PlayerStatsPage() {
       }
     },
     {
+      accessorKey: "attributes",
+      header: "Nitelikler",
+      cell: ({ row }: any) => {
+        const attributes = row.original.attributes || [];
+        return (
+          <div className="max-w-xs overflow-hidden">
+            {attributes.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {attributes.map((attr: any, index: number) => (
+                  <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-discord-blue bg-opacity-20 text-discord-blue">
+                    {attr.name}: {attr.value}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-gray-500">Nitelik yok</span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
       accessorKey: "weeklyValue",
       header: "Bu Hafta",
       cell: ({ row }: any) => row.original.weeklyValue

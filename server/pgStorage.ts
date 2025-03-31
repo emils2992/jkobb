@@ -367,7 +367,13 @@ export class PgStorage implements IStorage {
     const config = await this.getServerConfig(guildId);
     
     if (!config) {
-      throw new Error(`No config found for guild ${guildId}`);
+      // Eğer config yoksa, otomatik olarak oluştur
+      console.log(`Config not found for guild ${guildId}, creating automatically`);
+      return this.setServerConfig({
+        guildId,
+        fixLogChannelId: null,
+        trainingChannelId: null
+      });
     }
     
     const result = await this.pool.query(
