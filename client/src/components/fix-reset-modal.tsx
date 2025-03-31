@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface FixResetModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface FixResetModalProps {
 
 export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
   const [confirmText, setConfirmText] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
   const { toast } = useToast();
 
   const handleCancel = () => {
@@ -19,7 +21,7 @@ export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
     onClose();
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (confirmText !== "ONAYLA") {
       toast({
         title: "Onay Hatası",
@@ -29,12 +31,28 @@ export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
       return;
     }
 
-    toast({
-      title: "Discord Komutu",
-      description: "Bu komut yalnızca Discord üzerinde çalıştırılabilir.",
-    });
-    setConfirmText("");
-    onClose();
+    try {
+      setIsResetting(true);
+      await apiRequest("POST", "/api/fix/reset");
+      
+      // Başarılı olursa, veriyi yeniden getir
+      queryClient.invalidateQueries({ queryKey: ['/api/players/stats'] });
+      
+      toast({
+        title: "Başarılı",
+        description: "Tüm nitelikler sıfırlandı.",
+      });
+      setConfirmText("");
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Nitelikler sıfırlanırken bir hata oluştu.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -49,7 +67,7 @@ export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
 
         <div className="mb-6">
           <p className="text-discord-light mb-4">
-            Bu komut, haftalık nitelik sayaçlarını sıfırlar. Dikkatli kullanılmalıdır, bu işlem geri alınamaz!
+            Bu komut, tüm nitelik değerlerini tamamen sıfırlar. Dikkatli kullanılmalıdır, bu işlem geri alınamaz!
           </p>
           
           <div className="bg-gray-800 rounded-md p-3 font-mono text-sm">
@@ -63,7 +81,7 @@ export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
             <div>
               <h3 className="font-bold text-discord-red">Uyarı</h3>
               <p className="text-sm text-discord-light">
-                Bu işlem tüm oyuncuların haftalık nitelik sayaçlarını sıfırlayacaktır. Bu işlem geri alınamaz. İşlemi onaylamak için aşağıdaki kutuya "ONAYLA" yazınız.
+                Bu işlem tüm oyuncuların nitelik değerlerini ve haftalık sayaçlarını tamamen sıfırlayacaktır. Bu işlem geri alınamaz. İşlemi onaylamak için aşağıdaki kutuya "ONAYLA" yazınız.
               </p>
             </div>
           </div>
@@ -92,8 +110,17 @@ export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
             variant="destructive" 
             className="bg-discord-red hover:bg-red-600" 
             onClick={handleReset}
+            disabled={isResetting}
           >
-            <RefreshCcw className="h-4 w-4 mr-1" /> Sıfırla
+            {isResetting ? (
+              <>
+                <RefreshCcw className="h-4 w-4 mr-1 animate-spin" /> Sıfırlanıyor...
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="h-4 w-4 mr-1" /> Sıfırla
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -54,7 +54,7 @@ export default function PlayerStatsPage() {
             {attributes.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {attributes.map((attr: any, index: number) => (
-                  <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-discord-blue bg-opacity-20 text-discord-blue">
+                  <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-discord-blue bg-opacity-20 text-gray-200">
                     {attr.name}: {attr.value}
                   </span>
                 ))}

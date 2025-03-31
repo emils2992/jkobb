@@ -94,6 +94,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reset all attributes (fixreset)
+  app.post("/api/fix/reset", async (req, res) => {
+    try {
+      // Burada "1" değerini guildId olarak kullanıyoruz, çünkü web uygulamasında sadece bir sunucu var
+      await storage.resetAllAttributes("1");
+      res.json({ success: true, message: "Tüm nitelikler sıfırlandı" });
+    } catch (error) {
+      console.error("Error resetting attributes:", error);
+      res.status(500).json({ success: false, message: "Nitelikler sıfırlanırken bir hata oluştu" });
+    }
+  });
+
   // Update server config
   app.post("/api/config", async (req, res) => {
     try {
