@@ -57,34 +57,41 @@ export function createAttributeEmbed(
   const approvedRequests = attributeRequests.filter(req => req.approved);
   const pendingRequests = attributeRequests.filter(req => !req.approved);
   
-  // Toplam değeri ve nitelik listesini göster
+  // Toplam değeri göster
   embed.addFields({
     name: '📊 Toplam Kazanılan Nitelik',
     value: `**+${totalAttributes}** puan`,
     inline: false
   });
 
-  // Nitelik kategorilerine göre gruplandırma
-  const attributesByCategory: Record<string, AttributeRequest[]> = {};
-  
+  // Aynı nitelik taleplerini birleştir
+  const attributeSummary = new Map<string, number>();
   for (const request of approvedRequests) {
-    const category = getCategoryForAttribute(request.attributeName) || 'Diğer';
+    const currentValue = attributeSummary.get(request.attributeName) || 0;
+    attributeSummary.set(request.attributeName, currentValue + request.valueRequested);
+  }
+  
+  // Nitelik kategorilerine göre gruplandırma
+  const attributesByCategory: Record<string, Map<string, number>> = {};
+  
+  for (const [attributeName, totalValue] of attributeSummary.entries()) {
+    const category = getCategoryForAttribute(attributeName) || 'Diğer';
     if (!attributesByCategory[category]) {
-      attributesByCategory[category] = [];
+      attributesByCategory[category] = new Map<string, number>();
     }
-    attributesByCategory[category].push(request);
+    attributesByCategory[category].set(attributeName, totalValue);
   }
   
   // Her kategori için ayrı alan ekle
-  for (const [category, requests] of Object.entries(attributesByCategory)) {
-    if (requests.length > 0) {
-      const requestsText = requests
-        .map(req => `**${req.attributeName}**: +${req.valueRequested}`)
+  for (const [category, attributes] of Object.entries(attributesByCategory)) {
+    if (attributes.size > 0) {
+      const attributesText = Array.from(attributes.entries())
+        .map(([name, value]) => `**${name}**: +${value}`)
         .join('\n');
       
       embed.addFields({
         name: `✅ ${category} Nitelikleri`,
-        value: requestsText,
+        value: attributesText,
         inline: true
       });
     }
@@ -92,25 +99,32 @@ export function createAttributeEmbed(
   
   // Eğer hiç kategorize edilmiş nitelik yoksa genel liste göster
   if (Object.keys(attributesByCategory).length === 0 && approvedRequests.length > 0) {
-    const requestsText = approvedRequests
-      .map(req => `**${req.attributeName}**: +${req.valueRequested}`)
+    const attributesText = Array.from(attributeSummary.entries())
+      .map(([name, value]) => `**${name}**: +${value}`)
       .join('\n');
     
     embed.addFields({
       name: '✅ Onaylanan Nitelikler',
-      value: requestsText,
+      value: attributesText,
       inline: false
     });
   }
   
   if (pendingRequests.length > 0) {
-    const requestsText = pendingRequests
-      .map(req => `**${req.attributeName}**: +${req.valueRequested}`)
+    // Aynı şekilde, onaylanmayan nitelikleri de birleştir
+    const pendingSummary = new Map<string, number>();
+    for (const request of pendingRequests) {
+      const currentValue = pendingSummary.get(request.attributeName) || 0;
+      pendingSummary.set(request.attributeName, currentValue + request.valueRequested);
+    }
+    
+    const pendingText = Array.from(pendingSummary.entries())
+      .map(([name, value]) => `**${name}**: +${value}`)
       .join('\n');
     
     embed.addFields({
       name: '❌ Onaylanmayan Nitelikler',
-      value: requestsText,
+      value: pendingText,
       inline: false
     });
   }
