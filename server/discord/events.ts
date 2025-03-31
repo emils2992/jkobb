@@ -319,11 +319,18 @@ export function setupEventHandlers() {
           const matches = message.content.match(simpleTrainingPattern);
           
           if (matches && matches.length >= 4) {
+            // Depolama tarafında kontrol yapacağız, message_id değerini kullanarak
+            if (!message.id) {
+              console.log('[ANTRENMAN] Mesaj ID bulunamadı, işlem yapılamıyor.');
+              return;
+            }
+            console.log(`[ANTRENMAN] Mesaj işleniyor: ${message.id}`);
+            
             const duration = parseInt(matches[1], 10);
-            const intensity = parseInt(matches[2], 10);
             const attributeName = matches[3].trim();
             
-            console.log(`[ANTRENMAN] Basit format algılandı: Süre=${duration}, Yoğunluk=${intensity}, Nitelik=${attributeName}`);
+            // Yoğunluk değerini kullanmıyoruz artık
+            console.log(`[ANTRENMAN] Basit format algılandı: Süre=${duration}, Nitelik=${attributeName}`);
             
             try {
               // Kullanıcıyı oluştur veya al
@@ -336,13 +343,13 @@ export function setupEventHandlers() {
               // Sabit olarak +1 puan ekleyeceğiz
               const attributeValue = 1;
               
-              // Antrenman oturumu oluştur
+              // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
               await storage.createTrainingSession({
                 userId: user.userId,
                 attributeName: attributeName,
                 ticketId: null,
                 duration,
-                intensity,
+                intensity: 1, // Sabit değer kullanıyoruz
                 attributesGained: attributeValue,
                 source: 'message',
                 messageId: message.id,
@@ -364,7 +371,6 @@ export function setupEventHandlers() {
                 .setDescription(`${message.author} adlı oyuncunun antrenman kaydı başarıyla oluşturuldu.`)
                 .addFields(
                   { name: 'Süre', value: `${duration} saat`, inline: true },
-                  { name: 'Yoğunluk', value: `${intensity}/5`, inline: true },
                   { name: 'Nitelik', value: attributeName, inline: true },
                   { name: 'Kazanılan Puan', value: `+${attributeValue}`, inline: true }
                 )

@@ -332,6 +332,21 @@ export class PgStorage implements IStorage {
 
   // Training session operations
   async createTrainingSession(insertSession: InsertTrainingSession): Promise<TrainingSession> {
+    // Önce aynı mesajla ilgili bir kayıt var mı kontrol et
+    if (insertSession.messageId) {
+      const checkResult = await this.pool.query(
+        'SELECT * FROM training_sessions WHERE message_id = $1',
+        [insertSession.messageId]
+      );
+      
+      // Eğer mesaj daha önce kaydedilmişse, direkt o kaydı döndür
+      if (checkResult.rows.length > 0) {
+        console.log(`[ANTRENMAN] Bu mesaj daha önce kaydedilmiş, tekrar eklemiyorum: ${insertSession.messageId}`);
+        return this.pgTrainingSessionToTrainingSession(checkResult.rows[0]);
+      }
+    }
+  
+    // Mesaj daha önce kaydedilmemişse yeni kayıt oluştur
     const result = await this.pool.query(
       `INSERT INTO training_sessions(
         user_id, 
@@ -357,6 +372,7 @@ export class PgStorage implements IStorage {
       ]
     );
     
+    console.log(`[ANTRENMAN] Yeni antrenman kaydı oluşturuldu: ${result.rows[0].id} (mesaj: ${insertSession.messageId})`);
     return this.pgTrainingSessionToTrainingSession(result.rows[0]);
   }
 
