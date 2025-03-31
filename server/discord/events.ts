@@ -180,34 +180,63 @@ export function setupEventHandlers() {
                 const approvedRequests = await storage.getAttributeRequests(ticketId);
 
                 // Process all attribute requests (auto-approved on close)
+                // TAMAMEN YENİDEN YAZDIM - TEMEL SORUN BURASIYDI
+                
+                console.log(`[YENİ METOT - MESAJLA KAPATMA] Ticket kapatılıyor: ${ticketId}`);
+                console.log(`[YENİ METOT - MESAJLA KAPATMA] Toplam nitelik talepleri: ${approvedRequests.length}`);
+                
+                // Tüm talepleri logla - hata ayıklama için
+                for (const req of approvedRequests) {
+                  console.log(`[YENİ METOT - MESAJLA KAPATMA] Talep: ${req.attributeName} için ${req.valueRequested} puan`);
+                }
+                
                 // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
                 const attributeMap = new Map<string, number>();
 
-                // Önce tüm talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
-                const sortedRequests = [...approvedRequests].sort((a, b) => 
-                  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                );
-
-                // Her nitelik için sadece en son talebi haritaya ekleyelim
-                for (const request of sortedRequests) {
-                  // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
-                  // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
+                // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
+                for (const request of approvedRequests) {
+                  // Nitelik adını ve tam olarak istenen değeri kullan
                   attributeMap.set(request.attributeName, request.valueRequested);
-                  console.log(`[KAPAT BUTONU] Ekleniyor: ${request.attributeName} için ${request.valueRequested} puan`);
+                  console.log(`[TAMAMEN YENİ METOT] Nitelik talebi: ${request.attributeName} için +${request.valueRequested}`);
                 }
 
-                // Şimdi tek seferde güncelleyelim
-                // entries() kullanmak yerine Array.from kullanarak uyumluluk sorunu çözülür
+                // Her nitelik için sadece bir kez güncelleme yapacağız
                 for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
-                  console.log(`[KAPAT BUTONU] Tam olarak ${valueToAdd} puan ekleniyor, ${attributeName} için, kullanıcı: ${user.userId}`);
-                  // Burada değer direkt olarak ekleniyor, çarpılmıyor
-                  await storage.updateAttribute(
-                    user.userId,
-                    attributeName,
-                    valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
-                    undefined,
-                    false // absoluteValue=false: değeri ekle, değiştirme
-                  );
+                  console.log(`[TAMAMEN YENİ METOT] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
+                  
+                  try {
+                    // Önce mevcut değeri alıp loglayalım
+                    const beforeAttr = await storage.getAttribute(user.userId, attributeName);
+                    if (beforeAttr) {
+                      console.log(`[TAMAMEN YENİ METOT] ÖNCEKİ DEĞER: ${attributeName} = ${beforeAttr.value}`);
+                    } else {
+                      console.log(`[TAMAMEN YENİ METOT] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
+                    }
+                    
+                    // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
+                    await storage.updateAttribute(
+                      user.userId,
+                      attributeName,
+                      valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
+                      undefined, // Haftalık değeri otomatik olarak güncellenir
+                      false // absoluteValue=false: değeri ekle, değiştirme
+                    );
+                    
+                    // Sonraki değeri alıp loglayalım
+                    const afterAttr = await storage.getAttribute(user.userId, attributeName);
+                    if (afterAttr) {
+                      console.log(`[TAMAMEN YENİ METOT] YENİ DEĞER: ${attributeName} = ${afterAttr.value}`);
+                      if (beforeAttr) {
+                        const diff = afterAttr.value - beforeAttr.value;
+                        console.log(`[TAMAMEN YENİ METOT] FARK: +${diff} (Beklenen: +${valueToAdd})`);
+                        if (diff !== valueToAdd) {
+                          console.log(`[TAMAMEN YENİ METOT] UYARI! Beklenen fark (${valueToAdd}) ile gerçek fark (${diff}) eşleşmiyor!`);
+                        }
+                      }
+                    }
+                  } catch (error) {
+                    console.error(`[TAMAMEN YENİ METOT] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
+                  }
                 }
 
                 // Close the ticket
@@ -259,7 +288,7 @@ export function setupEventHandlers() {
                   }
                 }, 1000);
 
-                // Mesaj göndermek yerine reply kullan
+              // Mesaj göndermek yerine reply kullan
               await message.reply('Bu ticket kapatıldı ve işlendi. ✅');
               } catch (error) {
                 console.error('Error closing ticket:', error);
@@ -540,7 +569,15 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Get updated attribute requests
       const approvedRequests = await storage.getAttributeRequests(ticketId);
 
-      // Process all approved attribute requests ONCE
+      // TAMAMEN YENİDEN YAZDIM - BUTON ILE KAPATMA KODUNU DÜZENLEDIM
+      console.log(`[YENİ METOT - BUTON KAPATMA] Ticket kapatılıyor: ${ticketId}`);
+      console.log(`[YENİ METOT - BUTON KAPATMA] Toplam nitelik talepleri: ${approvedRequests.length}`);
+      
+      // Tüm talepleri logla - hata ayıklama için
+      for (const req of approvedRequests) {
+        console.log(`[YENİ METOT - BUTON KAPATMA] Talep: ${req.attributeName} için ${req.valueRequested} puan`);
+      }
+      
       // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
       const attributeMap = new Map<string, number>();
 
@@ -549,26 +586,52 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
 
-      // Her nitelik için sadece en son talebi haritaya ekleyelim
+      // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
       for (const request of sortedRequests) {
-        // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
-        // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
+        // Nitelik adını ve tam olarak istenen değeri kullan
         attributeMap.set(request.attributeName, request.valueRequested);
-        console.log(`[CLOSE BUTTON] Ekleniyor: ${request.attributeName} için ${request.valueRequested} puan`);
+        console.log(`[YENİ METOT - BUTON] Nitelik talebi: ${request.attributeName} için +${request.valueRequested}`);
       }
 
-      // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
+      // Her nitelik için sadece bir kez güncelleme yapacağız
       for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
-        console.log(`[CLOSE BUTTON] Tam olarak ${valueToAdd} puan ekleniyor, ${attributeName} için, kullanıcı: ${user.userId}`);
-        // Burada değer direkt olarak ekleniyor, çarpılmıyor
-        await storage.updateAttribute(
-          user.userId,
-          attributeName,
-          valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
-          undefined,
-          false // absoluteValue=false: değeri ekle, değiştirme
-        );
+        console.log(`[YENİ METOT - BUTON] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
+        
+        try {
+          // Önce mevcut değeri alıp loglayalım
+          const beforeAttr = await storage.getAttribute(user.userId, attributeName);
+          if (beforeAttr) {
+            console.log(`[YENİ METOT - BUTON] ÖNCEKİ DEĞER: ${attributeName} = ${beforeAttr.value}`);
+          } else {
+            console.log(`[YENİ METOT - BUTON] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
+          }
+          
+          // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
+          await storage.updateAttribute(
+            user.userId,
+            attributeName,
+            valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
+            undefined, // Haftalık değeri otomatik olarak güncellenir
+            false // absoluteValue=false: değeri ekle, değiştirme
+          );
+          
+          // Sonraki değeri alıp loglayalım
+          const afterAttr = await storage.getAttribute(user.userId, attributeName);
+          if (afterAttr) {
+            console.log(`[YENİ METOT - BUTON] YENİ DEĞER: ${attributeName} = ${afterAttr.value}`);
+            if (beforeAttr) {
+              const diff = afterAttr.value - beforeAttr.value;
+              console.log(`[YENİ METOT - BUTON] FARK: +${diff} (Beklenen: +${valueToAdd})`);
+              if (diff !== valueToAdd) {
+                console.log(`[YENİ METOT - BUTON] UYARI! Beklenen fark (${valueToAdd}) ile gerçek fark (${diff}) eşleşmiyor!`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`[YENİ METOT - BUTON] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
+        }
       }
+      
       // Close the ticket
       await storage.closeTicket(ticketId);
 
@@ -751,21 +814,48 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
         // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
         attributeMap.set(request.attributeName, request.valueRequested);
-        console.log(`[MODAL SUBMIT] Ekleniyor: ${request.attributeName} için ${request.valueRequested} puan`);
+        console.log(`[YENİ METOT - MODAL] Nitelik talebi: ${request.attributeName} için +${request.valueRequested}`);
       }
 
-      // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
+      // Her nitelik için sadece bir kez güncelleme yapacağız
       for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
-        console.log(`[MODAL SUBMIT] Tam olarak ${valueToAdd} puan ekleniyor, ${attributeName} için, kullanıcı: ${user.userId}`);
-        // Burada değer direkt olarak ekleniyor, çarpılmıyor
-        await storage.updateAttribute(
-          user.userId,
-          attributeName,
-          valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
-          undefined,
-          false // absoluteValue=false: değeri ekle, değiştirme
-        );
+        console.log(`[YENİ METOT - MODAL] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
+        
+        try {
+          // Önce mevcut değeri alıp loglayalım
+          const beforeAttr = await storage.getAttribute(user.userId, attributeName);
+          if (beforeAttr) {
+            console.log(`[YENİ METOT - MODAL] ÖNCEKİ DEĞER: ${attributeName} = ${beforeAttr.value}`);
+          } else {
+            console.log(`[YENİ METOT - MODAL] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
+          }
+          
+          // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
+          await storage.updateAttribute(
+            user.userId,
+            attributeName,
+            valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
+            undefined, // Haftalık değeri otomatik olarak güncellenir
+            false // absoluteValue=false: değeri ekle, değiştirme
+          );
+          
+          // Sonraki değeri alıp loglayalım
+          const afterAttr = await storage.getAttribute(user.userId, attributeName);
+          if (afterAttr) {
+            console.log(`[YENİ METOT - MODAL] YENİ DEĞER: ${attributeName} = ${afterAttr.value}`);
+            if (beforeAttr) {
+              const diff = afterAttr.value - beforeAttr.value;
+              console.log(`[YENİ METOT - MODAL] FARK: +${diff} (Beklenen: +${valueToAdd})`);
+              if (diff !== valueToAdd) {
+                console.log(`[YENİ METOT - MODAL] UYARI! Beklenen fark (${valueToAdd}) ile gerçek fark (${diff}) eşleşmiyor!`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`[YENİ METOT - MODAL] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
+        }
       }
+      
       // Close the ticket
       await storage.closeTicket(ticketId);
 

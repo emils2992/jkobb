@@ -28,13 +28,35 @@ export function parseAttributeRequest(content: string): { name: string, value: n
     const match = content.match(pattern);
     if (match) {
       if (pattern === patterns[0]) {
-        const value = parseInt(match[1], 10);
+        const valueStr = match[1];
+        // Sadece sayı kısmını alıp integer'a çevir
+        const value = parseInt(valueStr, 10);
         const name = match[2].trim();
-        return { name, value };
+        
+        console.log(`[parseAttributeRequest] Algılanan talep - Nitelik: ${name}, Değer: ${value} (çiğ değer: "${valueStr}")`);
+        
+        // Sadece pozitif değerlere izin ver
+        if (value > 0) {
+          return { name, value };
+        } else {
+          console.log(`[parseAttributeRequest] Geçersiz değer: ${value}`);
+          return null;
+        }
       } else {
         const name = match[1].trim();
-        const value = parseInt(match[2], 10);
-        return { name, value };
+        const valueStr = match[2];
+        // Sadece sayı kısmını alıp integer'a çevir
+        const value = parseInt(valueStr, 10);
+        
+        console.log(`[parseAttributeRequest] Algılanan talep - Nitelik: ${name}, Değer: ${value} (çiğ değer: "${valueStr}")`);
+        
+        // Sadece pozitif değerlere izin ver
+        if (value > 0) {
+          return { name, value };
+        } else {
+          console.log(`[parseAttributeRequest] Geçersiz değer: ${value}`);
+          return null;
+        }
       }
     }
   }

@@ -85,19 +85,51 @@ export class PgStorage implements IStorage {
     const existing = await this.getAttribute(userId, attributeName);
     
     if (existing) {
-      // Eğer onlyUpdateWeekly true ise, sadece haftalık değeri güncelle
-      // FIX: Nitelik taleplerini daima değer olarak ekleyeceğiz, çarpma yerine
-      // KESIN FIX: Değerleri her zaman direkt toplayarak güncelliyoruz
+      // YENİ DETAYLI LOGLAMA SİSTEMİ
+      console.log(`[SUPER-FIX] BAŞLADI: ${attributeName} niteliği ${userId} için güncelleniyor`);
+      console.log(`[SUPER-FIX] MEVCUT DEĞERLER: value=${existing.value}, weeklyValue=${existing.weeklyValue}`);
+      console.log(`[SUPER-FIX] PARAMETRELER: value=${value}, weeklyValue=${weeklyValue}, absoluteValue=${absoluteValue}, onlyUpdateWeekly=${onlyUpdateWeekly}`);
       
-      // onlyUpdateWeekly true ise ana değeri değiştirmiyoruz, false ise verilen değeri ekliyoruz (+2 dediyse +2 ekleniyor)
-      const newValue = onlyUpdateWeekly ? existing.value : existing.value + value;
+      // onlyUpdateWeekly true ise ana değeri değiştirmiyoruz, false ise verilen değeri ekliyoruz
+      let newValue;
+      if (onlyUpdateWeekly) {
+        // Sadece haftalık değer güncelleniyor, toplam değer aynı kalıyor
+        newValue = existing.value;
+        console.log(`[SUPER-FIX] TOPLAM DEĞER DEĞİŞMİYOR: ${existing.value}`);
+      } else if (absoluteValue) {
+        // Eğer absoluteValue=true ise değiştirme modundayız (toplam değeri değiştir)
+        newValue = value;
+        console.log(`[SUPER-FIX] TOPLAM DEĞER DEĞİŞTİRİLİYOR: ${existing.value} => ${value}`);
+      } else {
+        // Normal değer ekleme - EKLEME, ÇARPMA DEĞİL!
+        newValue = existing.value + value;
+        console.log(`[SUPER-FIX] TOPLAM DEĞERE EKLENİYOR: ${existing.value} + ${value} = ${newValue}`);
+      }
       
-      // Haftalık değer için de aynı mantık: verilen değeri direkt ekliyoruz (çarpmıyoruz)
-      const newWeeklyValue = weeklyValue !== undefined ? 
-                             (existing.weeklyValue + weeklyValue) : 
-                             existing.weeklyValue + value;
+      // Haftalık değer hesaplama
+      let newWeeklyValue;
+      if (weeklyValue !== undefined) {
+        // Eğer weeklyValue açıkça belirtilmişse, o değeri kullan
+        if (absoluteValue) {
+          // Eğer absoluteValue=true ise değiştir
+          newWeeklyValue = weeklyValue;
+          console.log(`[SUPER-FIX] HAFTALIK DEĞER DEĞİŞTİRİLİYOR: ${existing.weeklyValue} => ${weeklyValue}`);
+        } else {
+          // Değilse, ekle
+          newWeeklyValue = existing.weeklyValue + weeklyValue;
+          console.log(`[SUPER-FIX] HAFTALIK DEĞERE EKLENİYOR (AÇIK): ${existing.weeklyValue} + ${weeklyValue} = ${newWeeklyValue}`);
+        }
+      } else if (!onlyUpdateWeekly) {
+        // weeklyValue belirtilmemişse ve sadece weeklyValue güncellemesi istenmediyse, toplam değere eklenen değeri haftalık değere de ekle
+        newWeeklyValue = existing.weeklyValue + value;
+        console.log(`[SUPER-FIX] HAFTALIK DEĞERE OTOMATİK EKLENİYOR: ${existing.weeklyValue} + ${value} = ${newWeeklyValue}`);
+      } else {
+        // Haftalık değeri değiştirme
+        newWeeklyValue = existing.weeklyValue;
+        console.log(`[SUPER-FIX] HAFTALIK DEĞER DEĞİŞMİYOR: ${existing.weeklyValue}`);
+      }
       
-      console.log(`Updating attribute ${attributeName} for user ${userId}: Current value=${existing.value}, Adding=${value}, New value=${newValue}`);
+      console.log(`[SUPER-FIX] SONUÇ: ${attributeName} => value=${newValue}, weeklyValue=${newWeeklyValue}`);
       
       const result = await this.pool.query(
         'UPDATE attributes SET value = $1, weekly_value = $2, updated_at = NOW() WHERE user_id = $3 AND name = $4 RETURNING *',
@@ -252,6 +284,14 @@ export class PgStorage implements IStorage {
   }
 
   async createAttributeRequest(insertRequest: InsertAttributeRequest): Promise<AttributeRequest> {
+    // Değer kontrolü - 0'dan büyük olmalı
+    if (insertRequest.valueRequested <= 0) {
+      console.error(`[CREATE_ATTRIBUTE_REQUEST] ERROR: Geçersiz değer talebi: ${insertRequest.valueRequested}`);
+      throw new Error(`Invalid value requested: ${insertRequest.valueRequested}. Value must be greater than 0.`);
+    }
+    
+    console.log(`[CREATE_ATTRIBUTE_REQUEST] Yeni talep: Ticket ${insertRequest.ticketId} için ${insertRequest.attributeName} niteliğine +${insertRequest.valueRequested} ekleme`);
+    
     const result = await this.pool.query(
       'INSERT INTO attribute_requests(ticket_id, attribute_name, value_requested, approved) VALUES($1, $2, $3, $4) RETURNING *',
       [
@@ -262,7 +302,10 @@ export class PgStorage implements IStorage {
       ]
     );
     
-    return this.pgAttributeRequestToAttributeRequest(result.rows[0]);
+    const createdRequest = this.pgAttributeRequestToAttributeRequest(result.rows[0]);
+    console.log(`[CREATE_ATTRIBUTE_REQUEST] Talep oluşturuldu - ID: ${createdRequest.id}, Nitelik: ${createdRequest.attributeName}, Değer: +${createdRequest.valueRequested}`);
+    
+    return createdRequest;
   }
 
   async approveAttributeRequest(requestId: number): Promise<AttributeRequest> {
