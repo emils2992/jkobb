@@ -191,7 +191,7 @@ export function setupEventHandlers() {
                 // Şimdi tek seferde güncelleyelim
                 // entries() kullanmak yerine Array.from kullanarak uyumluluk sorunu çözülür
                 for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-                  console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
+                  console.log(`Setting ${attributeName} value to ${totalValue} for user ${user.userId}`);
                   await storage.updateAttribute(
                     user.userId,
                     attributeName,
@@ -542,7 +542,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
+        console.log(`Setting ${attributeName} value to ${totalValue} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
@@ -732,7 +732,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
-        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
+        console.log(`Setting ${attributeName} value to ${totalValue} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
