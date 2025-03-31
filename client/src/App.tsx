@@ -11,27 +11,28 @@ import LoginPage from "@/pages/login";
 import Layout from "@/components/layout";
 import { AuthProvider } from "./lib/auth-context";
 import ProtectedRoute from "./lib/protected-route";
+import { ROUTES } from "./routes";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={LoginPage} />
-      <Route path="/">
+      <Route path={ROUTES.LOGIN} component={LoginPage} />
+      <Route path={ROUTES.HOME}>
         <ProtectedRoute>
           <Dashboard />
         </ProtectedRoute>
       </Route>
-      <Route path="/player-stats">
+      <Route path={ROUTES.PLAYER_STATS}>
         <ProtectedRoute>
           <PlayerStats />
         </ProtectedRoute>
       </Route>
-      <Route path="/training">
+      <Route path={ROUTES.TRAINING}>
         <ProtectedRoute>
           <TrainingPage />
         </ProtectedRoute>
       </Route>
-      <Route path="/settings">
+      <Route path={ROUTES.SETTINGS}>
         <ProtectedRoute>
           <SettingsPage />
         </ProtectedRoute>

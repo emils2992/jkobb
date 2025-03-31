@@ -2,13 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import TicketCard from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, BarChart2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Ticket } from "@/lib/types";
+import { useLocation } from "wouter";
+import { ROUTES } from "@/routes";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   
   const { data: tickets, isLoading, error } = useQuery<Ticket[]>({
@@ -65,6 +68,15 @@ export default function Dashboard() {
             />
             <Search className="absolute right-3 top-2.5 text-discord-light h-4 w-4" />
           </div>
+          
+          <Button 
+            className="bg-discord-blue hover:bg-blue-600"
+            onClick={() => navigate(ROUTES.PLAYER_STATS)}
+          >
+            <BarChart2 className="h-4 w-4 mr-2" />
+            Nitelik İstatistikleri
+          </Button>
+          
           <Button 
             className="bg-discord-blue hover:bg-blue-600"
             onClick={handleNewTicket}

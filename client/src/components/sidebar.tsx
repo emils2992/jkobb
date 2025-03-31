@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ROUTES } from "@/routes";
 
 interface NavItem {
   icon: string;
@@ -33,25 +34,25 @@ export default function Sidebar() {
         {
           icon: "fas fa-ticket-alt",
           label: "Aktif Ticketlar",
-          href: "/",
+          href: ROUTES.HOME,
           hasShortcut: true
         },
         {
           icon: "fas fa-chart-line",
           label: "Nitelik İstatistikleri",
-          href: "/player-stats",
+          href: ROUTES.PLAYER_STATS,
           hasShortcut: true
         },
         {
           icon: "fas fa-running",
           label: "Antrenman Takibi",
-          href: "/training",
+          href: ROUTES.TRAINING,
           hasShortcut: true
         },
         {
           icon: "fas fa-cog",
           label: "Ayarlar",
-          href: "/settings",
+          href: ROUTES.SETTINGS,
           hasShortcut: true
         }
       ]
@@ -63,13 +64,13 @@ export default function Sidebar() {
           icon: "fas fa-terminal",
           label: "/fixson",
           isBotCommand: true,
-          href: "/player-stats"
+          href: ROUTES.PLAYER_STATS
         },
         {
           icon: "fas fa-redo-alt",
           label: "/fixreset",
           isBotCommand: true,
-          href: "/player-stats"
+          href: ROUTES.PLAYER_STATS
         }
       ]
     }
@@ -156,7 +157,7 @@ export default function Sidebar() {
         <button 
           onClick={() => {
             logout();
-            window.location.href = "/login";
+            window.location.href = ROUTES.LOGIN;
           }}
           className="w-full flex items-center justify-center space-x-2 p-2 rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
         >
