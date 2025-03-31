@@ -541,15 +541,15 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       }
 
 
-// Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
+      // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          request.valueRequested,
+          totalValue, // Use totalValue from attributeMap
           undefined,
-          false // absoluteValue parametresini false olarak ayarlıyoruz
+          true // absoluteValue parametresini true olarak ayarlıyoruz
         );
       }
       // Close the ticket
@@ -732,15 +732,15 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       }
 
 
-// Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
+      // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
       for (const [attributeName, totalValue] of Array.from(attributeMap.entries())) {
         console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
           attributeName,
-          request.valueRequested,
+          totalValue, // Use totalValue from attributeMap
           undefined,
-          false // absoluteValue parametresini false olarak ayarlıyoruz
+          true // absoluteValue parametresini true olarak ayarlıyoruz
         );
       }
       // Close the ticket
