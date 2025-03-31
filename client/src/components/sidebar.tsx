@@ -71,6 +71,12 @@ export default function Sidebar() {
           label: "/fixreset",
           isBotCommand: true,
           href: ROUTES.PLAYER_STATS
+        },
+        {
+          icon: "fas fa-cog",
+          label: "/ayarla",
+          isBotCommand: true,
+          href: ROUTES.SETTINGS
         }
       ]
     }
