@@ -43,8 +43,13 @@ export interface TrainingSession {
   id: number;
   userId: string;
   ticketId: string | null;
+  attributeName: string;
   duration: number;
+  intensity: number;
   attributesGained: number;
+  source?: string;
+  messageId?: string;
+  channelId?: string;
   createdAt: string;
 }
 

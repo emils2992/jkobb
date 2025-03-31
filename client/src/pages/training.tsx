@@ -6,6 +6,26 @@ import { useToast } from "@/hooks/use-toast";
 import { PlayerStats, Ticket } from "@/lib/types";
 import { DumbbellIcon, Users, Clock, TrendingUp } from "lucide-react";
 
+interface TrainingSession {
+  id: number;
+  userId: string;
+  attributeName: string;
+  duration: number;
+  intensity: number;
+  attributesGained: number;
+  createdAt: string;
+  source: string;
+}
+
+interface UserWithSessions {
+  user: {
+    userId: string;
+    username: string;
+    avatarUrl: string;
+  };
+  sessions: TrainingSession[];
+}
+
 export default function TrainingPage() {
   const { toast } = useToast();
   
@@ -13,20 +33,33 @@ export default function TrainingPage() {
     queryKey: ['/api/players/stats'],
   });
 
-  const { data: tickets } = useQuery<Ticket[]>({
-    queryKey: ['/api/tickets'],
+  const { data: userSessions } = useQuery<UserWithSessions[]>({
+    queryKey: ['/api/training-sessions'],
   });
 
-  const trainingTickets = tickets?.filter(ticket => ticket.type === 'training') || [];
+  // Sadece message türündeki oturumları filtrele (yeni tip antrenmanlar)
+  const messageSessions = userSessions?.flatMap(userSession => 
+    userSession.sessions.filter(session => session.source === 'message')
+  ) || [];
+
+  // Tüm antrenman süresini hesapla
+  const totalTrainingDuration = messageSessions.reduce(
+    (total, session) => total + session.duration, 0
+  );
+
+  // Tüm kazanılan nitelikleri hesapla
+  const totalTrainingAttributes = messageSessions.reduce(
+    (total, session) => total + session.attributesGained, 0
+  );
 
   const handleTrainingCommand = () => {
     toast({
-      title: "Discord Komutu",
-      description: "Antreman kaydetmek için Discord'da /antrenman komutunu kullanın",
+      title: "Discord Antrenman Formatı",
+      description: "Antrenman yapmak için antrenman kanalında şu formatta mesaj yazın: '1/1 kısa pas'",
     });
   };
 
-  const topPlayers = [...(playersStats || [])].sort((a, b) => b.weeklyValue - a.weeklyValue).slice(0, 5);
+  const topPlayers = [...(playersStats || [])].sort((a, b) => b.weeklyValue - a.weeklyValue).slice(0, 10);
 
   return (
     <>
@@ -37,7 +70,7 @@ export default function TrainingPage() {
           className="bg-discord-blue hover:bg-blue-600"
         >
           <DumbbellIcon className="h-4 w-4 mr-2" />
-          Antrenman Kaydet
+          Antrenman Nasıl Yapılır?
         </Button>
       </header>
 
@@ -47,12 +80,12 @@ export default function TrainingPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center">
                 <Users className="mr-2 h-5 w-5 text-discord-blue" />
-                Aktif Antrenman
+                Toplam Antrenman
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{trainingTickets.length}</p>
-              <p className="text-discord-light text-sm">Bu hafta kaydedilen antrenmanlar</p>
+              <p className="text-3xl font-bold">{messageSessions.length}</p>
+              <p className="text-discord-light text-sm">Toplam kaydedilen antrenmanlar</p>
             </CardContent>
           </Card>
           
@@ -64,8 +97,8 @@ export default function TrainingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">120 dk</p>
-              <p className="text-discord-light text-sm">Bu hafta toplam antrenman süresi</p>
+              <p className="text-3xl font-bold">{totalTrainingDuration} saat</p>
+              <p className="text-discord-light text-sm">Toplam antrenman süresi</p>
             </CardContent>
           </Card>
           
@@ -78,9 +111,9 @@ export default function TrainingPage() {
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
-                {playersStats?.reduce((sum, player) => sum + player.weeklyValue, 0) || 0}
+                {totalTrainingAttributes}
               </p>
-              <p className="text-discord-light text-sm">Bu hafta kazanılan toplam nitelik</p>
+              <p className="text-discord-light text-sm">Antrenmanlardan kazanılan toplam nitelik</p>
             </CardContent>
           </Card>
         </div>
@@ -99,20 +132,27 @@ export default function TrainingPage() {
               <CardContent>
                 {topPlayers.length > 0 ? (
                   <div className="space-y-4">
-                    {topPlayers.map((player, index) => (
-                      <div key={player.user.userId} className="flex items-center justify-between p-3 bg-discord-darker rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 flex items-center justify-center bg-discord-blue rounded-full font-bold">
-                            {index + 1}
+                    {topPlayers.map((player, index) => {
+                      // Bu oyuncunun yaptığı antrenman sayısını bul
+                      const userTrainingCount = userSessions?.find(
+                        us => us.user.userId === player.user.userId
+                      )?.sessions.filter(s => s.source === 'message').length || 0;
+                      
+                      return (
+                        <div key={player.user.userId} className="flex items-center justify-between p-3 bg-discord-darker rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 flex items-center justify-center bg-discord-blue rounded-full font-bold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <div className="font-medium">{player.user.username}</div>
+                              <div className="text-sm text-discord-light">Antrenman: {userTrainingCount}</div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-medium">{player.user.username}</div>
-                            <div className="text-sm text-discord-light">#{player.user.userId.slice(0, 4)}</div>
-                          </div>
+                          <div className="text-xl font-bold text-discord-blue">+{player.weeklyValue}</div>
                         </div>
-                        <div className="text-xl font-bold text-discord-blue">+{player.weeklyValue}</div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-discord-light">
@@ -129,35 +169,52 @@ export default function TrainingPage() {
                 <CardTitle>Antrenman Geçmişi</CardTitle>
               </CardHeader>
               <CardContent>
-                {trainingTickets.length > 0 ? (
+                {messageSessions.length > 0 ? (
                   <div className="space-y-4">
-                    {trainingTickets.map((ticket) => (
-                      <div key={ticket.ticketId} className="p-4 bg-discord-darker rounded-lg">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-medium">{ticket.user?.username || "Unknown User"}</h3>
-                            <p className="text-sm text-discord-light">
-                              {new Date(ticket.createdAt).toLocaleDateString('tr-TR')}
-                            </p>
+                    {messageSessions.slice(0, 20).map((session, index) => {
+                      // Bu oturuma ait kullanıcıyı bul
+                      const sessionUser = userSessions?.find(us => 
+                        us.sessions.some(s => s.id === session.id)
+                      )?.user;
+                      
+                      return (
+                        <div key={index} className="p-4 bg-discord-darker rounded-lg">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-medium">{sessionUser?.username || "Unknown User"}</h3>
+                              <p className="text-sm text-discord-light">
+                                {new Date(session.createdAt).toLocaleDateString('tr-TR')}
+                              </p>
+                            </div>
+                            <span className="px-2 py-1 text-xs bg-blue-500 bg-opacity-20 text-blue-400 rounded-full">
+                              {session.attributeName}
+                            </span>
                           </div>
-                          <span className="px-2 py-1 text-xs bg-blue-500 bg-opacity-20 text-blue-400 rounded-full">
-                            Antrenman
-                          </span>
+                          
+                          <div className="bg-gray-800 rounded p-3">
+                            <h4 className="text-xs uppercase font-bold text-discord-light mb-2">Antrenman Detayları</h4>
+                            <div className="flex justify-between mb-1 text-sm">
+                              <span>Süre</span>
+                              <span>{session.duration} saat</span>
+                            </div>
+                            <div className="flex justify-between mb-1 text-sm">
+                              <span>Yoğunluk</span>
+                              <span>{session.intensity}/5</span>
+                            </div>
+                            <div className="flex justify-between mb-1 text-sm">
+                              <span>Kazanılan Nitelik</span>
+                              <span>+{session.attributesGained}</span>
+                            </div>
+                          </div>
                         </div>
-                        
-                        <div className="bg-gray-800 rounded p-3">
-                          <h4 className="text-xs uppercase font-bold text-discord-light mb-2">Antrenman Kaydı</h4>
-                          <div className="flex justify-between mb-1 text-sm">
-                            <span>Süre</span>
-                            <span>45 dakika</span>
-                          </div>
-                          <div className="flex justify-between mb-1 text-sm">
-                            <span>Kazanılan Nitelik</span>
-                            <span>+3</span>
-                          </div>
-                        </div>
+                      );
+                    })}
+                    
+                    {messageSessions.length > 20 && (
+                      <div className="text-center text-discord-light">
+                        <p>Toplam {messageSessions.length} antrenman kaydından 20 tanesi gösteriliyor.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-discord-light">

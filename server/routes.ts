@@ -75,6 +75,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch player stats" });
     }
   });
+  
+  // Get training sessions
+  app.get("/api/training-sessions", async (req, res) => {
+    try {
+      // Tüm kullanıcıları al
+      const stats = await storage.getPlayerAttributeStats();
+      
+      // Her kullanıcı için antrenman oturumlarını al
+      const usersWithSessions = await Promise.all(
+        stats.map(async (stat) => {
+          const trainingSessions = await storage.getTrainingSessions(stat.user.userId);
+          
+          // Sadece antrenman türünde olan oturumları filtrele (ticket olmayan)
+          const filteredSessions = trainingSessions.filter(session => 
+            session.ticketId === null || session.ticketId === "" || session.source === 'message'
+          );
+          
+          return {
+            user: stat.user,
+            sessions: filteredSessions
+          };
+        })
+      );
+      
+      res.json(usersWithSessions);
+    } catch (error) {
+      console.error("Error fetching training sessions:", error);
+      res.status(500).json({ message: "Failed to fetch training sessions" });
+    }
+  });
 
   // Update attribute request approval status
   app.patch("/api/attribute-requests/:requestId", async (req, res) => {

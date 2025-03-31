@@ -312,6 +312,92 @@ export function setupEventHandlers() {
 
         // Antrenman kanalındaysa kontrol et
         if (serverConfig?.trainingChannelId && message.channelId === serverConfig.trainingChannelId) {
+          console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content}`);
+          
+          // İlk önce yeni formatta mesaj olup olmadığını kontrol et (1/1 kısa pas)
+          const simpleTrainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
+          const matches = message.content.match(simpleTrainingPattern);
+          
+          if (matches && matches.length >= 4) {
+            const duration = parseInt(matches[1], 10);
+            const intensity = parseInt(matches[2], 10);
+            const attributeName = matches[3].trim();
+            
+            console.log(`[ANTRENMAN] Basit format algılandı: Süre=${duration}, Yoğunluk=${intensity}, Nitelik=${attributeName}`);
+            
+            try {
+              // Kullanıcıyı oluştur veya al
+              const user = await storage.getOrCreateUser(
+                message.author.id,
+                message.author.username,
+                message.author.displayAvatarURL()
+              );
+              
+              // Sabit olarak +1 puan ekleyeceğiz
+              const attributeValue = 1;
+              
+              // Antrenman oturumu oluştur
+              await storage.createTrainingSession({
+                userId: user.userId,
+                attributeName: attributeName,
+                ticketId: null,
+                duration,
+                intensity,
+                attributesGained: attributeValue,
+                source: 'message',
+                messageId: message.id,
+                channelId: message.channelId
+              });
+              
+              // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
+              await storage.updateAttribute(
+                user.userId, 
+                attributeName, 
+                attributeValue, // Toplam değeri artır
+                attributeValue  // Haftalık değeri de artır
+              );
+              
+              // Yanıt olarak oturumu doğrula
+              const embed = new EmbedBuilder()
+                .setTitle('🏋️ Antrenman Kaydı')
+                .setColor('#43B581')
+                .setDescription(`${message.author} adlı oyuncunun antrenman kaydı başarıyla oluşturuldu.`)
+                .addFields(
+                  { name: 'Süre', value: `${duration} saat`, inline: true },
+                  { name: 'Yoğunluk', value: `${intensity}/5`, inline: true },
+                  { name: 'Nitelik', value: attributeName, inline: true },
+                  { name: 'Kazanılan Puan', value: `+${attributeValue}`, inline: true }
+                )
+                .setTimestamp();
+              
+              // Onaylamak için emoji ekle
+              await message.react('🏋️');
+              await message.reply({ embeds: [embed] });
+              
+              // Log kanalına da gönder
+              if (serverConfig?.fixLogChannelId) {
+                try {
+                  const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
+                  if (logChannel) {
+                    await logChannel.send({ 
+                      content: `${user.username} antrenman yaptı:`,
+                      embeds: [embed] 
+                    });
+                  }
+                } catch (error) {
+                  console.error('Antrenman log kanalına mesaj gönderilirken hata:', error);
+                }
+              }
+              
+              return; // Mesajı işledik, diğer işlemlere geçme
+            } catch (error) {
+              console.error('Error processing simple training message:', error);
+              await message.reply('Antrenman kaydı oluşturulurken bir hata oluştu.');
+              return;
+            }
+          }
+          
+          // Eski kompleks antrenman formatı 
           // Kullanıcıyı oluştur veya al
           const user = await storage.getOrCreateUser(
             message.author.id,
