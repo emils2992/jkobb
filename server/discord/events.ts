@@ -180,11 +180,21 @@ export function setupEventHandlers() {
                 const approvedRequests = await storage.getAttributeRequests(ticketId);
                 
                 // Process all attribute requests (auto-approved on close) - ONLY ONCE
+                // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
+                const attributeMap = new Map<string, number>();
+                
                 for (const request of approvedRequests) {
+                  const currentValue = attributeMap.get(request.attributeName) || 0;
+                  attributeMap.set(request.attributeName, currentValue + request.valueRequested);
+                }
+                
+                // Şimdi tek seferde güncelleyelim
+                for (const [attributeName, totalValue] of attributeMap.entries()) {
+                  console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
                   await storage.updateAttribute(
                     user.userId,
-                    request.attributeName,
-                    request.valueRequested
+                    attributeName,
+                    totalValue
                   );
                 }
                 
@@ -506,13 +516,23 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       const approvedRequests = await storage.getAttributeRequests(ticketId);
       
       // Process all approved attribute requests ONCE
+      // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
+      const attributeMap = new Map<string, number>();
+                
       for (const request of approvedRequests) {
+        const currentValue = attributeMap.get(request.attributeName) || 0;
+        attributeMap.set(request.attributeName, currentValue + request.valueRequested);
+      }
+                
+      // Şimdi tek seferde güncelleyelim
+      attributeMap.forEach(async (totalValue, attributeName) => {
+        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
         await storage.updateAttribute(
           user.userId,
-          request.attributeName,
-          request.valueRequested
+          attributeName,
+          totalValue
         );
-      }
+      });
       
       // Close the ticket
       await storage.closeTicket(ticketId);
@@ -683,15 +703,25 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       }
       
       // Process approved attribute requests
+      // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
+      const attributeMap = new Map<string, number>();
+      
       for (const request of attributeRequests) {
         if (request.approved) {
-          await storage.updateAttribute(
-            user.userId,
-            request.attributeName,
-            request.valueRequested
-          );
+          const currentValue = attributeMap.get(request.attributeName) || 0;
+          attributeMap.set(request.attributeName, currentValue + request.valueRequested);
         }
       }
+      
+      // Şimdi tek seferde güncelleyelim
+      attributeMap.forEach(async (totalValue, attributeName) => {
+        console.log(`Adding ${totalValue} to ${attributeName} for user ${user.userId}`);
+        await storage.updateAttribute(
+          user.userId,
+          attributeName,
+          totalValue
+        );
+      });
       
       // Close the ticket
       await storage.closeTicket(ticketId);

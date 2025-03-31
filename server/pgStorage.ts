@@ -81,13 +81,16 @@ export class PgStorage implements IStorage {
     return this.pgAttributeToAttribute(result.rows[0]);
   }
 
-  async updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number): Promise<Attribute> {
+  async updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue: boolean = false): Promise<Attribute> {
     const existing = await this.getAttribute(userId, attributeName);
     
     if (existing) {
-      // Mevcut değere ekleme yap
-      const newValue = existing.value + value;
-      const newWeeklyValue = weeklyValue !== undefined ? weeklyValue : existing.weeklyValue + value;
+      // Eğer absoluteValue true ise, mevcut değerin üzerine yaz, yoksa ekle
+      const newValue = absoluteValue ? value : existing.value + value;
+      const newWeeklyValue = weeklyValue !== undefined ? weeklyValue : 
+                            absoluteValue ? value : existing.weeklyValue + value;
+      
+      console.log(`Updating attribute ${attributeName} for user ${userId}: Current value=${existing.value}, Adding=${value}, New value=${newValue}`);
       
       const result = await this.pool.query(
         'UPDATE attributes SET value = $1, weekly_value = $2, updated_at = NOW() WHERE user_id = $3 AND name = $4 RETURNING *',
@@ -97,6 +100,8 @@ export class PgStorage implements IStorage {
       return this.pgAttributeToAttribute(result.rows[0]);
     } else {
       // Yeni nitelik oluştur
+      console.log(`Creating new attribute ${attributeName} for user ${userId} with value=${value}`);
+      
       const result = await this.pool.query(
         'INSERT INTO attributes(user_id, name, value, weekly_value) VALUES($1, $2, $3, $4) RETURNING *',
         [userId, attributeName, value, weeklyValue !== undefined ? weeklyValue : value]

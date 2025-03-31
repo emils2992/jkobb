@@ -1,10 +1,25 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { LogOut } from "lucide-react";
+
+interface NavItem {
+  icon: string;
+  label: string;
+  href: string;
+  isBotCommand?: boolean;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const { logout } = useAuth();
 
-  const navItems = [
+  const navItems: NavSection[] = [
     {
       title: "Kontrol Paneli",
       items: [
@@ -96,6 +111,20 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+      
+      {/* Logout Button */}
+      <div className="mt-auto p-4 border-t border-gray-800">
+        <button 
+          onClick={() => {
+            logout();
+            window.location.href = "/login";
+          }}
+          className="w-full flex items-center justify-center space-x-2 p-2 rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Çıkış Yap</span>
+        </button>
+      </div>
     </div>
   );
 }
