@@ -535,9 +535,10 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Önce tüm nitelikleri ve miktarları bir haritada toplayalım
       const attributeMap = new Map<string, number>();
 
-      // Her nitelik için son değeri kullan, çarpma etkisini önle
+      // Aynı nitelik için olan istekleri topla
       for (const request of approvedRequests) {
-        attributeMap.set(request.attributeName, request.valueRequested);
+        const currentValue = attributeMap.get(request.attributeName) || 0;
+        attributeMap.set(request.attributeName, currentValue + request.valueRequested);
       }
 
       // Şimdi tek seferde güncelleyelim - for...of kullanarak async işlemlerin tamamlanmasını bekleyeceğiz
