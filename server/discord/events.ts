@@ -64,6 +64,7 @@ export function setupEventHandlers() {
       // Etkileşimi işlenmiş olarak işaretle
       if (interaction.id) {
         processedInteractionIds.add(interaction.id);
+        console.log(`[ETKILEŞIM] Yeni etkileşim işleniyor: ${interaction.id} (${interaction.type})`);
         
         // Önbellek boyutu kontrol
         if (processedInteractionIds.size >= MAX_CACHE_SIZE) {
@@ -111,13 +112,16 @@ export function setupEventHandlers() {
       // Handle button interactions with better error handling
       else if (interaction.isButton()) {
         try {
-          // Önce etkileşimi askıya al
-          await interaction.deferUpdate().catch(() => {
-            // Eğer deferUpdate başarısız olursa sessizce devam et
-            console.log(`[BUTON] Buton etkileşimi için deferUpdate başarısız, muhtemelen geçersiz etkileşim`);
-          });
+          // Bu etkileşim id'si daha önce işlendi mi kontrol et
+          if (processedInteractionIds.has(interaction.id)) {
+            console.log(`[BUTON] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${interaction.id}`);
+            return;
+          }
           
-          // Daha sonra buton işleyicisini çağır
+          // Etkileşimi işlenmiş olarak işaretle
+          processedInteractionIds.add(interaction.id);
+          
+          // Doğrudan buton işleyicisini çağır - deferUpdate zaten handleButtonInteraction içinde
           await handleButtonInteraction(interaction);
         } catch (error) {
           console.error('[BUTON] Buton etkileşimi işlenirken hata:', error);
@@ -627,8 +631,30 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
   // Handle create ticket button
   if (customId === 'create_ticket') {
-    await interaction.deferReply({ ephemeral: true });
-
+    // Etkileşim daha önce işlendi mi kontrol et
+    if (interaction.replied || interaction.deferred) {
+      console.log('[BUTON] Bu etkileşim zaten yanıtlandı veya ertelendi, işlem yapılmıyor');
+      return;
+    }
+    
+    // Güvenli şekilde deferUpdate kullan
+    try {
+      await interaction.deferUpdate().catch(err => {
+        console.log(`[BUTON] deferUpdate başarısız oldu, deferReply denenecek: ${err.message}`);
+      });
+    } catch (error) {
+      // Eğer deferUpdate başarısız olursa deferReply dene
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.deferReply({ ephemeral: true }).catch(err => {
+            console.log(`[BUTON] Hem deferUpdate hem deferReply başarısız oldu: ${err.message}`);
+          });
+        }
+      } catch (e) {
+        console.error('[BUTON] Etkileşim erteleme hatası:', e);
+      }
+    }
+    
     try {
       const guild = interaction.guild;
       if (!guild) {
