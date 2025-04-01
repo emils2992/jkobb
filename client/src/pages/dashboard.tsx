@@ -2,12 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import TicketCard from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, BarChart2 } from "lucide-react";
-import { useState } from "react";
+import { Search, Plus, BarChart2, Activity } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Ticket } from "@/lib/types";
 import { useLocation } from "wouter";
 import { ROUTES } from "@/routes";
+import LiveChart from "@/components/live-chart";
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,6 +124,34 @@ export default function Dashboard() {
       </header>
 
       <div className="p-6">
+        {/* Canlı Aktivite Grafikleri */}
+        <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6 slide-up-animation">
+          <LiveChart 
+            title="Son 24 Saat - Ticket Aktivitesi" 
+            dataEndpoint="/api/tickets/stats/daily"
+            refreshInterval={15000}
+            colors={['#3eb8df', '#5865F2', '#43B581', '#FAA61A']}
+          />
+          
+          <LiveChart 
+            title="Haftalık Nitelik Dağılımı" 
+            dataEndpoint="/api/players/stats/weekly"
+            refreshInterval={30000}
+            colors={['#5865F2', '#43B581', '#FAA61A', '#ED4245']}
+          />
+        </div>
+        
+        {/* Ticket Listesi */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold gradient-text">
+            <Activity className="inline-block mr-2 h-5 w-5" />
+            Aktif Ticketlar
+          </h2>
+          <div className="text-sm text-discord-light">
+            {filteredTickets?.length || 0} ticket görüntüleniyor
+          </div>
+        </div>
+        
         {filteredTickets && filteredTickets.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredTickets.map(ticket => (

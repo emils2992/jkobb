@@ -118,3 +118,32 @@
   -webkit-mask-composite: xor;
   mask-composite: exclude;
 }
+
+/* Added styles for live chart */
+.border-gradient {
+  position: relative;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  background: #2f3136;
+}
+
+.border-gradient::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  bottom: -1px;
+  left: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(45deg, #3eb8df, #5865F2, #43B581);
+}
+
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(62, 184, 223, 0.15);
+  transition: box-shadow 0.3s ease;
+}
+
+.shadow-glow:hover {
+  box-shadow: 0 0 25px rgba(62, 184, 223, 0.25);
+}
