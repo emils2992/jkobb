@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
+import { startUptimeService } from "./uptime";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -9,6 +10,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize Discord bot
   await initDiscordBot();
+  
+  // Start uptime service
+  startUptimeService();
 
   // Get active tickets
   app.get("/api/tickets", async (req, res) => {
