@@ -437,8 +437,14 @@ export function setupEventHandlers() {
           console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content}`);
 
           // İlk önce yeni formatta mesaj olup olmadığını kontrol et (1/1 kısa pas)
-          const simpleTrainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
-          const matches = message.content.match(simpleTrainingPattern);
+          // Düz metin formatı olarak "1/1 kısa pas" veya tek başına "1/1 şut" gibi
+          const simpleTrainingPattern = /^(\d+)\/(\d+)\s+(.+)$/i;
+          const matches = message.content.trim().match(simpleTrainingPattern);
+          
+          console.log(`[ANTRENMAN] Regex eşleşme kontrolü: "${message.content.trim()}" - Eşleşme: ${matches ? 'VAR' : 'YOK'}`);
+          if (matches) {
+            console.log(`[ANTRENMAN] Eşleşen gruplar:`, matches.slice(1));
+          }
 
           if (matches && matches.length >= 4) {
             // Mesajın kimliğini kontrol et
@@ -699,7 +705,9 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             WHERE guild_id = $1
           `;
           
-          const { rows } = await require('../db').pool.query(query, [guild.id]);
+          // pool'u db.ts'den import et
+          const { pool } = require('../db');
+          const { rows } = await pool.query(query, [guild.id]);
           if (rows.length > 0 && rows[0].staff_role_id) {
             staffRoleId = rows[0].staff_role_id;
             console.log(`Ticket oluşturuluyor, yetkili rol ID'si: ${staffRoleId}`);
