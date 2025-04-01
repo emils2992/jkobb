@@ -241,18 +241,19 @@ export class PgStorage implements IStorage {
       params.push(userId);
     }
     
-    // Sadece antrenman kaynaklı nitelik puanlarını topla (message ya da training source olan)
+    // Sadece GERÇEK antrenman kaynaklı nitelik puanlarını topla (message ya da training source olan)
+    // Burada önemli değişiklik: 'ticket' source'ları dahil edilmiyor
     const query = `
       SELECT 
         u.id, u.user_id, u.username, u.avatar_url, u.created_at,
-        COALESCE(SUM(ts.attributes_gained), 0) AS total_training_value,
-        COUNT(DISTINCT ts.id) AS training_count
+        COALESCE(SUM(CASE WHEN ts.source != 'ticket' THEN ts.attributes_gained ELSE 0 END), 0) AS total_training_value,
+        COUNT(DISTINCT CASE WHEN ts.source != 'ticket' THEN ts.id ELSE NULL END) AS training_count
       FROM 
         users u
       LEFT JOIN 
         training_sessions ts ON u.user_id = ts.user_id
       WHERE
-        (ts.source = 'message' OR ts.source = 'training')
+        ts.id IS NULL OR ts.source != 'ticket'
         ${userQuery}
       GROUP BY 
         u.id
@@ -260,19 +261,20 @@ export class PgStorage implements IStorage {
         total_training_value DESC
     `;
     
+    console.log('[ANTRENMAN-FIX] Sadece antrenman kaynaklı veriler sorgulanıyor (ticket dahil değil)');
     const result = await this.pool.query(query, params);
     const trainingStats = [];
     
     for (const row of result.rows) {
-      // Her kullanıcı için antrenman oturumlarını al
+      // Her kullanıcı için SADECE gerçek antrenman oturumlarını al (ticket olmayanları)
       const trainingSessions = await this.pool.query(
         `SELECT * FROM training_sessions 
-         WHERE user_id = $1 AND (source = 'message' OR source = 'training')
+         WHERE user_id = $1 AND source != 'ticket'
          ORDER BY created_at DESC`,
         [row.user_id]
       );
       
-      // Nitelikler bazında antrenman puanlarını hesapla
+      // Nitelikler bazında gerçek antrenman puanlarını hesapla (ticket olmayanları)
       const attributeQuery = `
         SELECT 
           attribute_name,
@@ -281,11 +283,12 @@ export class PgStorage implements IStorage {
           training_sessions
         WHERE 
           user_id = $1
-          AND (source = 'message' OR source = 'training')
+          AND source != 'ticket'
         GROUP BY 
           attribute_name
       `;
       
+      console.log(`[ANTRENMAN-FIX] Kullanıcı ${row.user_id} için ticket olmayan antrenman puanları hesaplanıyor`);
       const attributeResult = await this.pool.query(attributeQuery, [row.user_id]);
       const attributes = attributeResult.rows.map((attr: any) => ({
         name: attr.attribute_name,
@@ -311,7 +314,7 @@ export class PgStorage implements IStorage {
   }
   
   async getTrainingAttributes(userId: string): Promise<Attribute[]> {
-    // Sadece antrenman kaynaklı nitelikleri hesapla
+    // Sadece gerçek antrenman kaynaklı nitelikleri hesapla (ticket HARIÇ)
     const query = `
       SELECT 
         attribute_name AS name,
@@ -320,7 +323,7 @@ export class PgStorage implements IStorage {
         training_sessions
       WHERE 
         user_id = $1
-        AND (source = 'message' OR source = 'training')
+        AND source != 'ticket'
       GROUP BY 
         attribute_name
     `;
