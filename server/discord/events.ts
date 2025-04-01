@@ -37,21 +37,11 @@ export function setupEventHandlers() {
         try {
           await command(interaction);
         } catch (error) {
+          // Sadece konsola hata logu yaz, kullanıcıya hata mesajı gösterme
           console.error(`Error executing command ${commandName}:`, error);
-
-          // Hata mesajları tek bir yerden yönetiliyor
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ 
-              content: 'Komut çalıştırılırken bir hata oluştu.', 
-              ephemeral: true 
-            }).catch(err => {
-              console.error('Error sending error message:', err);
-            });
-          } else if (interaction.deferred) {
-            await interaction.editReply('Komut çalıştırılırken bir hata oluştu.').catch(err => {
-              console.error('Error editing reply with error message:', err);
-            });
-          }
+          
+          // Hata mesajlarını gösterme, sadece konsola log
+          console.log(`Komut hatası (${commandName}), mesaj gösterilmiyor`);
         }
       }
 
