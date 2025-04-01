@@ -86,7 +86,7 @@ export default function Sidebar() {
     <div className="w-full md:w-64 bg-discord-dark flex-shrink-0 border-r border-gray-800">
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center space-x-2">
-          <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" />
+          <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" onError={(e) => e.currentTarget.src = "../src/assets/logo.png"} />
           <h1 className="font-bold text-lg">Epic Lig Ticket Panel</h1>
         </div>
       </div>

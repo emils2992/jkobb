@@ -58,7 +58,7 @@ export default function Dashboard() {
       <header className="bg-discord-dark p-4 border-b border-gray-800">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" />
+            <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" onError={(e) => e.currentTarget.src = "../src/assets/logo.png"} />
             <h1 className="text-2xl font-bold">Tüm Ticketlar</h1>
           </div>
           <div className="flex items-center space-x-3">
