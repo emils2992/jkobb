@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveBar } from '@nivo/bar';
@@ -25,25 +26,24 @@ const LiveChart: React.FC<LiveChartProps> = ({
 }) => {
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false); // Error state eklendi
   const { toast } = useToast();
 
   // Veri yükleme fonksiyonu
   const fetchData = async () => {
     try {
       const response = await fetch(dataEndpoint);
-
+      
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
-
+      
       const rawData = await response.json();
-
+      
       // Veriyi grafik için uygun formata dönüştür - bu kısmı endpoint'e göre değiştirin
       const formattedData = formatDataForChart(rawData);
-
+      
       setData(formattedData);
-      setError(false); // Hata durumunu sıfırla
+      setLoading(false);
     } catch (error) {
       console.error('Grafik verisi yüklenirken hata:', error);
       toast({
@@ -51,48 +51,29 @@ const LiveChart: React.FC<LiveChartProps> = ({
         description: "Veriler yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.",
         variant: "destructive"
       });
-      setError(true); // Hata durumunu ayarla
-    } finally {
       setLoading(false);
     }
   };
 
   // Veriyi grafik formatına dönüştüren yardımcı fonksiyon - ihtiyaca göre düzenleyin
   const formatDataForChart = (rawData: any[]): ChartData[] => {
-    // Eğer veri yoksa veya boşsa default veri döndür
-    if (!rawData || rawData.length === 0) {
-      return generateDemoData();
-    }
     // Bu örnek için, API'den dönen veriyi basit bir dizi olarak varsayıyoruz
     // Gerçek uygulamada, kendi veri yapınıza göre bu fonksiyonu değiştirmeniz gerekecek
     return rawData.map((item, index) => ({
       id: item.name || `Item ${index}`,
       label: item.label || item.name || `Item ${index}`,
-      value: item.value || 0, // Eğer değer yoksa 0 ata
+      value: item.value || Math.floor(Math.random() * 100), // Eğer değer yoksa rastgele bir değer
       color: colors[index % colors.length] // Renkleri dönüşümlü olarak ata
     }));
-  };
-
-  const generateDemoData = (): ChartData[] => {
-    const demoData: ChartData[] = [];
-    for (let i = 0; i < 5; i++) {
-      demoData.push({
-        id: `Item ${i+1}`,
-        label: `Item ${i+1}`,
-        value: Math.floor(Math.random() * 100),
-        color: colors[i]
-      });
-    }
-    return demoData;
   };
 
   useEffect(() => {
     // İlk yükleme
     fetchData();
-
+    
     // Belirtilen aralıklarla verileri yenile
     const intervalId = setInterval(fetchData, refreshInterval);
-
+    
     // Komponent ayrıldığında interval'ı temizle
     return () => clearInterval(intervalId);
   }, [refreshInterval, dataEndpoint]);
@@ -109,10 +90,6 @@ const LiveChart: React.FC<LiveChartProps> = ({
         </CardContent>
       </Card>
     );
-  }
-
-  if (error) {
-    return <Card><CardContent>Hata: Veri yüklenirken bir sorun oluştu.</CardContent></Card>;
   }
 
   return (
