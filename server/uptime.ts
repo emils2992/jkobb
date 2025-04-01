@@ -2,9 +2,8 @@ import fetch from 'node-fetch';
 import { log } from './vite';
 
 // Replit URL'si (otomatik olarak çalışma zamanında oluşur)
-const REPLIT_URL = process.env.REPL_SLUG 
-  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` 
-  : 'https://workspace.tofebob605.repl.co'; // Fallback URL eğer env değişkenleri yoksa
+// Replit'in yeni URL formatını kullan
+const REPLIT_URL = 'https://3965186b-12e3-4301-9ad8-33e26b3a4c00-00-3q9w53gmru2.sisko.replit.dev';
 
 let pingInterval: NodeJS.Timeout | null = null;
 let lastPingTime = 0;
