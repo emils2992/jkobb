@@ -59,7 +59,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
     switch (status) {
       case 'open': return 'bg-green-500 bg-opacity-20 text-green-400';
       case 'pending': return 'bg-yellow-500 bg-opacity-20 text-yellow-400';
-      case 'closed': return 'bg-gray-500 bg-opacity-20 text-gray-400';
+      case 'closed': return 'bg-red-500 bg-opacity-20 text-red-400';
       default: return 'bg-blue-500 bg-opacity-20 text-blue-400';
     }
   };
@@ -68,7 +68,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
     switch (status) {
       case 'open': return 'bg-green-400';
       case 'pending': return 'bg-yellow-400';
-      case 'closed': return 'bg-gray-400';
+      case 'closed': return 'bg-red-400';
       default: return 'bg-blue-400';
     }
   };
@@ -94,7 +94,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
 
   return (
     <>
-      <Card className="bg-discord-dark rounded-md shadow-lg overflow-hidden">
+      <Card className={`bg-discord-dark rounded-md shadow-lg overflow-hidden ${ticket.status === 'closed' ? 'opacity-75' : ''}`}>
         <div className="p-4 border-b border-gray-700 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${getStatusDot(ticket.status)}`}></div>

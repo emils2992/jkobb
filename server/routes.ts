@@ -14,10 +14,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Start uptime service
   startUptimeService();
 
-  // Get active tickets
+  // Get all tickets (including closed ones)
   app.get("/api/tickets", async (req, res) => {
     try {
-      const tickets = await storage.getOpenTickets();
+      const tickets = await storage.getAllTickets();
       
       // Get additional info for each ticket
       const ticketsWithDetails = await Promise.all(

@@ -59,7 +59,7 @@ export default function Dashboard() {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" />
-            <h1 className="text-2xl font-bold">Aktif Ticketlar</h1>
+            <h1 className="text-2xl font-bold">Tüm Ticketlar</h1>
           </div>
           <div className="flex items-center space-x-3">
             <div className="relative">
@@ -90,7 +90,7 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
-        <p className="text-gray-400 mt-2">Epic Lig ticket sisteminde tüm aktif talepleri yönetebilirsiniz.</p>
+        <p className="text-gray-400 mt-2">Epic Lig ticket sisteminde tüm açık ve kapalı talepleri görüntüleyip yönetebilirsiniz.</p>
       </header>
 
       <div className="p-6">
@@ -103,11 +103,11 @@ export default function Dashboard() {
         ) : (
           <div className="text-center py-10">
             <div className="text-4xl mb-4">🎫</div>
-            <h3 className="text-xl font-medium mb-2">Hiç aktif ticket bulunamadı</h3>
+            <h3 className="text-xl font-medium mb-2">Hiç ticket bulunamadı</h3>
             <p className="text-discord-light mb-6">
               {searchQuery ? 
                 "Aramanızla eşleşen bir ticket yok. Farklı bir arama terimi deneyin." :
-                "Şu anda aktif bir ticket bulunmuyor. Discord'da /ticket komutunu kullanarak yenisini oluşturabilirsiniz."
+                "Şu anda hiçbir ticket bulunmuyor. Discord'da /ticket komutunu kullanarak yenisini oluşturabilirsiniz."
               }
             </p>
           </div>

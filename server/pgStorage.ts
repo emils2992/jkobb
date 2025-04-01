@@ -360,6 +360,14 @@ export class PgStorage implements IStorage {
     
     return result.rows.map((row: any) => this.pgTicketToTicket(row));
   }
+  
+  async getAllTickets(): Promise<Ticket[]> {
+    const result = await this.pool.query(
+      "SELECT * FROM tickets ORDER BY created_at DESC"
+    );
+    
+    return result.rows.map((row: any) => this.pgTicketToTicket(row));
+  }
 
   async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
     const result = await this.pool.query(

@@ -31,6 +31,7 @@ export interface IStorage {
   // Ticket operations
   getTicket(ticketId: string): Promise<Ticket | undefined>;
   getOpenTickets(): Promise<Ticket[]>;
+  getAllTickets(): Promise<Ticket[]>; // Hem açık hem kapalı tüm ticketları getir
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   updateTicketStatus(ticketId: string, status: string): Promise<Ticket>;
   closeTicket(ticketId: string): Promise<Ticket>;
@@ -325,6 +326,11 @@ export class MemStorage implements IStorage {
   async getOpenTickets(): Promise<Ticket[]> {
     return Array.from(this.tickets.values())
       .filter(t => t.status === 'open' || t.status === 'pending')
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  async getAllTickets(): Promise<Ticket[]> {
+    return Array.from(this.tickets.values())
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
