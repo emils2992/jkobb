@@ -94,7 +94,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
 
   return (
     <>
-      <Card className={`bg-discord-dark rounded-md shadow-lg overflow-hidden fade-in hover:pulse ${ticket.status === 'closed' ? 'opacity-75' : ''}`}>
+      <Card className={`bg-discord-dark rounded-md shadow-lg overflow-hidden slide-up-animation hover-scale ${ticket.status === 'closed' ? 'opacity-75' : ''}`} style={{animationDelay: `${Math.random() * 0.5}s`}}>
         <div className="p-4 border-b border-gray-700 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${getStatusDot(ticket.status)}`}></div>
@@ -120,19 +120,19 @@ export default function TicketCard({ ticket }: TicketCardProps) {
           </div>
 
           {ticket.attributeRequests && ticket.attributeRequests.length > 0 && (
-            <div className="bg-gray-800 rounded p-3 mb-3">
-              <h4 className="text-xs uppercase font-bold text-discord-light mb-2">Nitelik Talebi</h4>
+            <div className="bg-gray-800 rounded p-3 mb-3 glow-animation">
+              <h4 className="text-xs uppercase font-bold gradient-text mb-2">Nitelik Talebi</h4>
               <ul className="text-sm">
-                {ticket.attributeRequests.map((request: AttributeRequest) => (
-                  <li key={request.id} className="flex justify-between mb-1">
-                    <span>{request.attributeName}</span>
-                    <span>+{request.valueRequested}</span>
+                {ticket.attributeRequests.map((request: AttributeRequest, index) => (
+                  <li key={request.id} className="flex justify-between mb-2 p-1 hover:bg-gray-700 rounded transition-all duration-300 slide-up-animation" style={{animationDelay: `${index * 0.1}s`}}>
+                    <span className="fancy-hover">{request.attributeName}</span>
+                    <span className="text-green-400 font-bold bg-green-400 bg-opacity-10 px-2 rounded">+{request.valueRequested}</span>
                   </li>
                 ))}
               </ul>
               <div className="mt-2 pt-2 border-t border-gray-700 flex justify-between items-center">
                 <span className="text-xs font-medium">Toplam</span>
-                <span className="text-discord-blue font-bold">+{ticket.totalAttributes} Nitelik</span>
+                <span className="gradient-text font-bold text-lg">+{ticket.totalAttributes} Nitelik</span>
               </div>
             </div>
           )}
@@ -140,19 +140,27 @@ export default function TicketCard({ ticket }: TicketCardProps) {
           <div className="flex space-x-2">
             <Button 
               variant="default" 
-              className="flex-1 bg-discord-green hover:bg-green-600"
+              className="flex-1 bg-discord-green hover:bg-green-600 hover-scale gradient-border"
               onClick={handleApprove}
             >
-              <Check className="h-4 w-4 mr-1" /> Onayla
+              <Check className="h-4 w-4 mr-1 rotate-spin-animation" style={{animationDuration: '0.5s', animationIterationCount: '1', animationPlayState: isPending ? 'running' : 'paused'}} /> 
+              <span className="relative">
+                Onayla
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-white transition-all group-hover:w-full duration-300"></span>
+              </span>
             </Button>
             <Button 
               variant="secondary" 
-              className="flex-1 bg-gray-700 hover:bg-gray-600"
+              className="flex-1 bg-gray-700 hover:bg-gray-600 hover-scale"
               onClick={handleEdit}
             >
-              <Edit className="h-4 w-4 mr-1" /> Düzenle
+              <Edit className="h-4 w-4 mr-1" /> 
+              <span className="relative">
+                Düzenle
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-white transition-all group-hover:w-full duration-300"></span>
+              </span>
             </Button>
-            <Button variant="secondary" className="bg-gray-700 hover:bg-gray-600 p-2">
+            <Button variant="secondary" className="bg-gray-700 hover:bg-gray-600 p-2 hover-scale" style={{borderRadius: '50%'}}>
               <MoreVertical className="h-4 w-4" />
             </Button>
           </div>

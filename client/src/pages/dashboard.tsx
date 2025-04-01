@@ -34,9 +34,25 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="p-6">
+        <div className="text-center mb-8 slide-up-animation">
+          <div className="inline-block p-4 rounded-full bg-discord-dark glow-animation mb-4">
+            <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-16 h-16 rotate-spin-animation" onError={(e) => e.currentTarget.src = "../src/assets/logo.png"} />
+          </div>
+          <h2 className="text-xl font-bold gradient-text mb-2">Veri Yükleniyor</h2>
+          <p className="text-discord-light">Ticketlar hazırlanıyor, lütfen bekleyin...</p>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-discord-dark rounded-md shadow-lg overflow-hidden h-80 animate-pulse" />
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div 
+              key={i} 
+              className="bg-discord-dark rounded-md shadow-lg overflow-hidden h-80 animate-pulse" 
+              style={{ 
+                animationDelay: `${i * 0.1}s`,
+                background: 'linear-gradient(110deg, #2f3136 30%, #36393f 50%, #2f3136 70%)',
+                backgroundSize: '200% 100%',
+                animation: 'pulse-gradient 1.5s ease-in-out infinite'
+              }} 
+            />
           ))}
         </div>
       </div>
@@ -55,26 +71,26 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className="bg-discord-dark p-4 border-b border-gray-800">
+      <header className="bg-discord-dark p-4 border-b border-gray-800 slide-up-animation">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" onError={(e) => e.currentTarget.src = "../src/assets/logo.png"} />
+            <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10 float-animation" onError={(e) => e.currentTarget.src = "../src/assets/logo.png"} />
             <div>
-              <h1 className="text-2xl font-bold">Tüm Ticketlar</h1>
+              <h1 className="text-2xl font-bold gradient-text">Tüm Ticketlar</h1>
               <div className="flex items-center text-sm">
-                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse glow-animation"></span>
                 <span className="text-discord-light">Bot Çevrimiçi</span>
                 <span className="mx-2 text-discord-light">•</span>
-                <span className="text-[#5865F2]"><i className="fas fa-crown text-yellow-400 mr-1"></i>Epic Lig Yönetim</span>
+                <span className="text-[#5865F2] fancy-hover"><i className="fas fa-crown text-yellow-400 mr-1 rotate-spin-animation"></i>Epic Lig Yönetim</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 slide-up-animation" style={{animationDelay: '0.2s'}}>
             <div className="relative">
               <Input 
                 type="text"
                 placeholder="Ticket ara..."
-                className="bg-gray-700 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#3eb8df]"
+                className="bg-gray-700 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#3eb8df] hover-scale"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -82,7 +98,7 @@ export default function Dashboard() {
             </div>
             
             <Button 
-              className="bg-[#3eb8df] hover:bg-[#2da7ce]"
+              className="bg-[#3eb8df] hover:bg-[#2da7ce] hover-scale gradient-border"
               onClick={() => navigate(ROUTES.PLAYER_STATS)}
             >
               <BarChart2 className="h-4 w-4 mr-2" />
@@ -90,7 +106,7 @@ export default function Dashboard() {
             </Button>
             
             <Button 
-              className="bg-[#3eb8df] hover:bg-[#2da7ce]"
+              className="bg-[#3eb8df] hover:bg-[#2da7ce] hover-scale gradient-border"
               onClick={handleNewTicket}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -98,7 +114,12 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
-        <p className="text-gray-400 mt-2">Epic Lig ticket sisteminde tüm açık ve kapalı talepleri görüntüleyip yönetebilirsiniz.</p>
+        <p className="text-gray-400 mt-2 slide-up-animation" style={{animationDelay: '0.3s'}}>
+          Epic Lig ticket sisteminde tüm açık ve kapalı talepleri görüntüleyip yönetebilirsiniz.
+          <span className="ml-2 text-xs bg-discord-blue bg-opacity-20 text-discord-blue px-2 py-1 rounded-full">
+            <i className="fas fa-code mr-1"></i>Bot sahibi: <span className="font-bold text-white">𝐀𝐥𝐢∅𝐌𝐎𝐎𝐃𝐘</span>
+          </span>
+        </p>
       </header>
 
       <div className="p-6">
