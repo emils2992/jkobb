@@ -327,7 +327,7 @@ export class PgStorage implements IStorage {
     
     const result = await this.pool.query(query, [userId]);
     
-    return result.rows.map(row => ({
+    return result.rows.map((row: any) => ({
       id: 0, // Sadece görünüm olduğu için gerçek bir ID vermiyoruz
       userId,
       name: row.name,

@@ -726,7 +726,9 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             attributeName,
             valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
             undefined, // Haftalık değeri otomatik olarak güncellenir
-            false // absoluteValue=false: değeri ekle, değiştirme
+            false, // absoluteValue=false: değeri ekle, değiştirme
+            false, // onlyUpdateWeekly=false
+            'ticket' // source=ticket: bu değişiklik ticket kaynaklı
           );
           
           // Sonraki değeri alıp loglayalım
@@ -950,7 +952,9 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
             attributeName,
             valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
             undefined, // Haftalık değeri otomatik olarak güncellenir
-            false // absoluteValue=false: değeri ekle, değiştirme
+            false, // absoluteValue=false: değeri ekle, değiştirme
+            false, // onlyUpdateWeekly=false
+            'ticket' // source=ticket: bu değişiklik ticket kaynaklı
           );
           
           // Sonraki değeri alıp loglayalım
