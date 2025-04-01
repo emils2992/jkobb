@@ -53,7 +53,7 @@ export function setupEventHandlers() {
         } catch (error) {
           console.error('Error handling button interaction:', error);
           // Interaction already replied durumunu kontrol et
-          if (error?.code !== 'InteractionAlreadyReplied' && !interaction.replied && !interaction.deferred) {
+          if ((error as any)?.code !== 'InteractionAlreadyReplied' && !interaction.replied && !interaction.deferred) {
             try {
               await interaction.reply({ 
                 content: 'İşleminiz alındı, işleniyor...', 
@@ -192,8 +192,12 @@ export function setupEventHandlers() {
                 // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
                 const attributeMap = new Map<string, number>();
 
+                // Önce talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
+                const sortedRequests = [...approvedRequests]
+                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
                 // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
-                for (const request of approvedRequests) {
+                for (const request of sortedRequests) {
                   // Nitelik adını ve tam olarak istenen değeri kullan
                   attributeMap.set(request.attributeName, request.valueRequested);
                   console.log(`[TAMAMEN YENİ METOT] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested}`);
@@ -630,32 +634,27 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
   // Handle close ticket button
   if (customId === 'close_ticket') {
+    // Hemen tepki ver - etkileşim zaman aşımını önle
+    await interaction.deferReply(); // En başta cevap ver
+    
     // Check if this is a ticket channel
     const ticketId = interaction.channelId;
     if (!ticketId) {
-      return interaction.reply({
-        content: 'Kanal bilgisi alınamadı.',
-        ephemeral: true
-      });
+      return interaction.editReply('Kanal bilgisi alınamadı.');
     }
 
     const ticket = await storage.getTicket(ticketId);
 
     if (!ticket) {
-      return interaction.reply({
-        content: 'Bu bir ticket kanalı değil.',
-        ephemeral: true
-      });
+      return interaction.editReply('Bu bir ticket kanalı değil.');
     }
 
     if (ticket.status === 'closed') {
-      return interaction.reply({
-        content: 'Bu ticket zaten kapatılmış.',
-        ephemeral: true
-      });
+      return interaction.editReply('Bu ticket zaten kapatılmış.');
     }
-
-    await interaction.deferReply();
+    
+    // İlk mesajı gönder (hızlı yanıt için)
+    await interaction.editReply('Ticket kapatılıyor...');
 
     try {
       // Get attribute requests for this ticket
@@ -747,8 +746,19 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Close the ticket
       await storage.closeTicket(ticketId);
 
-      // Get updated total attribute count
-      const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+      // Toplam nitelik sayısını hesapla - attributeMap'teki değerleri topla
+      // Bu, veri tabanındaki değerle tutarlı olacaktır çünkü attributeMap'i nasıl oluşturduysak
+      // veritabanı güncellemelerini de öyle yaptık
+      const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
+      console.log(`[YENİ METOT - BUTON] Toplam nitelik puanı: ${updatedTotalAttributes}`);
+      
+      // Veritabanından toplam puanı kontrol etmek için - debug
+      const dbTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+      console.log(`[YENİ METOT - BUTON] Veritabanına göre toplam: ${dbTotalAttributes}`);
+      
+      if (updatedTotalAttributes !== dbTotalAttributes) {
+        console.log(`[YENİ METOT - BUTON] UYARI! Hesaplanan toplam (${updatedTotalAttributes}) ile veritabanı toplamı (${dbTotalAttributes}) eşleşmiyor!`);
+      }
 
       // Create embed for response
       const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
@@ -863,6 +873,9 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 async function handleModalSubmit(interaction: ModalSubmitInteraction) {
   const { customId } = interaction;
 
+  // Tüm modaller için genel işlemler
+  console.log(`[MODAL] "${customId}" ID'li modal işleniyor...`);
+
   // Handle ticket close confirmation
   if (customId === 'close_ticket_confirm') {
     try {
@@ -886,21 +899,19 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
       const ticket = await storage.getTicket(ticketId);
 
+      // Hemen tepki ver - etkileşim zaman aşımını önle
+      await interaction.deferReply(); // En başta cevap ver
+      
       if (!ticket) {
-        return await interaction.reply({
-          content: 'Bu bir ticket kanalı değil.',
-          ephemeral: true
-        });
+        return await interaction.editReply('Bu bir ticket kanalı değil.');
       }
 
       if (ticket.status === 'closed') {
-        return await interaction.reply({
-          content: 'Bu ticket zaten kapatılmış.',
-          ephemeral: true
-        });
+        return await interaction.editReply('Bu ticket zaten kapatılmış.');
       }
-
-      await interaction.deferReply();
+      
+      // İlk mesajı gönder (hızlı yanıt için)
+      await interaction.editReply('Ticket kapatılıyor...');
 
       // Ticket kapatma işlemleri
       const attributeRequests = await storage.getAttributeRequests(ticketId);
@@ -973,8 +984,20 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       // Close the ticket
       await storage.closeTicket(ticketId);
 
-      // Create embed for the response
-      const embed = createAttributeEmbed(user, attributeRequests, totalAttributes);
+      // Toplam nitelik sayısını hesapla - attributeMap'teki değerleri topla
+      const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
+      console.log(`[YENİ METOT - MODAL] Toplam nitelik puanı: ${updatedTotalAttributes}`);
+      
+      // Veritabanından toplam puanı kontrol etmek için - debug
+      const dbTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+      console.log(`[YENİ METOT - MODAL] Veritabanına göre toplam: ${dbTotalAttributes}`);
+      
+      if (updatedTotalAttributes !== dbTotalAttributes) {
+        console.log(`[YENİ METOT - MODAL] UYARI! Hesaplanan toplam (${updatedTotalAttributes}) ile veritabanı toplamı (${dbTotalAttributes}) eşleşmiyor!`);
+      }
+      
+      // Create embed for the response - onay durumu değişebileceği için tüm talepleri kullan
+      const embed = createAttributeEmbed(user, attributeRequests, updatedTotalAttributes);
       await interaction.editReply({ embeds: [embed] });
 
       // Post to fix log channel if configured

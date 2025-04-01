@@ -88,11 +88,18 @@ export function createAttributeEmbed(
     inline: false
   });
 
-  // Aynı nitelik taleplerini birleştir
+  // Nitelik başına sadece en son talebi kullanacak şekilde harita oluştur - ÇOKLU TALEPLER İÇİN TOPLAMA YOK!
   const attributeSummary = new Map<string, number>();
-  for (const request of approvedRequests) {
-    const currentValue = attributeSummary.get(request.attributeName) || 0;
-    attributeSummary.set(request.attributeName, currentValue + request.valueRequested);
+  
+  // Önce talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
+  const sortedRequests = [...approvedRequests]
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  
+  // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
+  for (const request of sortedRequests) {
+    // Nitelik adını ve tam olarak istenen değeri kullan
+    attributeSummary.set(request.attributeName, request.valueRequested);
+    console.log(`[EMBED] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested} gösteriliyor`);
   }
   
   // Nitelik kategorilerine göre gruplandırma
@@ -135,11 +142,18 @@ export function createAttributeEmbed(
   }
   
   if (pendingRequests.length > 0) {
-    // Aynı şekilde, onaylanmayan nitelikleri de birleştir
+    // Onaylanmayan nitelikler için de aynı mantığı uygula - son talep kazanır
     const pendingSummary = new Map<string, number>();
-    for (const request of pendingRequests) {
-      const currentValue = pendingSummary.get(request.attributeName) || 0;
-      pendingSummary.set(request.attributeName, currentValue + request.valueRequested);
+    
+    // Önce talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
+    const sortedPendingRequests = [...pendingRequests]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    
+    // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
+    for (const request of sortedPendingRequests) {
+      // Nitelik adını ve tam olarak istenen değeri kullan
+      pendingSummary.set(request.attributeName, request.valueRequested);
+      console.log(`[EMBED] Bekleyen talep: ${request.attributeName} için SADECE +${request.valueRequested} gösteriliyor`);
     }
     
     const pendingText = Array.from(pendingSummary.entries())
