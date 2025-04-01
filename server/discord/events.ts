@@ -544,39 +544,74 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         interaction.user.displayAvatarURL()
       );
 
-      // Create ticket channel - visible to everyone but only user can send messages
+      // Get server config to check for staff role
+      const serverConfig = await storage.getServerConfig(guild.id);
+      let staffRoleId = null;
+      
+      // Veritabanından staff_role_id'yi almak için
+      if (serverConfig) {
+        try {
+          const query = `
+            SELECT staff_role_id 
+            FROM server_config 
+            WHERE guild_id = $1
+          `;
+          
+          const { rows } = await require('../db').pool.query(query, [guild.id]);
+          if (rows.length > 0 && rows[0].staff_role_id) {
+            staffRoleId = rows[0].staff_role_id;
+            console.log(`Ticket oluşturuluyor, yetkili rol ID'si: ${staffRoleId}`);
+          }
+        } catch (error) {
+          console.error('Error fetching staff role ID:', error);
+        }
+      }
+      
+      // Create ticket channel - SADECE ticket oluşturana ve yetkililere görünür
+      const permissionOverwrites = [
+        {
+          id: guild.id, // @everyone role
+          deny: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory
+          ]
+        },
+        {
+          id: interaction.user.id, // Ticket oluşturan
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory
+          ]
+        },
+        // Yöneticilere her zaman yazma yetkisi ver
+        {
+          id: guild.roles.cache.find(r => r.permissions.has(PermissionFlagsBits.Administrator))?.id || guild.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory
+          ]
+        }
+      ];
+      
+      // Eğer özel bir yetkili rolü ayarlanmışsa, ona da izin ver
+      if (staffRoleId) {
+        permissionOverwrites.push({
+          id: staffRoleId,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory
+          ]
+        });
+      }
+      
       const channel = await guild.channels.create({
         name: `ticket-${interaction.user.username}-${Date.now().toString().slice(-4)}`,
         type: ChannelType.GuildText,
-        permissionOverwrites: [
-          {
-            id: guild.id, // @everyone role
-            allow: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.ReadMessageHistory
-            ],
-            deny: [
-              PermissionFlagsBits.SendMessages
-            ]
-          },
-          {
-            id: interaction.user.id,
-            allow: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-              PermissionFlagsBits.ReadMessageHistory
-            ]
-          },
-          // Yöneticilere her zaman yazma yetkisi ver
-          {
-            id: guild.roles.cache.find(r => r.permissions.has(PermissionFlagsBits.Administrator))?.id || guild.id,
-            allow: [
-              PermissionFlagsBits.ViewChannel,
-              PermissionFlagsBits.SendMessages,
-              PermissionFlagsBits.ReadMessageHistory
-            ]
-          }
-        ]
+        permissionOverwrites: permissionOverwrites
       });
 
       // Create ticket in database
