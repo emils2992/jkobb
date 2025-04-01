@@ -138,7 +138,8 @@ export class MemStorage implements IStorage {
     value: number, 
     weeklyValue?: number,
     absoluteValue: boolean = false,
-    onlyUpdateWeekly: boolean = false
+    onlyUpdateWeekly: boolean = false,
+    source: string = 'manual'
   ): Promise<Attribute> {
     const existing = await this.getAttribute(userId, attributeName);
     const now = new Date();
@@ -153,7 +154,8 @@ export class MemStorage implements IStorage {
         weeklyValue: weeklyValue !== undefined 
           ? existing.weeklyValue + weeklyValue // Haftalık değeri her zaman toplayarak değiştir  
           : existing.weeklyValue + value, // Haftalık değeri ayarla veya ekle
-        updatedAt: now
+        updatedAt: now,
+        source: source // Kaynağı belirle
       };
       this.attributes.set(existing.id, updated);
       return updated;
@@ -167,7 +169,8 @@ export class MemStorage implements IStorage {
         value,
         weeklyValue: weeklyValue !== undefined ? weeklyValue : value,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        source: source
       };
       this.attributes.set(id, newAttribute);
       return newAttribute;
@@ -310,7 +313,8 @@ export class MemStorage implements IStorage {
       value,
       weeklyValue: 0, // Bu görünümde haftalık değeri hesaplamıyoruz
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      source: 'training'
     }));
   }
 

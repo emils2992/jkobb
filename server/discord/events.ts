@@ -222,7 +222,9 @@ export function setupEventHandlers() {
                       attributeName,
                       valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
                       undefined, // Haftalık değeri otomatik olarak güncellenir
-                      false // absoluteValue=false: değeri ekle, değiştirme
+                      false, // absoluteValue=false: değeri ekle, değiştirme
+                      false, // onlyUpdateWeekly=false
+                      'ticket' // source=ticket: bu değişiklik ticket kaynaklı
                     );
                     
                     // Sonraki değeri alıp loglayalım
@@ -490,7 +492,8 @@ export function setupEventHandlers() {
               0, // Toplam değeri artırmıyoruz
               trainingInfo.points, // Haftalık değeri artırıyoruz
               false, // absoluteValue parametresi artık önemsiz, bu değer dikkate alınmıyor
-              true // onlyUpdateWeekly - sadece haftalık değeri güncelle
+              true, // onlyUpdateWeekly - sadece haftalık değeri güncelle
+              'training' // source - bu değişiklik antrenman kaynaklı olduğunu belirt
             );
 
             // Onaylamak için emoji ekle
@@ -778,7 +781,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           if (interaction.channel?.type === ChannelType.GuildText) {
             const textChannel = interaction.channel as TextChannel;
             if (textChannel.deletable) {
-              await textChannel.send('Bu kanal 5 saniye içinde silinecek...');
+              await textChannel.send('Ticket kanalı siliniyor...');
               await new Promise(resolve => setTimeout(resolve, 5000));
               await textChannel.delete('Ticket kapatıldı');
               console.log(`Ticket kanalı silindi: ${textChannel.name}`);

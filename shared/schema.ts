@@ -26,6 +26,7 @@ export const attributes = pgTable("attributes", {
   weeklyValue: integer("weekly_value").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  source: text("source").notNull().default('manual'), // manual, ticket, training
 });
 
 export const insertAttributeSchema = createInsertSchema(attributes).pick({
@@ -33,6 +34,7 @@ export const insertAttributeSchema = createInsertSchema(attributes).pick({
   name: true,
   value: true,
   weeklyValue: true,
+  source: true,
 });
 
 // Tickets table
