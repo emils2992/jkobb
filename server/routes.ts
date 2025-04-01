@@ -37,6 +37,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch tickets" });
     }
   });
+  
+  // Update ticket status
+  app.patch("/api/tickets/:ticketId", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ message: "Status is required" });
+      }
+      
+      const updatedTicket = await storage.updateTicketStatus(ticketId, status);
+      res.json(updatedTicket);
+    } catch (error) {
+      console.error("Error updating ticket:", error);
+      res.status(500).json({ message: "Failed to update ticket" });
+    }
+  });
+  
+  // Update attribute request
+  app.patch("/api/attribute-requests/:requestId", async (req, res) => {
+    try {
+      const requestId = parseInt(req.params.requestId);
+      const { attributeName, valueRequested, approved } = req.body;
+      
+      // İstek onaylanıyorsa
+      if (approved) {
+        const updatedRequest = await storage.approveAttributeRequest(requestId);
+        return res.json(updatedRequest);
+      }
+      
+      // Burada normalde attributeName ve valueRequested güncelleme kodu olmalı
+      // Ancak mevcut storage interface'inde bu metot yok, bu yüzden şimdilik sadece onay işlemi yapılabilir
+      
+      res.status(400).json({ message: "Unsupported operation" });
+    } catch (error) {
+      console.error("Error updating attribute request:", error);
+      res.status(500).json({ message: "Failed to update attribute request" });
+    }
+  });
+  
+  // Create new attribute request
+  app.post("/api/attribute-requests", async (req, res) => {
+    try {
+      const { ticketId, attributeName, valueRequested } = req.body;
+      
+      if (!ticketId || !attributeName || valueRequested == null) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      const newRequest = await storage.createAttributeRequest({
+        ticketId,
+        attributeName,
+        valueRequested,
+      });
+      
+      res.json(newRequest);
+    } catch (error) {
+      console.error("Error creating attribute request:", error);
+      res.status(500).json({ message: "Failed to create attribute request" });
+    }
+  });
 
   // Get ticket by ID
   app.get("/api/tickets/:ticketId", async (req, res) => {

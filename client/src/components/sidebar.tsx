@@ -86,10 +86,8 @@ export default function Sidebar() {
     <div className="w-full md:w-64 bg-discord-dark flex-shrink-0 border-r border-gray-800">
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-full bg-discord-blue flex items-center justify-center">
-            <i className="fas fa-ticket-alt text-white"></i>
-          </div>
-          <h1 className="font-bold text-lg">Ticket Bot</h1>
+          <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" />
+          <h1 className="font-bold text-lg">Epic Lig Ticket Panel</h1>
         </div>
       </div>
       

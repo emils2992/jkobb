@@ -55,36 +55,42 @@ export default function Dashboard() {
 
   return (
     <>
-      <header className="bg-discord-dark p-4 border-b border-gray-800 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Aktif Ticketlar</h1>
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Input 
-              type="text"
-              placeholder="Ticket ara..."
-              className="bg-gray-700 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-discord-blue"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Search className="absolute right-3 top-2.5 text-discord-light h-4 w-4" />
+      <header className="bg-discord-dark p-4 border-b border-gray-800">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" />
+            <h1 className="text-2xl font-bold">Aktif Ticketlar</h1>
           </div>
-          
-          <Button 
-            className="bg-discord-blue hover:bg-blue-600"
-            onClick={() => navigate(ROUTES.PLAYER_STATS)}
-          >
-            <BarChart2 className="h-4 w-4 mr-2" />
-            Nitelik İstatistikleri
-          </Button>
-          
-          <Button 
-            className="bg-discord-blue hover:bg-blue-600"
-            onClick={handleNewTicket}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Yeni Ticket
-          </Button>
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <Input 
+                type="text"
+                placeholder="Ticket ara..."
+                className="bg-gray-700 px-4 py-2 rounded text-sm w-64 focus:outline-none focus:ring-2 focus:ring-[#3eb8df]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Search className="absolute right-3 top-2.5 text-discord-light h-4 w-4" />
+            </div>
+            
+            <Button 
+              className="bg-[#3eb8df] hover:bg-[#2da7ce]"
+              onClick={() => navigate(ROUTES.PLAYER_STATS)}
+            >
+              <BarChart2 className="h-4 w-4 mr-2" />
+              Nitelik İstatistikleri
+            </Button>
+            
+            <Button 
+              className="bg-[#3eb8df] hover:bg-[#2da7ce]"
+              onClick={handleNewTicket}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Yeni Ticket
+            </Button>
+          </div>
         </div>
+        <p className="text-gray-400 mt-2">Epic Lig ticket sisteminde tüm aktif talepleri yönetebilirsiniz.</p>
       </header>
 
       <div className="p-6">

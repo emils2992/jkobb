@@ -61,6 +61,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        'discord-dark': '#2f3136',
+        'discord-darker': '#202225',
+        'discord-light': '#b9bbbe',
+        'discord-blue': '#3eb8df',
+        'discord-green': '#3ba55c',
       },
       keyframes: {
         "accordion-down": {
