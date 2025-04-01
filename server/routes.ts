@@ -87,9 +87,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stats.map(async (stat) => {
           const trainingSessions = await storage.getTrainingSessions(stat.user.userId);
           
-          // Sadece antrenman türünde olan oturumları filtrele (ticket olmayan)
+          // Sadece gerçek antrenman türünde olan oturumları filtrele (ticket kaynaklı olanları tamamen hariç tut)
           const filteredSessions = trainingSessions.filter(session => 
-            session.ticketId === null || session.ticketId === "" || session.source === 'message'
+            session.source === 'message' || session.source === 'training'
           );
           
           return {

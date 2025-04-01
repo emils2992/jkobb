@@ -37,9 +37,9 @@ export default function TrainingPage() {
     queryKey: ['/api/training-sessions'],
   });
 
-  // Sadece message türündeki oturumları filtrele (yeni tip antrenmanlar)
+  // Sadece gerçek antrenman türündeki oturumları filtrele (ticket olmayan antrenmanlar)
   const messageSessions = userSessions?.flatMap(userSession => 
-    userSession.sessions.filter(session => session.source === 'message')
+    userSession.sessions.filter(session => session.source === 'message' || session.source === 'training')
   ) || [];
 
   // Tüm antrenman süresini hesapla
