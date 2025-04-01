@@ -54,26 +54,33 @@ export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     try {
-      // Önce etkileşimi işleyip işlemediğimizi kontrol et
-      // Unknown Interaction hatasını önlemek için
-      if (interaction.id && processedInteractionIds.has(interaction.id)) {
-        console.log(`[ETKILEŞIM] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${interaction.id}`);
+      // Önce etkileşim ID'si var mı ve zaten işlendi mi kontrol et
+      if (!interaction.id) {
+        console.log('[ETKILEŞIM] Etkileşim ID\'si yok, işlem yapılmıyor');
+        return; // ID olmayan etkileşimleri işleme 
+      }
+      
+      // Her etkileşim için benzersiz bir anahtar oluştur
+      // Tip ve ID birleşimi daha spesifik olur
+      const interactionKey = `${interaction.type}_${interaction.id}`;
+      
+      // Bu etkileşim anahtarı zaten işlendi mi?
+      if (processedInteractionIds.has(interactionKey)) {
+        console.log(`[ETKILEŞIM] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${interactionKey}`);
         return;
       }
       
       // Etkileşimi işlenmiş olarak işaretle
-      if (interaction.id) {
-        processedInteractionIds.add(interaction.id);
-        console.log(`[ETKILEŞIM] Yeni etkileşim işleniyor: ${interaction.id} (${interaction.type})`);
-        
-        // Önbellek boyutu kontrol
-        if (processedInteractionIds.size >= MAX_CACHE_SIZE) {
-          // İlk yarısını temizle - FIFO (İlk giren ilk çıkar)
-          const keepItems = Array.from(processedInteractionIds).slice(MAX_CACHE_SIZE / 2);
-          processedInteractionIds.clear();
-          keepItems.forEach(id => processedInteractionIds.add(id));
-          console.log(`Etkileşim önbelleği temizlendi: ${MAX_CACHE_SIZE} -> ${processedInteractionIds.size} öğe`);
-        }
+      processedInteractionIds.add(interactionKey);
+      console.log(`[ETKILEŞIM] Yeni etkileşim işleniyor: ${interactionKey}`);
+      
+      // Önbellek boyutu kontrol
+      if (processedInteractionIds.size >= MAX_CACHE_SIZE) {
+        // İlk yarısını temizle - FIFO (İlk giren ilk çıkar)
+        const keepItems = Array.from(processedInteractionIds).slice(MAX_CACHE_SIZE / 2);
+        processedInteractionIds.clear();
+        keepItems.forEach(key => processedInteractionIds.add(key));
+        console.log(`Etkileşim önbelleği temizlendi: ${MAX_CACHE_SIZE} -> ${processedInteractionIds.size} öğe`);
       }
       
       // Handle slash commands
@@ -81,26 +88,29 @@ export function setupEventHandlers() {
         const { commandName } = interaction;
         const command = commands.get(commandName);
 
-        if (!command) return;
+        if (!command) {
+          console.log(`[KOMUT] Bilinmeyen komut istendi: ${commandName}`);
+          return;
+        }
+        
+        console.log(`[KOMUT] Çalıştırılıyor: /${commandName} (${interaction.id})`);
         
         try {
-          // Asenkron işlemi başlat ve hemen yanıt ver
-          await interaction.deferReply({ ephemeral: commandName === 'fixreset' }).catch(error => {
-            // Eğer deferReply başarısız olursa, bu muhtemelen bir "Unknown Interaction" hatası
-            // Bu durumda sessizce devam et, komut çalışmayabilir ama hata da gösterme
-            console.log(`[KOMUT] ${commandName} için deferReply başarısız, muhtemelen geçersiz etkileşim: ${error.message || 'Bilinmeyen hata'}`);
-          });
+          // deferReply işlemini komut içinde ele alıyoruz, buradan kaldırıyoruz
+          // Özellikle ticket komutu için bu gerekli, çünkü kendi defer işlemini yapıyor
           
-          // Komut başarıyla deferReply edildi, asıl komutu çalıştır
+          // Doğrudan komutu çalıştır
           await command(interaction).catch((error: any) => {
             console.error(`[KOMUT] ${commandName} çalıştırılırken hata:`, error);
             
-            // API hatasını yakala, yanıt verdiyse hata mesajını gösterme
+            // Eğer hala yanıt vermediyse hata mesajı göster
             if (!interaction.replied && !interaction.deferred) {
               interaction.reply({ 
                 content: 'Komut işlenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.', 
                 ephemeral: true 
-              }).catch(() => {}); // Sessizce başarısız ol
+              }).catch((replyError) => {
+                console.error(`[KOMUT] Hata mesajı gösterilemedi: ${replyError.message}`);
+              });
             }
           });
         } catch (error) {
@@ -112,14 +122,19 @@ export function setupEventHandlers() {
       // Handle button interactions with better error handling
       else if (interaction.isButton()) {
         try {
-          // Bu etkileşim id'si daha önce işlendi mi kontrol et
-          if (processedInteractionIds.has(interaction.id)) {
-            console.log(`[BUTON] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${interaction.id}`);
+          // Her buton etkileşimi için benzersiz anahtar oluştur
+          const buttonKey = `button_${interaction.id}`;
+      
+          // Bu anahtar zaten işlendi mi kontrol et
+          if (processedInteractionIds.has(buttonKey)) {
+            console.log(`[BUTON] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${buttonKey}`);
             return;
           }
-          
+      
+          console.log(`[BUTON] Yeni buton etkileşimi: ${buttonKey} (${interaction.customId})`);
+      
           // Etkileşimi işlenmiş olarak işaretle
-          processedInteractionIds.add(interaction.id);
+          processedInteractionIds.add(buttonKey);
           
           // Doğrudan buton işleyicisini çağır - deferUpdate zaten handleButtonInteraction içinde
           await handleButtonInteraction(interaction);
