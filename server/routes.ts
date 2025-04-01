@@ -232,5 +232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Uptime için ping endpoint'i
+  app.get("/ping", (req, res) => {
+    res.status(200).send("Bot ve web panel çalışıyor!");
+  });
+
   return httpServer;
 }
