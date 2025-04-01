@@ -1,3 +1,4 @@
+
 import { 
   Events, 
   Interaction, 
@@ -288,6 +289,8 @@ export function setupEventHandlers() {
                   }
                 }, 1000);
 
+                // Burada mesaj gönder yanıtla
+                await message.reply('Bu ticket kapatıldı ve işlendi. ✅');
               } catch (error) {
                 console.error('Error closing ticket:', error);
                 await message.reply('Ticket kapatılırken bir hata oluştu.');
@@ -1056,5 +1059,4 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       });
     }
   }
-}
 }
