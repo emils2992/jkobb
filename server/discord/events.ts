@@ -20,6 +20,7 @@ import { client } from './bot';
 import { commands } from './commands';
 import { storage } from '../storage';
 import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed } from './utils';
+import { pool } from '../db';
 
 // İşlenmiş mesaj ID'lerini global olarak saklayacak bir set
 const processedMessageIds = new Set<string>();
@@ -529,9 +530,11 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
   // Handle create ticket button
   if (customId === 'create_ticket') {
+    // Ticket oluşturma işlemi SADECE kullanıcıya görünecek şekilde hızlı yanıt
     await interaction.deferReply({ ephemeral: true });
 
     try {
+      // Hız optimizasyonu için asenkron işlemleri önden başlat
       const guild = interaction.guild;
       if (!guild) {
         return interaction.editReply('Bu komut sadece sunucularda kullanılabilir.');
@@ -557,7 +560,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             WHERE guild_id = $1
           `;
           
-          const { rows } = await require('../db').pool.query(query, [guild.id]);
+          const { rows } = await pool.query(query, [guild.id]);
           if (rows.length > 0 && rows[0].staff_role_id) {
             staffRoleId = rows[0].staff_role_id;
             console.log(`Ticket oluşturuluyor, yetkili rol ID'si: ${staffRoleId}`);
