@@ -1,4 +1,3 @@
-
 import { 
   Events, 
   Interaction, 
@@ -25,12 +24,34 @@ import { pool } from '../db';
 // İşlenmiş mesaj ID'lerini global olarak saklayacak bir set
 const processedMessageIds = new Set<string>();
 
+// Rate limiting için basit bir Map
+const commandCooldowns = new Map<string, number>();
+const COOLDOWN_PERIOD = 60 * 1000; // 1 dakika (milisaniye cinsinden)
+
 export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     try {
       // Handle slash commands
       if (interaction.isChatInputCommand()) {
+        // Rate limiting kontrolü
+        const userId = interaction.user.id;
+        const now = Date.now();
+        const cooldownEnd = commandCooldowns.get(userId) || 0;
+
+        if (now < cooldownEnd && interaction.commandName === 'antren') {
+          const remainingTime = Math.ceil((cooldownEnd - now) / 1000);
+          await interaction.reply({ 
+            content: `Lütfen ${remainingTime} saniye bekleyin.`,
+            ephemeral: true 
+          });
+          return;
+        }
+
+        // Cooldown süresini güncelle
+        if (interaction.commandName === 'antren') {
+          commandCooldowns.set(userId, now + COOLDOWN_PERIOD);
+        }
         const { commandName } = interaction;
         const command = commands.get(commandName);
 
@@ -550,7 +571,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Get server config to check for staff role
       const serverConfig = await storage.getServerConfig(guild.id);
       let staffRoleId = null;
-      
+
       // Veritabanından staff_role_id'yi almak için
       if (serverConfig) {
         try {
@@ -559,7 +580,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             FROM server_config 
             WHERE guild_id = $1
           `;
-          
+
           const { rows } = await pool.query(query, [guild.id]);
           if (rows.length > 0 && rows[0].staff_role_id) {
             staffRoleId = rows[0].staff_role_id;
@@ -569,7 +590,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           console.error('Error fetching staff role ID:', error);
         }
       }
-      
+
       // Create ticket channel - SADECE ticket oluşturana ve yetkililere görünür
       const permissionOverwrites = [
         {
@@ -598,7 +619,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           ]
         }
       ];
-      
+
       // Eğer özel bir yetkili rolü ayarlanmışsa, ona da izin ver
       if (staffRoleId) {
         permissionOverwrites.push({
@@ -610,7 +631,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           ]
         });
       }
-      
+
       const channel = await guild.channels.create({
         name: `ticket-${interaction.user.username}-${Date.now().toString().slice(-4)}`,
         type: ChannelType.GuildText,
@@ -674,7 +695,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
   if (customId === 'close_ticket') {
     // Hemen tepki ver - etkileşim zaman aşımını önle
     await interaction.deferReply(); // En başta cevap ver
-    
+
     // Check if this is a ticket channel
     const ticketId = interaction.channelId;
     if (!ticketId) {
@@ -690,7 +711,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     if (ticket.status === 'closed') {
       return interaction.editReply('Bu ticket zaten kapatılmış.');
     }
-    
+
     // İlk mesajı gönder (hızlı yanıt için)
     await interaction.editReply('Ticket kapatılıyor...');
 
@@ -789,11 +810,11 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // veritabanı güncellemelerini de öyle yaptık
       const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
       console.log(`[YENİ METOT - BUTON] Toplam nitelik puanı: ${updatedTotalAttributes}`);
-      
+
       // Veritabanından toplam puanı kontrol etmek için - debug
       const dbTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
       console.log(`[YENİ METOT - BUTON] Veritabanına göre toplam: ${dbTotalAttributes}`);
-      
+
       if (updatedTotalAttributes !== dbTotalAttributes) {
         console.log(`[YENİ METOT - BUTON] UYARI! Hesaplanan toplam (${updatedTotalAttributes}) ile veritabanı toplamı (${dbTotalAttributes}) eşleşmiyor!`);
       }
@@ -939,7 +960,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
       // Hemen tepki ver - etkileşim zaman aşımını önle
       await interaction.deferReply(); // En başta cevap ver
-      
+
       if (!ticket) {
         return await interaction.editReply('Bu bir ticket kanalı değil.');
       }
@@ -947,7 +968,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       if (ticket.status === 'closed') {
         return await interaction.editReply('Bu ticket zaten kapatılmış.');
       }
-      
+
       // İlk mesajı gönder (hızlı yanıt için)
       await interaction.editReply('Ticket kapatılıyor...');
 
@@ -1025,15 +1046,15 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       // Toplam nitelik sayısını hesapla - attributeMap'teki değerleri topla
       const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
       console.log(`[YENİ METOT - MODAL] Toplam nitelik puanı: ${updatedTotalAttributes}`);
-      
+
       // Veritabanından toplam puanı kontrol etmek için - debug
       const dbTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
       console.log(`[YENİ METOT - MODAL] Veritabanına göre toplam: ${dbTotalAttributes}`);
-      
+
       if (updatedTotalAttributes !== dbTotalAttributes) {
         console.log(`[YENİ METOT - MODAL] UYARI! Hesaplanan toplam (${updatedTotalAttributes}) ile veritabanı toplamı (${dbTotalAttributes}) eşleşmiyor!`);
       }
-      
+
       // Create embed for the response - onay durumu değişebileceği için tüm talepleri kullan
       const embed = createAttributeEmbed(user, attributeRequests, updatedTotalAttributes);
       await interaction.editReply({ embeds: [embed] });
@@ -1120,4 +1141,6 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       });
     }
   }
+}
+
 }
