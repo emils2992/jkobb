@@ -261,7 +261,7 @@ export class PgStorage implements IStorage {
         total_training_value DESC
     `;
     
-    console.log('[ANTRENMAN-FIX] Sadece antrenman kaynaklı veriler sorgulanıyor (ticket dahil değil)');
+    // Sadece antrenman kaynaklı veriler sorgulanıyor (ticket dahil değil)
     const result = await this.pool.query(query, params);
     const trainingStats = [];
     
@@ -288,7 +288,7 @@ export class PgStorage implements IStorage {
           attribute_name
       `;
       
-      console.log(`[ANTRENMAN-FIX] Kullanıcı ${row.user_id} için ticket olmayan antrenman puanları hesaplanıyor`);
+      // Kullanıcı için ticket olmayan antrenman puanları hesaplanıyor
       const attributeResult = await this.pool.query(attributeQuery, [row.user_id]);
       const attributes = attributeResult.rows.map((attr: any) => ({
         name: attr.attribute_name,
