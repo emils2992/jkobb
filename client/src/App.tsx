@@ -12,6 +12,7 @@ import Layout from "@/components/layout";
 import { AuthProvider } from "./lib/auth-context";
 import ProtectedRoute from "./lib/protected-route";
 import { ROUTES } from "./routes";
+import AIChat from "@/pages/ai-chat"; // Added import
 
 function Router() {
   return (
@@ -35,6 +36,11 @@ function Router() {
       <Route path={ROUTES.SETTINGS}>
         <ProtectedRoute>
           <SettingsPage />
+        </ProtectedRoute>
+      </Route>
+      <Route path={ROUTES.AI_CHAT}> {/* Added route for AI Chat */}
+        <ProtectedRoute>
+          <AIChat />
         </ProtectedRoute>
       </Route>
       {/* Fallback to 404 */}
