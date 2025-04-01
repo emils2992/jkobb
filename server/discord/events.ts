@@ -14,200 +14,82 @@ import {
   ChannelType,
   ButtonStyle,
   ButtonBuilder,
-  TextChannel,
-  ChatInputCommandInteraction,
-  InteractionResponse
+  TextChannel
 } from 'discord.js';
 import { client } from './bot';
 import { commands } from './commands';
 import { storage } from '../storage';
 import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed } from './utils';
 
-// İşlenmiş mesaj ve etkileşim ID'lerini global olarak saklayacak setler
-// Bu setler, bellek tüketimini azaltmak için periyodik olarak temizlenecek
+// İşlenmiş mesaj ID'lerini global olarak saklayacak bir set
 const processedMessageIds = new Set<string>();
-const processedInteractionIds = new Set<string>();
-const MAX_CACHE_SIZE = 5000; // Maksimum önbellek boyutu
-
-// Önbelleği periyodik olarak temizle (her 1 saatte bir)
-setInterval(() => {
-  const oldSize = processedMessageIds.size + processedInteractionIds.size;
-  
-  // Setleri temizle, en son 100 öğeyi tut
-  if (processedMessageIds.size > 100) {
-    const keepItems = Array.from(processedMessageIds).slice(-100);
-    processedMessageIds.clear();
-    keepItems.forEach(id => processedMessageIds.add(id));
-  }
-  
-  if (processedInteractionIds.size > 100) {
-    const keepItems = Array.from(processedInteractionIds).slice(-100);
-    processedInteractionIds.clear();
-    keepItems.forEach(id => processedInteractionIds.add(id));
-  }
-  
-  const newSize = processedMessageIds.size + processedInteractionIds.size;
-  console.log(`Önbellek temizlendi: ${oldSize} -> ${newSize} öğe`);
-}, 60 * 60 * 1000); // 1 saat
 
 export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     try {
-      // Önce etkileşim ID'si var mı ve zaten işlendi mi kontrol et
-      if (!interaction.id) {
-        console.log('[ETKILEŞIM] Etkileşim ID\'si yok, işlem yapılmıyor');
-        return; // ID olmayan etkileşimleri işleme 
-      }
-      
-      // Her etkileşim için benzersiz bir anahtar oluştur
-      // Tip ve ID birleşimi daha spesifik olur
-      const interactionKey = `${interaction.type}_${interaction.id}`;
-      
-      // Bu etkileşim anahtarı zaten işlendi mi?
-      if (processedInteractionIds.has(interactionKey)) {
-        console.log(`[ETKILEŞIM] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${interactionKey}`);
-        return;
-      }
-      
-      // Etkileşimi işlenmiş olarak işaretle
-      processedInteractionIds.add(interactionKey);
-      console.log(`[ETKILEŞIM] Yeni etkileşim işleniyor: ${interactionKey}`);
-      
-      // Önbellek boyutu kontrol
-      if (processedInteractionIds.size >= MAX_CACHE_SIZE) {
-        // İlk yarısını temizle - FIFO (İlk giren ilk çıkar)
-        const keepItems = Array.from(processedInteractionIds).slice(MAX_CACHE_SIZE / 2);
-        processedInteractionIds.clear();
-        keepItems.forEach(key => processedInteractionIds.add(key));
-        console.log(`Etkileşim önbelleği temizlendi: ${MAX_CACHE_SIZE} -> ${processedInteractionIds.size} öğe`);
-      }
-      
       // Handle slash commands
       if (interaction.isChatInputCommand()) {
         const { commandName } = interaction;
         const command = commands.get(commandName);
 
-        if (!command) {
-          console.log(`[KOMUT] Bilinmeyen komut istendi: ${commandName}`);
-          return;
-        }
-        
-        console.log(`[KOMUT] Çalıştırılıyor: /${commandName} (${interaction.id})`);
-        
+        if (!command) return;
+
         try {
-          // deferReply işlemini komut içinde ele alıyoruz, buradan kaldırıyoruz
-          // Özellikle ticket komutu için bu gerekli, çünkü kendi defer işlemini yapıyor
-          
-          // Doğrudan komutu çalıştır
-          await command(interaction).catch((error: any) => {
-            console.error(`[KOMUT] ${commandName} çalıştırılırken hata:`, error);
-            
-            // Eğer hala yanıt vermediyse hata mesajı göster
-            if (!interaction.replied && !interaction.deferred) {
-              interaction.reply({ 
-                content: 'Komut işlenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.', 
-                ephemeral: true 
-              }).catch((replyError) => {
-                console.error(`[KOMUT] Hata mesajı gösterilemedi: ${replyError.message}`);
-              });
-            }
-          });
+          await command(interaction);
         } catch (error) {
-          // Genel hata durumu - konsola hata logu yaz
-          console.error(`[KOMUT] ${commandName} etkileşiminde beklenmeyen hata:`, error);
+          // Sadece konsola hata logu yaz, kullanıcıya hata mesajı gösterme
+          console.error(`Error executing command ${commandName}:`, error);
+
+          // Hata mesajlarını gösterme, sadece konsola log
+          console.log(`Komut hatası (${commandName}), mesaj gösterilmiyor`);
         }
       }
 
-      // Handle button interactions with better error handling
+      // Handle button interactions
       else if (interaction.isButton()) {
         try {
-          // Her buton etkileşimi için benzersiz anahtar oluştur
-          const buttonKey = `button_${interaction.id}`;
-      
-          // Bu anahtar zaten işlendi mi kontrol et
-          if (processedInteractionIds.has(buttonKey)) {
-            console.log(`[BUTON] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${buttonKey}`);
-            return;
-          }
-      
-          console.log(`[BUTON] Yeni buton etkileşimi: ${buttonKey} (${interaction.customId})`);
-      
-          // Etkileşimi işlenmiş olarak işaretle
-          processedInteractionIds.add(buttonKey);
-          
-          // Doğrudan buton işleyicisini çağır - deferUpdate zaten handleButtonInteraction içinde
           await handleButtonInteraction(interaction);
         } catch (error) {
-          console.error('[BUTON] Buton etkileşimi işlenirken hata:', error);
-          
-          // Etkileşim durumunu kontrol et ve hata mesajı göndermeye çalış
-          if (!interaction.replied && !interaction.deferred) {
+          console.error('Error handling button interaction:', error);
+          // Interaction already replied durumunu kontrol et
+          if ((error as any)?.code !== 'InteractionAlreadyReplied' && !interaction.replied && !interaction.deferred) {
             try {
               await interaction.reply({ 
-                content: 'İşleminiz alınamadı. Lütfen daha sonra tekrar deneyin.', 
+                content: 'İşleminiz alındı, işleniyor...', 
                 ephemeral: true 
-              }).catch(() => {}); // Sessizce başarısız ol
+              }).catch(err => console.error('Failed to reply with error message:', err));
             } catch (e) {
-              // Bu hatayı sessizce yut
+              console.error('Failed to reply with error message:', e);
             }
           }
         }
       }
 
-      // Handle modal submissions with improved error handling
+      // Handle modal submissions
       else if (interaction.isModalSubmit()) {
         try {
-          // Etkileşimi askıya al
-          await interaction.deferReply({ ephemeral: true }).catch(() => {
-            // Eğer deferReply başarısız olursa sessizce devam et
-            console.log(`[MODAL] Modal etkileşimi için deferReply başarısız, muhtemelen geçersiz etkileşim`);
-          });
-          
-          // Daha sonra modal işleyicisini çağır
           await handleModalSubmit(interaction);
         } catch (error) {
-          console.error('[MODAL] Modal etkileşimi işlenirken hata:', error);
-          
-          // Etkileşim durumunu kontrol et
+          console.error('Error handling modal submission:', error);
           if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ 
-              content: 'İşleminiz alınamadı. Lütfen daha sonra tekrar deneyin.', 
+              content: 'İşlem sırasında bir hata oluştu.', 
               ephemeral: true 
-            }).catch(() => {}); // Sessizce başarısız ol
+            }).catch(err => console.error('Failed to reply with error message:', err));
           }
         }
       }
     } catch (error) {
-      // Genel hata durumu - konsola hata logu yaz
-      console.error('[ETKILEŞIM] Genel etkileşim işleme hatası:', error);
+      console.error('Error handling interaction:', error);
     }
   });
 
   // Handle messages for attribute requests in tickets and training
   client.on(Events.MessageCreate, async (message: Message) => {
+    if (message.author.bot) return;
+
     try {
-      // Bot mesajlarını ve ID'siz mesajları yoksay
-      if (message.author.bot || !message.id) return;
-      
-      // Bu mesaj zaten işlendi mi kontrol et
-      if (processedMessageIds.has(message.id)) {
-        console.log(`[MESAJ] Bu mesaj zaten işlendi, tekrar işlenmeyecek: ${message.id}`);
-        return;
-      }
-      
-      // GEÇICI OLARAK KALDIRDIK - Mesajları her seferinde işle
-      // processedMessageIds.add(message.id);
-      console.log(`[MESAJ] Yeni işleme testi: ${message.id}`); // Sadece log
-      
-      // Önbellek boyutu kontrol
-      if (processedMessageIds.size >= MAX_CACHE_SIZE) {
-        // İlk yarısını temizle
-        const keepItems = Array.from(processedMessageIds).slice(MAX_CACHE_SIZE / 2);
-        processedMessageIds.clear();
-        keepItems.forEach(id => processedMessageIds.add(id));
-        console.log(`Mesaj önbelleği temizlendi: ${MAX_CACHE_SIZE} -> ${processedMessageIds.size} öğe`);
-      }
       // Önce mesaj içeriğinde "evet", "hayır" veya emoji olup olmadığını kontrol et
       const isReactionMessage = message.content.toLowerCase().includes('evet') || 
                              message.content.toLowerCase().includes('hayır') ||
@@ -438,14 +320,8 @@ export function setupEventHandlers() {
           console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content}`);
 
           // İlk önce yeni formatta mesaj olup olmadığını kontrol et (1/1 kısa pas)
-          // Düz metin formatı olarak "1/1 kısa pas" veya tek başına "1/1 şut" gibi
-          const simpleTrainingPattern = /^(\d+)\/(\d+)\s+(.+)$/i;
-          const matches = message.content.trim().match(simpleTrainingPattern);
-          
-          console.log(`[ANTRENMAN] Regex eşleşme kontrolü: "${message.content.trim()}" - Eşleşme: ${matches ? 'VAR' : 'YOK'}`);
-          if (matches) {
-            console.log(`[ANTRENMAN] Eşleşen gruplar:`, matches.slice(1));
-          }
+          const simpleTrainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
+          const matches = message.content.match(simpleTrainingPattern);
 
           if (matches && matches.length >= 4) {
             // Mesajın kimliğini kontrol et
@@ -456,13 +332,13 @@ export function setupEventHandlers() {
 
             // Bu mesaj zaten işlendi mi kontrol et
             if (processedMessageIds.has(message.id)) {
-              console.log(`[ANTRENMAN] Bu mesaj zaten bellek içinde işaretli, ancak test için tekrar işleyeceğiz: ${message.id}`);
-              // Test için işlemeye devam et, return kullanmıyoruz
+              console.log(`[ANTRENMAN] Bu mesaj zaten bellek içinde işaretli, tekrar işlenmeyecek: ${message.id}`);
+              return;
             }
 
-            // Mesajı işlenmiş olarak işaretle - GEÇİCİ OLARAK DEVRE DIŞI
-            // processedMessageIds.add(message.id);
-            console.log(`[ANTRENMAN] Yeni mesaj işleniyor, işaretleme YENİ METOT ile DEVRE DIŞI BIRAKILDI: ${message.id}`);
+            // Mesajı işlenmiş olarak işaretle
+            processedMessageIds.add(message.id);
+            console.log(`[ANTRENMAN] Yeni mesaj işleniyor, bellekte işaretlendi: ${message.id} (toplam işlenen mesaj: ${processedMessageIds.size})`);
 
             const duration = parseInt(matches[1], 10);
             const attributeName = matches[3].trim();
@@ -484,20 +360,17 @@ export function setupEventHandlers() {
               // Veritabanında bu mesaj zaten var mı diye kontrol et
               // Bu kontrol artık sadece günlük bilgi içindir, gerçek kontrol daha yukarıda yapılıyor
               // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
-              console.log(`[ANTRENMAN] Antrenman oturumu oluşturuluyor: ${user.userId} için ${attributeName}`);
-              try {
-                const session = await storage.createTrainingSession({
-                  userId: user.userId,
-                  attributeName: attributeName,
-                  ticketId: "", // null yerine boş string kullan
-                  duration,
-                  intensity: 1, // Sabit değer kullanıyoruz
-                  attributesGained: attributeValue
-                });
-                console.log(`[ANTRENMAN] Antrenman oturumu başarıyla oluşturuldu: ${session.id}`);
-              } catch (error) {
-                console.error(`[ANTRENMAN] Antrenman oturumu oluşturulurken hata:`, error);
-              }
+              const session = await storage.createTrainingSession({
+                userId: user.userId,
+                attributeName: attributeName,
+                ticketId: null,
+                duration,
+                intensity: 1, // Sabit değer kullanıyoruz
+                attributesGained: attributeValue,
+                source: 'message',
+                messageId: message.id,
+                channelId: message.channelId
+              });
 
               // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
               // source parametresi olarak 'message' ekleyerek bu değişikliğin antrenman kaynağını belirt
@@ -656,30 +529,8 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
   // Handle create ticket button
   if (customId === 'create_ticket') {
-    // Etkileşim daha önce işlendi mi kontrol et
-    if (interaction.replied || interaction.deferred) {
-      console.log('[BUTON] Bu etkileşim zaten yanıtlandı veya ertelendi, işlem yapılmıyor');
-      return;
-    }
-    
-    // Güvenli şekilde deferUpdate kullan
-    try {
-      await interaction.deferUpdate().catch(err => {
-        console.log(`[BUTON] deferUpdate başarısız oldu, deferReply denenecek: ${err.message}`);
-      });
-    } catch (error) {
-      // Eğer deferUpdate başarısız olursa deferReply dene
-      try {
-        if (!interaction.replied && !interaction.deferred) {
-          await interaction.deferReply({ ephemeral: true }).catch(err => {
-            console.log(`[BUTON] Hem deferUpdate hem deferReply başarısız oldu: ${err.message}`);
-          });
-        }
-      } catch (e) {
-        console.error('[BUTON] Etkileşim erteleme hatası:', e);
-      }
-    }
-    
+    await interaction.deferReply({ ephemeral: true });
+
     try {
       const guild = interaction.guild;
       if (!guild) {
@@ -700,10 +551,15 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Veritabanından staff_role_id'yi almak için
       if (serverConfig) {
         try {
-          // ServerConfig'den staff_role_id verisini alma
-          const config = await storage.getServerConfig(guild.id);
-          if (config && (config as any).staff_role_id) {
-            staffRoleId = (config as any).staff_role_id;
+          const query = `
+            SELECT staff_role_id 
+            FROM server_config 
+            WHERE guild_id = $1
+          `;
+          
+          const { rows } = await require('../db').pool.query(query, [guild.id]);
+          if (rows.length > 0 && rows[0].staff_role_id) {
+            staffRoleId = rows[0].staff_role_id;
             console.log(`Ticket oluşturuluyor, yetkili rol ID'si: ${staffRoleId}`);
           }
         } catch (error) {

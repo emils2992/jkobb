@@ -3,63 +3,13 @@ const { Pool } = pg;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '../shared/schema';
 
-// Veritabanı havuzu ayarları
-const poolConfig = {
-  connectionString: process.env.DATABASE_URL,
-  // Bağlantı havuzu limit ve timeout ayarları
-  max: 20, // Eş zamanlı maksimum bağlantı (varsayılan: 10)
-  idleTimeoutMillis: 30000, // Boşta olan bağlantıların kapatılması için beklenecek süre
-  connectionTimeoutMillis: 5000, // Bağlantı timeout süresi 
-  maxUses: 7500, // Bir bağlantıyı yeniden kullanma sayısı (bellek sızıntılarını önlemek için)
-};
-
 // Veritabanı bağlantı havuzu oluştur
-const pool = new Pool(poolConfig);
-
-// Bağlantı havuzu olaylarını dinle (bellek sızıntıları için)
-pool.on('error', (err) => {
-  console.error('Beklenmeyen veritabanı havuzu hatası:', err);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
 });
 
 // Drizzle ORM'yi yapılandır
 export const db = drizzle(pool, { schema });
-
-// Bağlantı havuzu sağlık kontrolü
-let poolHealthCheckInterval: NodeJS.Timeout | null = null;
-
-function startPoolHealthCheck() {
-  // Her 5 dakikada bir havuz durumunu kontrol et
-  if (!poolHealthCheckInterval) {
-    poolHealthCheckInterval = setInterval(async () => {
-      try {
-        const client = await pool.connect();
-        const result = await client.query('SELECT 1');
-        client.release();
-        
-        // Havuz istatistiklerini logla
-        const idleCount = pool.idleCount;
-        const totalCount = pool.totalCount;
-        const waitingCount = pool.waitingCount;
-        
-        console.log(`[DB Havuzu] Sağlık kontrolü OK. Boşta: ${idleCount}, Toplam: ${totalCount}, Bekleyen: ${waitingCount}`);
-      } catch (error) {
-        console.error('[DB Havuzu] Sağlık kontrolü BAŞARISIZ:', error);
-        
-        // Ciddi bir bağlantı sorunu varsa, havuzu yenile
-        if (totalPingFailures > 5) {
-          console.log('[DB Havuzu] Kritik hata: Bağlantı havuzu yeniden başlatılıyor...');
-          await pool.end();
-          // Yeni havuz oluştur
-          const newPool = new Pool(poolConfig);
-          // global pool değişkenini değiştir 
-          // Not: Bu basit bir yenileme, daha karmaşık senaryolarda daha fazla işlem gerekebilir
-        }
-      }
-    }, 5 * 60 * 1000); // 5 dakika
-  }
-}
-
-let totalPingFailures = 0;
 
 // Veritabanı bağlantısını test et ve tabloları oluştur
 export async function initDatabase() {
@@ -68,16 +18,10 @@ export async function initDatabase() {
     const client = await pool.connect();
     console.log('PostgreSQL veritabanına başarıyla bağlandı');
     client.release();
-    
-    // Havuz sağlık kontrolünü başlat
-    startPoolHealthCheck();
 
     // Tabloları oluştur
     await createTables();
     console.log('Veritabanı tabloları kontrol edildi/oluşturuldu');
-    
-    // Başlangıçta havuz istatistiği göster
-    console.log(`[DB Havuzu] Başlangıç durumu - Max: ${pool.options.max}, Boşta: ${pool.idleCount}, Toplam: ${pool.totalCount}`);
     
     return true;
   } catch (error) {

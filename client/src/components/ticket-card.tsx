@@ -16,10 +16,10 @@ export default function TicketCard({ ticket }: TicketCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showEditModal, setShowEditModal] = useState(false);
-
+  
   const { mutate, isPending } = useMutation({
-    mutationFn: async (requestId: string) => {
-      return apiRequest("PATCH", `/api/attribute-requests/${requestId}/approve`, {});
+    mutationFn: async (requestId: number) => {
+      return apiRequest("PATCH", `/api/attribute-requests/${requestId}`, { approved: true });
     },
     onSuccess: () => {
       toast({
@@ -40,7 +40,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
   const handleApprove = () => {
     // Discord bot olmadan da onaylama yapabilmek için
     if (ticket.attributeRequests && ticket.attributeRequests.length > 0) {
-      const requestId = ticket.attributeRequests[0].id.toString(); // Ensure requestId is a string
+      const requestId = ticket.attributeRequests[0].id;
       mutate(requestId);
     } else {
       toast({
@@ -118,7 +118,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
             <div><span className="font-medium text-white">Oluşturulma:</span> {formatDate(ticket.createdAt)}</div>
             <div><span className="font-medium text-white">Son aktivite:</span> {formatDate(ticket.updatedAt)}</div>
           </div>
-
+          
           {ticket.attributeRequests && ticket.attributeRequests.length > 0 && (
             <div className="bg-gray-800 rounded p-3 mb-3">
               <h4 className="text-xs uppercase font-bold text-discord-light mb-2">Nitelik Talebi</h4>
@@ -136,7 +136,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
               </div>
             </div>
           )}
-
+          
           <div className="flex space-x-2">
             <Button 
               variant="default" 
@@ -158,7 +158,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
           </div>
         </div>
       </Card>
-
+      
       <EditTicketModal 
         isOpen={showEditModal} 
         onClose={() => setShowEditModal(false)} 
