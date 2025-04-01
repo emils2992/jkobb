@@ -39,7 +39,7 @@ export function setupEventHandlers() {
         } catch (error) {
           // Sadece konsola hata logu yaz, kullanıcıya hata mesajı gösterme
           console.error(`Error executing command ${commandName}:`, error);
-          
+
           // Hata mesajlarını gösterme, sadece konsola log
           console.log(`Komut hatası (${commandName}), mesaj gösterilmiyor`);
         }
@@ -51,11 +51,16 @@ export function setupEventHandlers() {
           await handleButtonInteraction(interaction);
         } catch (error) {
           console.error('Error handling button interaction:', error);
-          if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ 
-              content: 'İşlem sırasında bir hata oluştu.', 
-              ephemeral: true 
-            }).catch(err => console.error('Failed to reply with error message:', err));
+          // Interaction already replied durumunu kontrol et
+          if (error?.code !== 'InteractionAlreadyReplied' && !interaction.replied && !interaction.deferred) {
+            try {
+              await interaction.reply({ 
+                content: 'İşleminiz alındı, işleniyor...', 
+                ephemeral: true 
+              }).catch(err => console.error('Failed to reply with error message:', err));
+            } catch (e) {
+              console.error('Failed to reply with error message:', e);
+            }
           }
         }
       }
@@ -174,15 +179,15 @@ export function setupEventHandlers() {
 
                 // Process all attribute requests (auto-approved on close)
                 // TAMAMEN YENİDEN YAZDIM - TEMEL SORUN BURASIYDI
-                
+
                 console.log(`[YENİ METOT - MESAJLA KAPATMA] Ticket kapatılıyor: ${ticketId}`);
                 console.log(`[YENİ METOT - MESAJLA KAPATMA] Toplam nitelik talepleri: ${approvedRequests.length}`);
-                
+
                 // Tüm talepleri logla - hata ayıklama için
                 for (const req of approvedRequests) {
                   console.log(`[YENİ METOT - MESAJLA KAPATMA] Talep: ${req.attributeName} için ${req.valueRequested} puan`);
                 }
-                
+
                 // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
                 const attributeMap = new Map<string, number>();
 
@@ -196,7 +201,7 @@ export function setupEventHandlers() {
                 // Her nitelik için sadece bir kez güncelleme yapacağız
                 for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
                   console.log(`[TAMAMEN YENİ METOT] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
-                  
+
                   try {
                     // Önce mevcut değeri alıp loglayalım
                     const beforeAttr = await storage.getAttribute(user.userId, attributeName);
@@ -205,7 +210,7 @@ export function setupEventHandlers() {
                     } else {
                       console.log(`[TAMAMEN YENİ METOT] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
                     }
-                    
+
                     // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
                     await storage.updateAttribute(
                       user.userId,
@@ -216,7 +221,7 @@ export function setupEventHandlers() {
                       false, // onlyUpdateWeekly=false
                       'ticket' // source=ticket: bu değişiklik ticket kaynaklı
                     );
-                    
+
                     // Sonraki değeri alıp loglayalım
                     const afterAttr = await storage.getAttribute(user.userId, attributeName);
                     if (afterAttr) {
@@ -308,34 +313,34 @@ export function setupEventHandlers() {
         // Antrenman kanalındaysa kontrol et
         if (serverConfig?.trainingChannelId && message.channelId === serverConfig.trainingChannelId) {
           console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content}`);
-          
+
           // İlk önce yeni formatta mesaj olup olmadığını kontrol et (1/1 kısa pas)
           const simpleTrainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
           const matches = message.content.match(simpleTrainingPattern);
-          
+
           if (matches && matches.length >= 4) {
             // Mesajın kimliğini kontrol et
             if (!message.id) {
               console.log('[ANTRENMAN] Mesaj ID bulunamadı, işlem yapılamıyor.');
               return;
             }
-            
+
             // Bu mesaj zaten işlendi mi kontrol et
             if (processedMessageIds.has(message.id)) {
               console.log(`[ANTRENMAN] Bu mesaj zaten bellek içinde işaretli, tekrar işlenmeyecek: ${message.id}`);
               return;
             }
-            
+
             // Mesajı işlenmiş olarak işaretle
             processedMessageIds.add(message.id);
             console.log(`[ANTRENMAN] Yeni mesaj işleniyor, bellekte işaretlendi: ${message.id} (toplam işlenen mesaj: ${processedMessageIds.size})`);
-            
+
             const duration = parseInt(matches[1], 10);
             const attributeName = matches[3].trim();
-            
+
             // Yoğunluk değerini kullanmıyoruz artık
             console.log(`[ANTRENMAN] Basit format algılandı: Süre=${duration}, Nitelik=${attributeName}`);
-            
+
             try {
               // Kullanıcıyı oluştur veya al
               const user = await storage.getOrCreateUser(
@@ -343,10 +348,10 @@ export function setupEventHandlers() {
                 message.author.username,
                 message.author.displayAvatarURL()
               );
-              
+
               // Sabit olarak +1 puan ekleyeceğiz
               const attributeValue = 1;
-              
+
               // Veritabanında bu mesaj zaten var mı diye kontrol et
               // Bu kontrol artık sadece günlük bilgi içindir, gerçek kontrol daha yukarıda yapılıyor
               // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
@@ -361,7 +366,7 @@ export function setupEventHandlers() {
                 messageId: message.id,
                 channelId: message.channelId
               });
-              
+
               // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
               // source parametresi olarak 'message' ekleyerek bu değişikliğin antrenman kaynağını belirt
               await storage.updateAttribute(
@@ -373,7 +378,7 @@ export function setupEventHandlers() {
                 false, // onlyUpdateWeekly
                 'message' // source - antrenman kaynaklı olduğunu belirt
               );
-              
+
               // Yanıt olarak oturumu doğrula
               const embed = new EmbedBuilder()
                 .setTitle('🏋️ Antrenman Kaydı')
@@ -385,11 +390,11 @@ export function setupEventHandlers() {
                   { name: 'Kazanılan Puan', value: `+${attributeValue}`, inline: true }
                 )
                 .setTimestamp();
-              
+
               // Onaylamak için emoji ekle
               await message.react('🏋️');
               await message.reply({ embeds: [embed] });
-              
+
               // Log kanalına da gönder
               if (serverConfig?.fixLogChannelId) {
                 try {
@@ -404,7 +409,7 @@ export function setupEventHandlers() {
                   console.error('Antrenman log kanalına mesaj gönderilirken hata:', error);
                 }
               }
-              
+
               return; // Mesajı işledik, diğer işlemlere geçme
             } catch (error) {
               console.error('Error processing simple training message:', error);
@@ -412,7 +417,7 @@ export function setupEventHandlers() {
               return;
             }
           }
-          
+
           // Eski kompleks antrenman formatı 
           // Kullanıcıyı oluştur veya al
           const user = await storage.getOrCreateUser(
@@ -675,12 +680,12 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // TAMAMEN YENİDEN YAZDIM - BUTON ILE KAPATMA KODUNU DÜZENLEDIM
       console.log(`[YENİ METOT - BUTON KAPATMA] Ticket kapatılıyor: ${ticketId}`);
       console.log(`[YENİ METOT - BUTON KAPATMA] Toplam nitelik talepleri: ${approvedRequests.length}`);
-      
+
       // Tüm talepleri logla - hata ayıklama için
       for (const req of approvedRequests) {
         console.log(`[YENİ METOT - BUTON KAPATMA] Talep: ${req.attributeName} için ${req.valueRequested} puan`);
       }
-      
+
       // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
       const attributeMap = new Map<string, number>();
 
@@ -700,7 +705,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Her nitelik için sadece bir kez güncelleme yapacağız
       for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
         console.log(`[YENİ METOT - BUTON] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
-        
+
         try {
           // Önce mevcut değeri alıp loglayalım
           const beforeAttr = await storage.getAttribute(user.userId, attributeName);
@@ -709,7 +714,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           } else {
             console.log(`[YENİ METOT - BUTON] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
           }
-          
+
           // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
           await storage.updateAttribute(
             user.userId,
@@ -720,7 +725,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             false, // onlyUpdateWeekly=false
             'ticket' // source=ticket: bu değişiklik ticket kaynaklı
           );
-          
+
           // Sonraki değeri alıp loglayalım
           const afterAttr = await storage.getAttribute(user.userId, attributeName);
           if (afterAttr) {
@@ -737,7 +742,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           console.error(`[YENİ METOT - BUTON] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
         }
       }
-      
+
       // Close the ticket
       await storage.closeTicket(ticketId);
 
@@ -926,7 +931,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       // Her nitelik için sadece bir kez güncelleme yapacağız
       for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
         console.log(`[YENİ METOT - MODAL] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
-        
+
         try {
           // Önce mevcut değeri alıp loglayalım
           const beforeAttr = await storage.getAttribute(user.userId, attributeName);
@@ -935,7 +940,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           } else {
             console.log(`[YENİ METOT - MODAL] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
           }
-          
+
           // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
           await storage.updateAttribute(
             user.userId,
@@ -946,7 +951,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
             false, // onlyUpdateWeekly=false
             'ticket' // source=ticket: bu değişiklik ticket kaynaklı
           );
-          
+
           // Sonraki değeri alıp loglayalım
           const afterAttr = await storage.getAttribute(user.userId, attributeName);
           if (afterAttr) {
@@ -963,7 +968,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           console.error(`[YENİ METOT - MODAL] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
         }
       }
-      
+
       // Close the ticket
       await storage.closeTicket(ticketId);
 
@@ -1025,7 +1030,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
       // Burada aynı nitelik için birden fazla talep olması durumunu
       // ticket kapatılırken ele alacağız, şimdilik yeni talebi ekliyoruz
-      
+
       // Şimdi yeni talebi ekleyelim
       await storage.createAttributeRequest({
         ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
@@ -1053,4 +1058,5 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       });
     }
   }
+}
 }
