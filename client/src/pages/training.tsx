@@ -113,30 +113,29 @@ export default function TrainingPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center">
                 <TrendingUp className="mr-2 h-5 w-5 text-discord-green" />
-                Kazanılan Nitelikler
+                Gelişim Puanları
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">
                 {totalTrainingAttributes}
               </p>
-              <p className="text-discord-light text-sm">Sadece antrenman kaynaklı nitelik puanı</p>
+              <p className="text-discord-light text-sm">Sadece antrenman kaynaklı gelişim puanları</p>
             </CardContent>
           </Card>
         </div>
 
         <Tabs defaultValue="training-leaderboard">
           <TabsList className="mb-4">
-            <TabsTrigger value="training-leaderboard">Antrenman Lider Tablosu</TabsTrigger>
-            <TabsTrigger value="all-leaderboard">Genel Lider Tablosu</TabsTrigger>
+            <TabsTrigger value="training-leaderboard">Haftalık Lider Tablosu</TabsTrigger>
             <TabsTrigger value="history">Antrenman Geçmişi</TabsTrigger>
           </TabsList>
           
           <TabsContent value="training-leaderboard">
             <Card>
               <CardHeader>
-                <CardTitle>Antrenman Lider Tablosu</CardTitle>
-                <p className="text-sm text-discord-light">Sadece antrenman kaynaklı nitelikler (ticket hariç)</p>
+                <CardTitle>Haftalık Lider Tablosu</CardTitle>
+                <p className="text-sm text-discord-light">Sadece antrenman kaynaklı gelişim puanları</p>
               </CardHeader>
               <CardContent>
                 {topPlayers.length > 0 ? (
@@ -166,45 +165,6 @@ export default function TrainingPage() {
                 ) : (
                   <div className="text-center py-8 text-discord-light">
                     Henüz hiç oyuncu antrenman kaydı yok.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="all-leaderboard">
-            <Card>
-              <CardHeader>
-                <CardTitle>Genel Lider Tablosu</CardTitle>
-                <p className="text-sm text-discord-light">Hem antrenman hem ticket kaynaklı nitelikler</p>
-              </CardHeader>
-              <CardContent>
-                {playersStats && playersStats.length > 0 ? (
-                  <div className="space-y-4">
-                    {[...playersStats]
-                      .sort((a: PlayerStats, b: PlayerStats) => b.weeklyValue - a.weeklyValue)
-                      .slice(0, 10)
-                      .map((player, index) => {
-                        return (
-                          <div key={player.user.userId} className="flex items-center justify-between p-3 bg-discord-darker rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 flex items-center justify-center bg-discord-blue rounded-full font-bold">
-                                {index + 1}
-                              </div>
-                              <div>
-                                <div className="font-medium">{player.user.username}</div>
-                                <div className="text-sm text-discord-light">Tüm nitelikler</div>
-                              </div>
-                            </div>
-                            <div className="text-xl font-bold text-discord-blue">+{player.weeklyValue}</div>
-                          </div>
-                        );
-                      })
-                    }
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-discord-light">
-                    Henüz hiç oyuncu nitelik kaydı yok.
                   </div>
                 )}
               </CardContent>
@@ -250,7 +210,7 @@ export default function TrainingPage() {
                               <span>{session.intensity}/5</span>
                             </div>
                             <div className="flex justify-between mb-1 text-sm">
-                              <span>Kazanılan Nitelik</span>
+                              <span>Kazanılan Puan</span>
                               <span>+{session.attributesGained}</span>
                             </div>
                           </div>
