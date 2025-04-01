@@ -168,6 +168,18 @@ export class PgStorage implements IStorage {
     
     console.log(`Tüm nitelikler ve haftalık değerler sıfırlandı - ${new Date().toISOString()}`);
   }
+  
+  async deleteAllAttributes(): Promise<void> {
+    try {
+      // Tüm nitelik kayıtlarını tamamen sil - kalıcı olarak veritabanından kaldır
+      await this.pool.query('DELETE FROM attributes');
+      
+      console.log(`Tüm nitelik kayıtları veritabanından tamamen silindi - ${new Date().toISOString()}`);
+    } catch (error) {
+      console.error('Nitelik kayıtları silinirken hata oluştu:', error);
+      throw error;
+    }
+  }
 
   async getPlayerAttributeStats(userId?: string): Promise<any[]> {
     let userQuery;

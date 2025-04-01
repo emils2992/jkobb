@@ -24,6 +24,7 @@ export interface IStorage {
   updateAttribute(userId: string, attributeName: string, value: number, weeklyValue?: number, absoluteValue?: boolean, onlyUpdateWeekly?: boolean, source?: string): Promise<Attribute>;
   resetWeeklyAttributes(guildId: string): Promise<void>;
   resetAllAttributes(guildId: string): Promise<void>;
+  deleteAllAttributes(): Promise<void>; // Tüm nitelik kayıtlarını veritabanından tamamen sil
   getPlayerAttributeStats(userId?: string): Promise<any[]>;
   getPlayerTrainingStats(userId?: string): Promise<any[]>; // Antrenman liderlik tablosu için
   
@@ -204,6 +205,12 @@ export class MemStorage implements IStorage {
     }
     
     await this.updateLastReset(guildId);
+  }
+  
+  async deleteAllAttributes(): Promise<void> {
+    // Tüm nitelik kayıtlarını sil
+    this.attributes.clear();
+    console.log(`Tüm nitelik kayıtları bellekten tamamen silindi - ${new Date().toISOString()}`);
   }
 
   async getPlayerAttributeStats(userId?: string): Promise<any[]> {
