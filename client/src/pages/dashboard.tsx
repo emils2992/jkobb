@@ -59,7 +59,15 @@ export default function Dashboard() {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
             <img src="/assets/logo.png" alt="Epic Lig Logo" className="w-10 h-10" onError={(e) => e.currentTarget.src = "../src/assets/logo.png"} />
-            <h1 className="text-2xl font-bold">Tüm Ticketlar</h1>
+            <div>
+              <h1 className="text-2xl font-bold">Tüm Ticketlar</h1>
+              <div className="flex items-center text-sm">
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                <span className="text-discord-light">Bot Çevrimiçi</span>
+                <span className="mx-2 text-discord-light">•</span>
+                <span className="text-[#5865F2]"><i className="fas fa-crown text-yellow-400 mr-1"></i>Epic Lig Yönetim</span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center space-x-3">
             <div className="relative">

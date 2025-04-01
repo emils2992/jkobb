@@ -156,8 +156,21 @@ export default function Sidebar() {
         })}
       </nav>
       
+      {/* Bot Owner Info */}
+      <div className="p-4 border-t border-gray-800">
+        <div className="flex items-center space-x-2 p-2 rounded bg-discord-darker">
+          <div className="w-8 h-8 rounded-full bg-[#5865F2] flex items-center justify-center">
+            <i className="fas fa-crown text-yellow-400"></i>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-discord-light">Bot Sahibi</span>
+            <span className="text-sm font-medium">Epic Lig Yönetim ✨</span>
+          </div>
+        </div>
+      </div>
+
       {/* Logout Button */}
-      <div className="mt-auto p-4 border-t border-gray-800">
+      <div className="mt-2 p-4 border-t border-gray-800">
         <button 
           onClick={() => {
             logout();
