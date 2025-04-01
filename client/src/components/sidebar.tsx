@@ -169,7 +169,7 @@ export default function Sidebar() {
           </div>
           <div className="flex flex-col">
             <span className="text-xs text-discord-light">Bot Sahibi</span>
-            <span className="text-sm font-medium">Epic Lig Yönetim ✨</span>
+            <span className="text-sm font-medium">emilswd ✨</span>
           </div>
         </div>
       </div>
