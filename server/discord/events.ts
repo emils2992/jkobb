@@ -196,8 +196,9 @@ export function setupEventHandlers() {
         return;
       }
       
-      // Mesajı işlenmiş olarak işaretle
-      processedMessageIds.add(message.id);
+      // GEÇICI OLARAK KALDIRDIK - Mesajları her seferinde işle
+      // processedMessageIds.add(message.id);
+      console.log(`[MESAJ] Yeni işleme testi: ${message.id}`); // Sadece log
       
       // Önbellek boyutu kontrol
       if (processedMessageIds.size >= MAX_CACHE_SIZE) {
@@ -455,13 +456,13 @@ export function setupEventHandlers() {
 
             // Bu mesaj zaten işlendi mi kontrol et
             if (processedMessageIds.has(message.id)) {
-              console.log(`[ANTRENMAN] Bu mesaj zaten bellek içinde işaretli, tekrar işlenmeyecek: ${message.id}`);
-              return;
+              console.log(`[ANTRENMAN] Bu mesaj zaten bellek içinde işaretli, ancak test için tekrar işleyeceğiz: ${message.id}`);
+              // Test için işlemeye devam et, return kullanmıyoruz
             }
 
-            // Mesajı işlenmiş olarak işaretle
-            processedMessageIds.add(message.id);
-            console.log(`[ANTRENMAN] Yeni mesaj işleniyor, bellekte işaretlendi: ${message.id} (toplam işlenen mesaj: ${processedMessageIds.size})`);
+            // Mesajı işlenmiş olarak işaretle - GEÇİCİ OLARAK DEVRE DIŞI
+            // processedMessageIds.add(message.id);
+            console.log(`[ANTRENMAN] Yeni mesaj işleniyor, işaretleme YENİ METOT ile DEVRE DIŞI BIRAKILDI: ${message.id}`);
 
             const duration = parseInt(matches[1], 10);
             const attributeName = matches[3].trim();
@@ -699,17 +700,10 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
       // Veritabanından staff_role_id'yi almak için
       if (serverConfig) {
         try {
-          const query = `
-            SELECT staff_role_id 
-            FROM server_config 
-            WHERE guild_id = $1
-          `;
-          
-          // pool'u db.ts'den import et
-          const { pool } = require('../db');
-          const { rows } = await pool.query(query, [guild.id]);
-          if (rows.length > 0 && rows[0].staff_role_id) {
-            staffRoleId = rows[0].staff_role_id;
+          // ServerConfig'den staff_role_id verisini alma
+          const config = await storage.getServerConfig(guild.id);
+          if (config && (config as any).staff_role_id) {
+            staffRoleId = (config as any).staff_role_id;
             console.log(`Ticket oluşturuluyor, yetkili rol ID'si: ${staffRoleId}`);
           }
         } catch (error) {
