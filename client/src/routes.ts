@@ -4,5 +4,6 @@ export const ROUTES = {
   PLAYER_STATS: '/player-stats',
   TRAINING: '/training',
   SETTINGS: '/settings',
-  LOGIN: '/login'
+  LOGIN: '/login',
+  AI_CHAT: '/ai-chat' // Yeni route eklendi
 };

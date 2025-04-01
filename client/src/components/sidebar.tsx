@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import { LogOut, MoreHorizontal } from "lucide-react";
+import { LogOut, MoreHorizontal, Bot } from "lucide-react"; // Added Bot icon
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,6 +79,16 @@ export default function Sidebar() {
           href: ROUTES.SETTINGS
         }
       ]
+    },
+    { // Added AI Chat section
+      title: "AI",
+      items: [
+        {
+          icon: "fas fa-comment", // Placeholder icon
+          label: "AI Asistanı",
+          href: ROUTES.AI_CHAT, // Assumed route
+        }
+      ]
     }
   ];
 
@@ -90,25 +100,21 @@ export default function Sidebar() {
           <h1 className="font-bold text-lg">Epic Lig Ticket Panel</h1>
         </div>
       </div>
-      
+
       <nav className="p-2">
         {navItems.map((section, index) => {
-          // Menüde her zaman görünecek öğeler
           const sectionItems = section.items;
-          
-          // Kısayol dropdown menüsüne eklenecek öğeler
-          const shortcutItems = section.title === "Kontrol Paneli" 
+          const shortcutItems = section.title === "Kontrol Paneli"
             ? section.items.filter(item => item.hasShortcut)
             : [];
-          
+
           return (
             <div key={index}>
               <div className="flex items-center justify-between px-4 py-2 mt-4 first:mt-0">
                 <h2 className="text-discord-light uppercase text-xs font-bold">
                   {section.title}
                 </h2>
-                
-                {/* 3 nokta menüsü - Kontrol Paneli bölümünde */}
+
                 {section.title === "Kontrol Paneli" && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -134,7 +140,7 @@ export default function Sidebar() {
                   </DropdownMenu>
                 )}
               </div>
-              
+
               <ul>
                 {sectionItems.map((item, itemIndex) => (
                   <li key={itemIndex}>
@@ -155,8 +161,7 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      
-      {/* Bot Owner Info */}
+
       <div className="p-4 border-t border-gray-800">
         <div className="flex items-center space-x-2 p-2 rounded bg-discord-darker">
           <div className="w-8 h-8 rounded-full bg-[#5865F2] flex items-center justify-center">
@@ -169,9 +174,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Logout Button */}
       <div className="mt-2 p-4 border-t border-gray-800">
-        <button 
+        <button
           onClick={() => {
             logout();
             window.location.href = ROUTES.LOGIN;

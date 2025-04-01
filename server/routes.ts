@@ -263,5 +263,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).send("UptimeRobot servisi tarafından kontrol edildi");
   });
 
+  // Günlük ticket istatistikleri
+  app.get("/api/tickets/stats/daily", async (req, res) => {
+    try {
+      const tickets = await storage.getTickets();
+      
+      // Son 24 saatteki ticketları filtrele
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      // Ticket durumlarına göre sayıları hesapla
+      const openCount = tickets.filter(t => t.status === 'open' && new Date(t.createdAt) > yesterday).length;
+      const closedCount = tickets.filter(t => t.status === 'closed' && new Date(t.closedAt || t.createdAt) > yesterday).length;
+      const pendingCount = tickets.filter(t => t.status === 'pending' && new Date(t.createdAt) > yesterday).length;
+      const totalCount = tickets.filter(t => new Date(t.createdAt) > yesterday).length;
+      
+      // Grafik için uygun format
+      const data = [
+        { name: "Açık", label: "Açık Ticketlar", value: openCount },
+        { name: "Kapalı", label: "Kapatılan Ticketlar", value: closedCount },
+        { name: "Bekleyen", label: "Bekleyen Ticketlar", value: pendingCount },
+        { name: "Toplam", label: "Toplam Aktivite", value: totalCount }
+      ];
+      
+      res.json(data);
+    } catch (error) {
+      console.error("Günlük ticket istatistikleri alınırken hata:", error);
+      res.status(500).json({ error: "İstatistikler yüklenirken bir hata oluştu" });
+    }
+  });
+
+  // Haftalık nitelik istatistikleri
+  app.get("/api/players/stats/weekly", async (req, res) => {
+    try {
+      const playerStats = await storage.getPlayerStats();
+      
+      if (!playerStats || playerStats.length === 0) {
+        return res.json([
+          { name: "Veri Yok", label: "Veri Bulunamadı", value: 0 }
+        ]);
+      }
+      
+      // Haftalık toplam nitelik puanları
+      const totalWeekly = playerStats.reduce((sum, player) => sum + player.weeklyValue, 0);
+      
+      // En yüksek nitelik puanına sahip oyuncular (ilk 5)
+      const topPlayers = [...playerStats]
+        .sort((a, b) => b.weeklyValue - a.weeklyValue)
+        .slice(0, 5);
+      
+      const data = topPlayers.map(player => ({
+        name: player.user.username,
+        label: player.user.username,
+        value: player.weeklyValue
+      }));
+      
+      res.json(data);
+    } catch (error) {
+      console.error("Haftalık nitelik istatistikleri alınırken hata:", error);
+      res.status(500).json({ error: "İstatistikler yüklenirken bir hata oluştu" });
+    }
+  });
+
   return httpServer;
 }
