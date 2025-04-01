@@ -257,6 +257,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/ping", (req, res) => {
     res.status(200).send("Bot ve web panel çalışıyor!");
   });
+  
+  // UptimeRobot için ek endpoint
+  app.get("/uptime-check", (req, res) => {
+    res.status(200).send("UptimeRobot servisi tarafından kontrol edildi");
+  });
 
   return httpServer;
 }
