@@ -266,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Günlük ticket istatistikleri
   app.get("/api/tickets/stats/daily", async (req, res) => {
     try {
-      const tickets = await storage.getTickets();
+      const tickets = await storage.getAllTickets();
       
       // Son 24 saatteki ticketları filtrele
       const now = new Date();
@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Haftalık nitelik istatistikleri
   app.get("/api/players/stats/weekly", async (req, res) => {
     try {
-      const playerStats = await storage.getPlayerStats();
+      const playerStats = await storage.getPlayerAttributeStats();
       
       if (!playerStats || playerStats.length === 0) {
         return res.json([
