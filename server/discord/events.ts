@@ -14,82 +14,180 @@ import {
   ChannelType,
   ButtonStyle,
   ButtonBuilder,
-  TextChannel
+  TextChannel,
+  ChatInputCommandInteraction,
+  InteractionResponse
 } from 'discord.js';
 import { client } from './bot';
 import { commands } from './commands';
 import { storage } from '../storage';
 import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed } from './utils';
 
-// İşlenmiş mesaj ID'lerini global olarak saklayacak bir set
+// İşlenmiş mesaj ve etkileşim ID'lerini global olarak saklayacak setler
+// Bu setler, bellek tüketimini azaltmak için periyodik olarak temizlenecek
 const processedMessageIds = new Set<string>();
+const processedInteractionIds = new Set<string>();
+const MAX_CACHE_SIZE = 5000; // Maksimum önbellek boyutu
+
+// Önbelleği periyodik olarak temizle (her 1 saatte bir)
+setInterval(() => {
+  const oldSize = processedMessageIds.size + processedInteractionIds.size;
+  
+  // Setleri temizle, en son 100 öğeyi tut
+  if (processedMessageIds.size > 100) {
+    const keepItems = Array.from(processedMessageIds).slice(-100);
+    processedMessageIds.clear();
+    keepItems.forEach(id => processedMessageIds.add(id));
+  }
+  
+  if (processedInteractionIds.size > 100) {
+    const keepItems = Array.from(processedInteractionIds).slice(-100);
+    processedInteractionIds.clear();
+    keepItems.forEach(id => processedInteractionIds.add(id));
+  }
+  
+  const newSize = processedMessageIds.size + processedInteractionIds.size;
+  console.log(`Önbellek temizlendi: ${oldSize} -> ${newSize} öğe`);
+}, 60 * 60 * 1000); // 1 saat
 
 export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     try {
+      // Önce etkileşimi işleyip işlemediğimizi kontrol et
+      // Unknown Interaction hatasını önlemek için
+      if (interaction.id && processedInteractionIds.has(interaction.id)) {
+        console.log(`[ETKILEŞIM] Bu etkileşim zaten işlendi, tekrar işlenmeyecek: ${interaction.id}`);
+        return;
+      }
+      
+      // Etkileşimi işlenmiş olarak işaretle
+      if (interaction.id) {
+        processedInteractionIds.add(interaction.id);
+        
+        // Önbellek boyutu kontrol
+        if (processedInteractionIds.size >= MAX_CACHE_SIZE) {
+          // İlk yarısını temizle - FIFO (İlk giren ilk çıkar)
+          const keepItems = Array.from(processedInteractionIds).slice(MAX_CACHE_SIZE / 2);
+          processedInteractionIds.clear();
+          keepItems.forEach(id => processedInteractionIds.add(id));
+          console.log(`Etkileşim önbelleği temizlendi: ${MAX_CACHE_SIZE} -> ${processedInteractionIds.size} öğe`);
+        }
+      }
+      
       // Handle slash commands
       if (interaction.isChatInputCommand()) {
         const { commandName } = interaction;
         const command = commands.get(commandName);
 
         if (!command) return;
-
+        
         try {
-          await command(interaction);
+          // Asenkron işlemi başlat ve hemen yanıt ver
+          await interaction.deferReply({ ephemeral: commandName === 'fixreset' }).catch(error => {
+            // Eğer deferReply başarısız olursa, bu muhtemelen bir "Unknown Interaction" hatası
+            // Bu durumda sessizce devam et, komut çalışmayabilir ama hata da gösterme
+            console.log(`[KOMUT] ${commandName} için deferReply başarısız, muhtemelen geçersiz etkileşim: ${error.message || 'Bilinmeyen hata'}`);
+          });
+          
+          // Komut başarıyla deferReply edildi, asıl komutu çalıştır
+          await command(interaction).catch((error: any) => {
+            console.error(`[KOMUT] ${commandName} çalıştırılırken hata:`, error);
+            
+            // API hatasını yakala, yanıt verdiyse hata mesajını gösterme
+            if (!interaction.replied && !interaction.deferred) {
+              interaction.reply({ 
+                content: 'Komut işlenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.', 
+                ephemeral: true 
+              }).catch(() => {}); // Sessizce başarısız ol
+            }
+          });
         } catch (error) {
-          // Sadece konsola hata logu yaz, kullanıcıya hata mesajı gösterme
-          console.error(`Error executing command ${commandName}:`, error);
-
-          // Hata mesajlarını gösterme, sadece konsola log
-          console.log(`Komut hatası (${commandName}), mesaj gösterilmiyor`);
+          // Genel hata durumu - konsola hata logu yaz
+          console.error(`[KOMUT] ${commandName} etkileşiminde beklenmeyen hata:`, error);
         }
       }
 
-      // Handle button interactions
+      // Handle button interactions with better error handling
       else if (interaction.isButton()) {
         try {
+          // Önce etkileşimi askıya al
+          await interaction.deferUpdate().catch(() => {
+            // Eğer deferUpdate başarısız olursa sessizce devam et
+            console.log(`[BUTON] Buton etkileşimi için deferUpdate başarısız, muhtemelen geçersiz etkileşim`);
+          });
+          
+          // Daha sonra buton işleyicisini çağır
           await handleButtonInteraction(interaction);
         } catch (error) {
-          console.error('Error handling button interaction:', error);
-          // Interaction already replied durumunu kontrol et
-          if ((error as any)?.code !== 'InteractionAlreadyReplied' && !interaction.replied && !interaction.deferred) {
+          console.error('[BUTON] Buton etkileşimi işlenirken hata:', error);
+          
+          // Etkileşim durumunu kontrol et ve hata mesajı göndermeye çalış
+          if (!interaction.replied && !interaction.deferred) {
             try {
               await interaction.reply({ 
-                content: 'İşleminiz alındı, işleniyor...', 
+                content: 'İşleminiz alınamadı. Lütfen daha sonra tekrar deneyin.', 
                 ephemeral: true 
-              }).catch(err => console.error('Failed to reply with error message:', err));
+              }).catch(() => {}); // Sessizce başarısız ol
             } catch (e) {
-              console.error('Failed to reply with error message:', e);
+              // Bu hatayı sessizce yut
             }
           }
         }
       }
 
-      // Handle modal submissions
+      // Handle modal submissions with improved error handling
       else if (interaction.isModalSubmit()) {
         try {
+          // Etkileşimi askıya al
+          await interaction.deferReply({ ephemeral: true }).catch(() => {
+            // Eğer deferReply başarısız olursa sessizce devam et
+            console.log(`[MODAL] Modal etkileşimi için deferReply başarısız, muhtemelen geçersiz etkileşim`);
+          });
+          
+          // Daha sonra modal işleyicisini çağır
           await handleModalSubmit(interaction);
         } catch (error) {
-          console.error('Error handling modal submission:', error);
+          console.error('[MODAL] Modal etkileşimi işlenirken hata:', error);
+          
+          // Etkileşim durumunu kontrol et
           if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ 
-              content: 'İşlem sırasında bir hata oluştu.', 
+              content: 'İşleminiz alınamadı. Lütfen daha sonra tekrar deneyin.', 
               ephemeral: true 
-            }).catch(err => console.error('Failed to reply with error message:', err));
+            }).catch(() => {}); // Sessizce başarısız ol
           }
         }
       }
     } catch (error) {
-      console.error('Error handling interaction:', error);
+      // Genel hata durumu - konsola hata logu yaz
+      console.error('[ETKILEŞIM] Genel etkileşim işleme hatası:', error);
     }
   });
 
   // Handle messages for attribute requests in tickets and training
   client.on(Events.MessageCreate, async (message: Message) => {
-    if (message.author.bot) return;
-
     try {
+      // Bot mesajlarını ve ID'siz mesajları yoksay
+      if (message.author.bot || !message.id) return;
+      
+      // Bu mesaj zaten işlendi mi kontrol et
+      if (processedMessageIds.has(message.id)) {
+        console.log(`[MESAJ] Bu mesaj zaten işlendi, tekrar işlenmeyecek: ${message.id}`);
+        return;
+      }
+      
+      // Mesajı işlenmiş olarak işaretle
+      processedMessageIds.add(message.id);
+      
+      // Önbellek boyutu kontrol
+      if (processedMessageIds.size >= MAX_CACHE_SIZE) {
+        // İlk yarısını temizle
+        const keepItems = Array.from(processedMessageIds).slice(MAX_CACHE_SIZE / 2);
+        processedMessageIds.clear();
+        keepItems.forEach(id => processedMessageIds.add(id));
+        console.log(`Mesaj önbelleği temizlendi: ${MAX_CACHE_SIZE} -> ${processedMessageIds.size} öğe`);
+      }
       // Önce mesaj içeriğinde "evet", "hayır" veya emoji olup olmadığını kontrol et
       const isReactionMessage = message.content.toLowerCase().includes('evet') || 
                              message.content.toLowerCase().includes('hayır') ||
