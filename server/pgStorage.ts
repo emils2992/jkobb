@@ -461,6 +461,8 @@ export class PgStorage implements IStorage {
 
   // Training session operations
   async createTrainingSession(insertSession: InsertTrainingSession): Promise<TrainingSession> {
+    console.log(`[ANTRENMAN DB] Antrenman oturumu oluşturuluyor:`, insertSession);
+    
     // Önce aynı mesajla ilgili bir kayıt var mı kontrol et
     if (insertSession.messageId) {
       const checkResult = await this.pool.query(
@@ -470,39 +472,65 @@ export class PgStorage implements IStorage {
       
       // Eğer mesaj daha önce kaydedilmişse, direkt o kaydı döndür
       if (checkResult.rows.length > 0) {
-        console.log(`[ANTRENMAN] Bu mesaj daha önce kaydedilmiş, tekrar eklemiyorum: ${insertSession.messageId}`);
+        console.log(`[ANTRENMAN DB] Bu mesaj daha önce kaydedilmiş, tekrar eklemiyorum: ${insertSession.messageId}`);
         return this.pgTrainingSessionToTrainingSession(checkResult.rows[0]);
       }
     }
   
-    // Mesaj daha önce kaydedilmemişse yeni kayıt oluştur
-    const result = await this.pool.query(
-      `INSERT INTO training_sessions(
-        user_id, 
-        ticket_id, 
-        attribute_name,
-        duration, 
-        intensity,
-        attributes_gained,
-        source,
-        message_id,
-        channel_id
-      ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [
-        insertSession.userId, 
-        insertSession.ticketId || "", 
-        insertSession.attributeName || "Genel Antrenman",
-        insertSession.duration, 
-        insertSession.intensity || 1,
-        insertSession.attributesGained,
-        insertSession.source || "training",
-        insertSession.messageId || null,
-        insertSession.channelId || null
-      ]
-    );
+    try {
+      // Gerekli tüm alanların varlığını kontrol et
+      const ticketId = insertSession.ticketId ?? "";  // null yerine boş string kullan
+      const attributeName = insertSession.attributeName || "Genel Antrenman";
+      const intensity = insertSession.intensity || 1;
+      const source = insertSession.source || "training";
+      const messageId = insertSession.messageId || null;
+      const channelId = insertSession.channelId || null;
+      
+      console.log(`[ANTRENMAN DB] Hazırlanan değerler:
+        userId: ${insertSession.userId}
+        ticketId: ${ticketId}
+        attributeName: ${attributeName}
+        duration: ${insertSession.duration}
+        intensity: ${intensity}
+        attributesGained: ${insertSession.attributesGained}
+        source: ${source}
+        messageId: ${messageId}
+        channelId: ${channelId}
+      `);
+      
+      // Mesaj daha önce kaydedilmemişse yeni kayıt oluştur
+      const result = await this.pool.query(
+        `INSERT INTO training_sessions(
+          user_id, 
+          ticket_id, 
+          attribute_name,
+          duration, 
+          intensity,
+          attributes_gained,
+          source,
+          message_id,
+          channel_id
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        [
+          insertSession.userId, 
+          ticketId,
+          attributeName,
+          insertSession.duration, 
+          intensity,
+          insertSession.attributesGained,
+          source,
+          messageId,
+          channelId
+        ]
+      );
     
     console.log(`[ANTRENMAN] Yeni antrenman kaydı oluşturuldu: ${result.rows[0].id} (mesaj: ${insertSession.messageId})`);
     return this.pgTrainingSessionToTrainingSession(result.rows[0]);
+    
+    } catch (error) {
+      console.error("[ANTRENMAN DB] Antrenman oluşturma hatası:", error);
+      throw error;
+    }
   }
 
   async getTrainingSessions(userId: string): Promise<TrainingSession[]> {

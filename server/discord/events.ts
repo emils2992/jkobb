@@ -477,17 +477,20 @@ export function setupEventHandlers() {
               // Veritabanında bu mesaj zaten var mı diye kontrol et
               // Bu kontrol artık sadece günlük bilgi içindir, gerçek kontrol daha yukarıda yapılıyor
               // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
-              const session = await storage.createTrainingSession({
-                userId: user.userId,
-                attributeName: attributeName,
-                ticketId: null,
-                duration,
-                intensity: 1, // Sabit değer kullanıyoruz
-                attributesGained: attributeValue,
-                source: 'message',
-                messageId: message.id,
-                channelId: message.channelId
-              });
+              console.log(`[ANTRENMAN] Antrenman oturumu oluşturuluyor: ${user.userId} için ${attributeName}`);
+              try {
+                const session = await storage.createTrainingSession({
+                  userId: user.userId,
+                  attributeName: attributeName,
+                  ticketId: "", // null yerine boş string kullan
+                  duration,
+                  intensity: 1, // Sabit değer kullanıyoruz
+                  attributesGained: attributeValue
+                });
+                console.log(`[ANTRENMAN] Antrenman oturumu başarıyla oluşturuldu: ${session.id}`);
+              } catch (error) {
+                console.error(`[ANTRENMAN] Antrenman oturumu oluşturulurken hata:`, error);
+              }
 
               // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
               // source parametresi olarak 'message' ekleyerek bu değişikliğin antrenman kaynağını belirt
