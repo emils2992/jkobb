@@ -1,9 +1,8 @@
 import fetch from 'node-fetch';
 import { log } from './vite';
 
-// Replit URL'sini doğrudan environment variable'dan al
-const REPLIT_URL = process.env.REPLIT_URL || 
-                  (process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null);
+// Replit URL'si - doğrudan hardcoded olarak eklendi
+const REPLIT_URL = "https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev";
 
 let pingInterval: NodeJS.Timeout | null = null;
 let healthCheckInterval: NodeJS.Timeout | null = null;
@@ -13,13 +12,7 @@ let isHealthy = true;
  * Uygulamanın uptime'ını korumak için kendi kendine ping atan gelişmiş fonksiyon
  */
 export function startUptimeService() {
-  // URL yoksa çıkış yap
-  if (!REPLIT_URL) {
-    log('REPLIT_URL bulunamadı. Uptime servisi başlatılamıyor.', 'uptime');
-    return;
-  }
-
-  // Zaten çalışan servis varsa durdur ve yeniden başlat (güvenlik için)
+  // Zaten çalışan servis varsa durdur ve yeniden başlat
   if (pingInterval) {
     stopUptimeService();
   }
@@ -27,10 +20,7 @@ export function startUptimeService() {
   // 30 saniyede bir ping at (daha sık ping ile uptime güvenliği arttırılıyor)
   pingInterval = setInterval(async () => {
     try {
-      const response = await fetch(`${REPLIT_URL}/ping`, {
-        timeout: 8000, // 8 saniye timeout ile ağ gecikmelerine karşı önlem
-        headers: { 'Cache-Control': 'no-cache, no-store' } // Önbellek sorunlarını önlemek için
-      });
+      const response = await fetch(`${REPLIT_URL}/ping`);
       
       if (response.ok) {
         if (!isHealthy) {
@@ -57,24 +47,18 @@ export function startUptimeService() {
   healthCheckInterval = setInterval(async () => {
     try {
       // Ana endpoint'i kontrol et (web sitesinin sağlık durumu için)
-      const homeResponse = await fetch(REPLIT_URL, {
-        timeout: 10000,
-        headers: { 'Cache-Control': 'no-cache, no-store' }
-      });
+      const homeResponse = await fetch(REPLIT_URL);
       
       if (homeResponse.ok) {
         log('Ana sayfa erişilebilir durumda', 'uptime');
       } else {
         log(`Ana sayfa erişim hatası (${homeResponse.status})`, 'uptime');
-        // Ana sayfa hata veriyorsa pingi zorlayarak sistemi yeniden başlatmaya yönlendir
+        // Ana sayfa hata veriyorsa ping atmayı tekrar dene
         retryPing();
       }
 
       // Özel uptime kontrol endpoint'ini kontrol et
-      const uptimeResponse = await fetch(`${REPLIT_URL}/uptime-check`, {
-        timeout: 8000,
-        headers: { 'Cache-Control': 'no-cache, no-store' }
-      });
+      const uptimeResponse = await fetch(`${REPLIT_URL}/uptime-check`);
       
       if (!uptimeResponse.ok) {
         log(`Uptime kontrol endpoint'i erişim hatası (${uptimeResponse.status})`, 'uptime');
@@ -99,10 +83,7 @@ async function retryPing() {
   for (const endpoint of endpoints) {
     try {
       await new Promise(resolve => setTimeout(resolve, 2000)); // Kısa bir bekleme
-      const response = await fetch(`${REPLIT_URL}${endpoint}`, {
-        timeout: 5000,
-        headers: { 'Cache-Control': 'no-cache, no-store' }
-      });
+      const response = await fetch(`${REPLIT_URL}${endpoint}`);
       
       if (response.ok) {
         log(`Yeniden pinglenebilir durum: ${endpoint}`, 'uptime');
