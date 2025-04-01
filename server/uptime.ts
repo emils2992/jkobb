@@ -15,7 +15,7 @@ export function startUptimeService() {
     return;
   }
 
-  // 5 dakikada bir ping at (300000 ms)
+  // 1 dakikada bir ping at (60000 ms) - daha sık aralıklarla
   pingInterval = setInterval(async () => {
     try {
       const response = await fetch(`${REPLIT_URL}/ping`);
@@ -23,11 +23,27 @@ export function startUptimeService() {
         log(`Uptime ping başarılı: ${new Date().toISOString()}`, 'uptime');
       } else {
         log(`Uptime ping başarısız (${response.status}): ${new Date().toISOString()}`, 'uptime');
+        // Başarısız olduğunda tekrar ping at
+        setTimeout(async () => {
+          try {
+            await fetch(`${REPLIT_URL}/ping`);
+          } catch (e) {
+            log(`Uptime tekrar ping hatası: ${e}`, 'uptime');
+          }
+        }, 10000); // 10 saniye sonra tekrar dene
       }
     } catch (error) {
       log(`Uptime ping hatası: ${error}`, 'uptime');
+      // Hata durumunda tekrar ping at
+      setTimeout(async () => {
+        try {
+          await fetch(`${REPLIT_URL}/ping`);
+        } catch (e) {
+          log(`Uptime tekrar ping hatası: ${e}`, 'uptime');
+        }
+      }, 10000); // 10 saniye sonra tekrar dene
     }
-  }, 300000); // 5 dakika
+  }, 60000); // 1 dakika
 
   log(`Uptime servisi başlatıldı: ${REPLIT_URL}`, 'uptime');
 }

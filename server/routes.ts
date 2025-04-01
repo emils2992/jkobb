@@ -8,6 +8,11 @@ import { z } from "zod";
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
+  // Ping endpoint for uptime
+  app.get('/ping', (req, res) => {
+    res.status(200).send('Pong!');
+  });
+
   // Initialize Discord bot
   await initDiscordBot();
   
