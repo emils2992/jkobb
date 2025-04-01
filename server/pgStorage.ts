@@ -106,7 +106,7 @@ export class PgStorage implements IStorage {
         console.log(`[SUPER-FIX] TOPLAM DEĞERE EKLENİYOR: ${existing.value} + ${value} = ${newValue}`);
       }
       
-      // Haftalık değer hesaplama
+      // Haftalık değer hesaplama - YENİ: Tüm değer artışları (ticket dahil) haftalık değerlere de eklenir
       let newWeeklyValue;
       if (weeklyValue !== undefined) {
         // Eğer weeklyValue açıkça belirtilmişse, o değeri kullan
@@ -120,9 +120,9 @@ export class PgStorage implements IStorage {
           console.log(`[SUPER-FIX] HAFTALIK DEĞERE EKLENİYOR (AÇIK): ${existing.weeklyValue} + ${weeklyValue} = ${newWeeklyValue}`);
         }
       } else if (!onlyUpdateWeekly) {
-        // weeklyValue belirtilmemişse ve sadece weeklyValue güncellemesi istenmediyse, toplam değere eklenen değeri haftalık değere de ekle
+        // Tüm kaynaklardan (ticket dahil) değer artışlarını haftalık değere de ekle
         newWeeklyValue = existing.weeklyValue + value;
-        console.log(`[SUPER-FIX] HAFTALIK DEĞERE OTOMATİK EKLENİYOR: ${existing.weeklyValue} + ${value} = ${newWeeklyValue}`);
+        console.log(`[SUPER-FIX] HAFTALIK DEĞERE ${source} KAYNAĞI İLE EKLENİYOR: ${existing.weeklyValue} + ${value} = ${newWeeklyValue}`);
       } else {
         // Haftalık değeri değiştirme
         newWeeklyValue = existing.weeklyValue;

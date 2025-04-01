@@ -47,10 +47,10 @@ export default function TrainingPage() {
     (total, session) => total + session.duration, 0
   );
 
-  // Tüm kazanılan nitelikleri hesapla
-  const totalTrainingAttributes = messageSessions.reduce(
-    (total, session) => total + session.attributesGained, 0
-  );
+  // Tüm kazanılan nitelikleri hesapla (hem antrenman hem ticket)
+  const totalTrainingAttributes = playersStats?.reduce((total, player) => 
+    total + player.weeklyValue, 0
+  ) || 0;
 
   const handleTrainingCommand = () => {
     toast({
@@ -113,7 +113,7 @@ export default function TrainingPage() {
               <p className="text-3xl font-bold">
                 {totalTrainingAttributes}
               </p>
-              <p className="text-discord-light text-sm">Antrenmanlardan kazanılan toplam nitelik</p>
+              <p className="text-discord-light text-sm">Haftalık toplam kazanılan nitelik puanı</p>
             </CardContent>
           </Card>
         </div>

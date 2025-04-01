@@ -145,15 +145,14 @@ export class MemStorage implements IStorage {
     const now = new Date();
     
     if (existing) {
-      // Eğer onlyUpdateWeekly true ise, sadece haftalık değeri güncelle
-      // Fix: Nitelik taleplerini çarpma yerine daima doğrudan ekleme yapacağız
+      // YENİ: Tüm kaynaklardan (ticket dahil) değer artışları haftalık değere eklensin
       const updated: Attribute = {
         ...existing,
         // onlyUpdateWeekly true ise value değişmez, değilse normal güncelleme yapılır
         value: onlyUpdateWeekly ? existing.value : existing.value + value, // absoluteValue parametresini yok sayıyoruz
         weeklyValue: weeklyValue !== undefined 
           ? existing.weeklyValue + weeklyValue // Haftalık değeri her zaman toplayarak değiştir  
-          : existing.weeklyValue + value, // Haftalık değeri ayarla veya ekle
+          : existing.weeklyValue + value, // Haftalık değeri HER ZAMAN ve HER KAYNAKTAN (ticket dahil) arttır
         updatedAt: now,
         source: source // Kaynağı belirle
       };
