@@ -118,7 +118,7 @@ export default function Dashboard() {
         <p className="text-gray-400 mt-2 slide-up-animation" style={{animationDelay: '0.3s'}}>
           Epic Lig ticket sisteminde tüm açık ve kapalı talepleri görüntüleyip yönetebilirsiniz.
           <span className="ml-2 text-xs bg-discord-blue bg-opacity-20 text-discord-blue px-2 py-1 rounded-full">
-            <i className="fas fa-code mr-1"></i>Bot sahibi: <span className="font-bold text-white">𝐀𝐥𝐢∅𝐌𝐎𝐎𝐃𝐘</span>
+            <i className="fas fa-code mr-1"></i>Bot sahibi: <span className="font-bold text-white">emilswd</span>pan>
           </span>
         </p>
       </header>
