@@ -171,6 +171,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch training sessions" });
     }
   });
+  
+  // Get player training stats (sadece antrenman kaynaklı nitelikler)
+  app.get("/api/players/training-stats", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const trainingStats = await storage.getPlayerTrainingStats(userId);
+      res.json(trainingStats);
+    } catch (error) {
+      console.error("Error fetching player training stats:", error);
+      res.status(500).json({ message: "Failed to fetch player training stats" });
+    }
+  });
 
   // Update attribute request approval status
   app.patch("/api/attribute-requests/:requestId", async (req, res) => {

@@ -29,8 +29,14 @@ interface UserWithSessions {
 export default function TrainingPage() {
   const { toast } = useToast();
   
+  // Tüm nitelikler (ticket + antrenman) için
   const { data: playersStats } = useQuery<PlayerStats[]>({
     queryKey: ['/api/players/stats'],
+  });
+  
+  // Sadece antrenman kaynaklı nitelikler için
+  const { data: trainingStats } = useQuery<PlayerStats[]>({
+    queryKey: ['/api/players/training-stats'],
   });
 
   const { data: userSessions } = useQuery<UserWithSessions[]>({
@@ -47,8 +53,8 @@ export default function TrainingPage() {
     (total, session) => total + session.duration, 0
   );
 
-  // Tüm kazanılan nitelikleri hesapla (hem antrenman hem ticket)
-  const totalTrainingAttributes = playersStats?.reduce((total, player) => 
+  // Sadece antrenman kaynaklı nitelikleri hesapla
+  const totalTrainingAttributes = trainingStats?.reduce((total: number, player: PlayerStats) => 
     total + player.weeklyValue, 0
   ) || 0;
 
@@ -59,7 +65,8 @@ export default function TrainingPage() {
     });
   };
 
-  const topPlayers = [...(playersStats || [])].sort((a, b) => b.weeklyValue - a.weeklyValue).slice(0, 10);
+  // Sadece antrenman kaynaklı niteliklere göre sıralama
+  const topPlayers = [...(trainingStats || [])].sort((a: PlayerStats, b: PlayerStats) => b.weeklyValue - a.weeklyValue).slice(0, 10);
 
   return (
     <>
