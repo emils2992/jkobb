@@ -19,6 +19,7 @@ localPort = 8099
 externalPort = 8099
 
 [workflows]
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Project"
@@ -56,6 +57,15 @@ args = "npm run dev"
 [[workflows.workflow]]
 name = "Bot Starter"
 author = 41038061
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Run"
+author = 41070071
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
