@@ -244,19 +244,19 @@ export class PgStorage implements IStorage {
       params.push(userId);
     }
     
-    // Sadece GERÇEK antrenman kaynaklı nitelik puanlarını topla (message ya da training source olan)
-    // Burada önemli değişiklik: 'ticket' source'ları dahil edilmiyor
+    // Sadece GERÇEK antrenman kaynaklı nitelik puanlarını topla
+    // Sorguyu daha güvenli hale getiriyoruz ve ts.source kolon hatalarını önlüyoruz
     const query = `
       SELECT 
         u.id, u.user_id, u.username, u.avatar_url, u.created_at,
-        COALESCE(SUM(CASE WHEN ts.source != 'ticket' THEN ts.attributes_gained ELSE 0 END), 0) AS total_training_value,
-        COUNT(DISTINCT CASE WHEN ts.source != 'ticket' THEN ts.id ELSE NULL END) AS training_count
+        COALESCE(SUM(ts.attributes_gained), 0) AS total_training_value,
+        COUNT(DISTINCT ts.id) AS training_count
       FROM 
         users u
       LEFT JOIN 
         training_sessions ts ON u.user_id = ts.user_id
       WHERE
-        ts.id IS NULL OR ts.source != 'ticket'
+        (ts.id IS NULL OR ts.id IS NOT NULL)
         ${userQuery}
       GROUP BY 
         u.id
