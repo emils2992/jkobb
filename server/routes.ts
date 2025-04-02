@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { Session } from "express-session";
 import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
-import { startUptimeService } from "./uptime";
+import { startSimpleUptimeService } from "./uptime-simple";
 import { z } from "zod";
 import { createHash } from "crypto";
 
@@ -36,8 +36,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Discord bot
   await initDiscordBot();
   
-  // Start uptime service
-  startUptimeService();
+  // Start simple uptime service for better reliability
+  startSimpleUptimeService();
   
   // Add health check endpoint specifically for uptime monitoring
   app.get('/api/health', (req, res) => {

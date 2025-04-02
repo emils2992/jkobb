@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:;">
+    <title>Discord Bot - Sunucu Yönetimi</title>
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #36393f;
+            color: #fff;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            padding: 2rem;
+        }
+        
+        .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #7289da;
+        }
+        
+        p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .status {
+            background-color: #2f3136;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: bold;
+            background-color: #43b581;
+            color: white;
+        }
+        
+        .status-info {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            background-color: #40444b;
+            padding: 0.8rem 1.2rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #7289da;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .button:hover {
+            background-color: #5e77d4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .button-secondary {
+            background-color: #4f545c;
+        }
+        
+        .button-secondary:hover {
+            background-color: #40444b;
+        }
+        
+        .footer {
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            color: #72767d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="/assets/logo.png" alt="Logo" class="logo">
+        <h1>Discord Halısaha Bot</h1>
+        
+        <div class="status">
+            <div class="status-badge">Aktif</div>
+            <div class="status-info">
+                <div class="info-item">Bot: Çalışıyor</div>
+                <div class="info-item">API: Hazır</div>
+                <div class="info-item">Veritabanı: Bağlı</div>
+            </div>
+        </div>
+        
+        <p>
+            Bu sunucu şu anda aktif durumda ve çalışıyor. Discord botu ve API hizmetleri kesintisiz olarak çalışmaktadır.
+        </p>
+        <p>
+            UptimeRobot ile sağlanan ping hizmeti sayesinde, sistem 7/24 kesintisiz hizmet vermektedir.
+        </p>
+        
+        <div class="buttons">
+            <a href="/dashboard" class="button">Yönetim Paneline Git</a>
+            <a href="/ping" class="button button-secondary">UptimeRobot Testi</a>
+        </div>
+        
+        <div class="footer">
+            © 2025 Discord Halısaha Bot - Tüm hakları saklıdır
+        </div>
+    </div>
+</body>
+</html>
