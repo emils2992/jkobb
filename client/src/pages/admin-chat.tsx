@@ -43,7 +43,7 @@ const AdminChatPage = () => {
       }
       return response.json() as Promise<ChatMessage[]>;
     },
-    refetchInterval: 5000 // Her 5 saniyede bir yenile
+    refetchInterval: 1000 // Her 1 saniyede bir yenile (daha hızlı güncelleme)
   });
   
   // Mesaj gönder
@@ -56,8 +56,13 @@ const AdminChatPage = () => {
     onSuccess: () => {
       // Gönderim başarılı
       setMessage(''); // input alanını temizle
-      // Cache'i güncelle
+      // Cache'i güncelle - hemen yeni mesajlar yükle
       queryClient.invalidateQueries({ queryKey: ['/api/chat/messages'] });
+      
+      // Gönderimden sonra anında kaydır
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 100);
     },
     onError: (error) => {
       toast({
@@ -84,7 +89,11 @@ const AdminChatPage = () => {
   
   // Mesajlar geldiğinde otomatik aşağı kaydır
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Yeni mesaj geldiğinde anında ve her zaman aşağı kaydır
+    if (messagesEndRef.current) {
+      // Daha hızlı scroll için davranışı değiştir
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+    }
   }, [messages]);
   
 // Profil ayarlama
@@ -186,8 +195,11 @@ const AdminChatPage = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((msg) => (
-                  <div key={msg.id} className="flex flex-col">
+                {/* Mesajları tersten sırala - en yeni mesajlar en altta gösterilsin */}
+                {[...messages].sort((a, b) => 
+                  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                ).map((msg) => (
+                  <div key={`msg-${msg.id}`} className="flex flex-col">
                     <div className="flex items-center mb-1">
                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
                         {msg.admin.displayName.charAt(0)}
@@ -204,7 +216,8 @@ const AdminChatPage = () => {
                     </div>
                   </div>
                 ))}
-                <div ref={messagesEndRef} />
+                {/* Mesaj sayfasının en alt noktasına referans */}
+                <div ref={messagesEndRef} style={{ height: '1px', margin: '0' }} />
               </div>
             )}
           </div>
