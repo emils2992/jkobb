@@ -1,132 +1,109 @@
-// Ana başlangıç dosyası - Bu dosya projenin giriş noktasıdır
-import express from "express";
-import { createServer } from "http";
-import { log } from "./vite";
-import { pool } from "./db";
-import { registerRoutes } from "./routes";
-import { startSimpleUptimeService } from "./uptime-simple";
-import { initDatabase } from "./db";
-import { initDiscordBot } from "./discord";
+import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import { initDiscordBot } from "./discord";
+import { initDatabase } from "./db";
+import { pool } from "./db";
+import { startUptimeService } from "./uptime";
 import ConnectPgSimple from "connect-pg-simple";
-import path from "path";
-// Özel sunucu bileşeni kaldırıldı
 
-console.log('PostgreSQL veritabanı depolaması kullanılıyor');
-
-// Basit express uygulaması oluştur
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session ayarları
+// Session setup
 const PgStore = ConnectPgSimple(session);
 app.use(session({
   store: new PgStore({
     pool,
-    tableName: 'session',
+    tableName: 'session', // Uses the session table we created
     createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET || 'discord-manager-secret-key', 
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: false, 
-    maxAge: 24 * 60 * 60 * 1000 
+    secure: false, // Set to true in production with HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours 
   }
 }));
 
-// Sağlık kontrolü için endpoint
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
-});
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-// Ping endpoint
-app.get('/ping', (req, res) => {
-  res.status(200).send('Pong!');
-});
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
 
-// Uptime kontrol noktası
-app.get('/uptime-check', (req, res) => {
-  res.status(200).json({
-    status: 'online',
-    timestamp: new Date().toISOString(),
-    server: 'Discord Halısaha Bot'
-  });
-});
-
-// 5000 portunu hızlıca aç, sonra diğer işlemleri başlat
-(async () => {
-  try {
-    // İlk olarak serveri başlat
-    const server = createServer(app);
-    
-    // Portu aç, 5000 portu Replit'te standart
-    server.listen(5000, '0.0.0.0', async () => {
-      log('Port 5000 açıldı, server başlatılıyor...');
-      
-      try {
-        // Veritabanını başlat
-        await initDatabase();
-        log('Veritabanı başarıyla başlatıldı');
-        
-        // API rotalarını tanımla
-        const httpServer = await registerRoutes(app);
-        
-        // Uptime servisi başlat
-        startSimpleUptimeService();
-        log('Uptime servisi başlatıldı');
-        
-        // Basit ping endpointleri - bunlar her durumda erişilebilir olmalı
-        app.get('/ping', (req, res) => {
-          res.status(200).send('Pong!');
-        });
-        
-        // Uptime check endpoint'i
-        app.get('/uptime-check', (req, res) => {
-          res.status(200).json({
-            status: 'online',
-            timestamp: new Date().toISOString(),
-            server: 'Discord Halısaha Bot'
-          });
-        });
-        
-        // Vite ayarları - Frontend'i servis et (tek bir yapılandırma)
-        try {
-          // API rotalarını tanımla
-          const apiPaths = ['/api', '/ping', '/uptime-check', '/health'];
-          
-          // API rotalarını öncelikle işle
-          app.use((req, res, next) => {
-            if (apiPaths.some(path => req.path.startsWith(path))) {
-              return next();
-            }
-            next();
-          });
-          
-          // Vite entegrasyonu
-          const { setupVite } = await import('./vite');
-          await setupVite(app, server);
-          log('Vite başarıyla ayarlandı ve React uygulaması servis ediliyor');
-        } catch (error) {
-          console.error('Vite ayarlama hatası:', error);
-        }
-        
-        // Discord bot'u son olarak başlat (bu uzun sürebilir)
-        setTimeout(async () => {
-          try {
-            await initDiscordBot();
-            log('Discord bot başarıyla başlatıldı');
-          } catch (error) {
-            console.error('Discord bot başlatma hatası:', error);
-          }
-        }, 2000);
-      } catch (error) {
-        console.error('Server başlatma hatası:', error);
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-    });
-  } catch (err) {
-    console.error('Kritik başlatma hatası:', err);
-    process.exit(1);
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    }
+  });
+
+  next();
+});
+
+(async () => {
+  const server = await registerRoutes(app);
+
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    res.status(status).json({ message });
+    throw err;
+  });
+
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
+
+  // ALWAYS serve the app on port 5000
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, async () => {
+    log(`serving on port ${port}`);
+    
+    try {
+      // Veritabanını başlat
+      await initDatabase();
+      log('Veritabanı başarıyla başlatıldı');
+      
+      // Initialize Discord bot
+      await initDiscordBot();
+      log('Discord bot initialization process completed');
+      
+      // Uptime service'ini başlat
+      startUptimeService();
+      log('Uptime servisi başlatıldı - Uptime sağlanıyor');
+    } catch (error) {
+      console.error('Error in initialization:', error);
+    }
+  });
 })();
