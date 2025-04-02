@@ -86,10 +86,11 @@ app.use((req, res, next) => {
   const port = 5000;
   server.listen({
     port,
-    host: "0.0.0.0",
+    host: "0.0.0.0", // Tüm ağ arayüzlerinden erişilebilir olmasını sağlar
     reusePort: true,
   }, async () => {
-    log(`serving on port ${port}`);
+    log(`serving on port ${port} (http://0.0.0.0:${port})`);
+    log(`Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev/'}`);
     
     try {
       // Veritabanını başlat
