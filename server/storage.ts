@@ -4,8 +4,11 @@ import {
   tickets, Ticket, InsertTicket,
   attributeRequests, AttributeRequest, InsertAttributeRequest,
   trainingSessions, TrainingSession, InsertTrainingSession,
-  serverConfig, ServerConfig, InsertServerConfig
+  serverConfig, ServerConfig, InsertServerConfig,
+  admins, Admin, InsertAdmin,
+  chatMessages, ChatMessage, InsertChatMessage
 } from "@shared/schema";
+import { createHash } from "crypto";
 import pg from 'pg';
 const { Pool } = pg;
 import { PgStorage } from './pgStorage';
@@ -52,6 +55,15 @@ export interface IStorage {
   updateFixLogChannel(guildId: string, channelId: string): Promise<ServerConfig>;
   updateTrainingChannel(guildId: string, channelId: string): Promise<ServerConfig>;
   updateLastReset(guildId: string): Promise<ServerConfig>;
+  
+  // Admin operations
+  getAdminByUsername(username: string): Promise<Admin | undefined>;
+  createAdmin(admin: InsertAdmin): Promise<Admin>;
+  updateAdminLastLogin(adminId: number): Promise<Admin>;
+  
+  // Chat operations
+  getChatMessages(limit?: number): Promise<(ChatMessage & { admin: Admin })[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
 }
 
 export class MemStorage implements IStorage {
@@ -62,6 +74,8 @@ export class MemStorage implements IStorage {
   private attributeRequests: Map<number, AttributeRequest>;
   private trainingSessions: Map<number, TrainingSession>;
   private configs: Map<number, ServerConfig>;
+  private admins: Map<number, Admin>;
+  private chatMessages: Map<number, ChatMessage>;
   
   private currentUserId: number;
   private currentAttributeId: number;
@@ -69,6 +83,8 @@ export class MemStorage implements IStorage {
   private currentRequestId: number;
   private currentSessionId: number;
   private currentConfigId: number;
+  private currentAdminId: number;
+  private currentChatMessageId: number;
 
   constructor() {
     this.users = new Map();
@@ -78,6 +94,8 @@ export class MemStorage implements IStorage {
     this.attributeRequests = new Map();
     this.trainingSessions = new Map();
     this.configs = new Map();
+    this.admins = new Map();
+    this.chatMessages = new Map();
     
     this.currentUserId = 1;
     this.currentAttributeId = 1;
@@ -85,6 +103,8 @@ export class MemStorage implements IStorage {
     this.currentRequestId = 1;
     this.currentSessionId = 1;
     this.currentConfigId = 1;
+    this.currentAdminId = 1;
+    this.currentChatMessageId = 1;
   }
 
   // User operations
@@ -539,6 +559,76 @@ export class MemStorage implements IStorage {
     
     this.configs.set(config.id, updated);
     return updated;
+  }
+  
+  // Admin operations
+  async getAdminByUsername(username: string): Promise<Admin | undefined> {
+    return Array.from(this.admins.values()).find(a => a.username === username);
+  }
+
+  async createAdmin(admin: InsertAdmin): Promise<Admin> {
+    const id = this.currentAdminId++;
+    const now = new Date();
+    
+    const newAdmin: Admin = {
+      id,
+      username: admin.username,
+      passwordHash: admin.passwordHash,
+      displayName: admin.displayName,
+      role: admin.role || "admin",
+      createdAt: now,
+      lastLogin: null
+    };
+    
+    this.admins.set(id, newAdmin);
+    return newAdmin;
+  }
+
+  async updateAdminLastLogin(adminId: number): Promise<Admin> {
+    const admin = this.admins.get(adminId);
+    if (!admin) throw new Error(`Admin with ID ${adminId} not found`);
+    
+    const now = new Date();
+    const updated: Admin = {
+      ...admin,
+      lastLogin: now
+    };
+    
+    this.admins.set(adminId, updated);
+    return updated;
+  }
+  
+  // Chat operations
+  async getChatMessages(limit?: number): Promise<(ChatMessage & { admin: Admin })[]> {
+    const allMessages = Array.from(this.chatMessages.values())
+      .sort((a, b) => (b.createdAt.getTime()) - (a.createdAt.getTime()));
+    
+    const messages = limit ? allMessages.slice(0, limit) : allMessages;
+    
+    return messages.map(msg => {
+      const admin = this.admins.get(msg.adminId);
+      if (!admin) throw new Error(`Admin with ID ${msg.adminId} not found for message ${msg.id}`);
+      
+      return {
+        ...msg,
+        admin
+      };
+    });
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const id = this.currentChatMessageId++;
+    const now = new Date();
+    
+    const newMessage: ChatMessage = {
+      id,
+      adminId: message.adminId,
+      content: message.content,
+      createdAt: now
+    };
+    
+    this.chatMessages.set(id, newMessage);
+    return newMessage;
   }
 }
 

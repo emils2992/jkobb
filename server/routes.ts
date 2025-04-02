@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
 import { startUptimeService } from "./uptime";
 import { z } from "zod";
+import { createHash } from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);

@@ -7,8 +7,11 @@ import {
   Ticket, InsertTicket,
   AttributeRequest, InsertAttributeRequest,
   TrainingSession, InsertTrainingSession,
-  ServerConfig, InsertServerConfig
+  ServerConfig, InsertServerConfig,
+  Admin, InsertAdmin,
+  ChatMessage, InsertChatMessage
 } from '../shared/schema';
+import { createHash } from 'crypto';
 
 export class PgStorage implements IStorage {
   private pool: any;
@@ -686,6 +689,95 @@ export class PgStorage implements IStorage {
       lastResetAt: new Date(pgConfig.last_reset_at),
       createdAt: new Date(pgConfig.created_at),
       updatedAt: new Date(pgConfig.updated_at)
+    };
+  }
+  
+  // Admin operations
+  async getAdminByUsername(username: string): Promise<Admin | undefined> {
+    const result = await this.pool.query(
+      'SELECT * FROM admins WHERE username = $1',
+      [username]
+    );
+    
+    if (result.rows.length === 0) return undefined;
+    
+    return this.pgAdminToAdmin(result.rows[0]);
+  }
+
+  async createAdmin(admin: InsertAdmin): Promise<Admin> {
+    const result = await this.pool.query(
+      'INSERT INTO admins(username, password_hash, display_name, role) VALUES($1, $2, $3, $4) RETURNING *',
+      [admin.username, admin.passwordHash, admin.displayName, admin.role || 'admin']
+    );
+    
+    return this.pgAdminToAdmin(result.rows[0]);
+  }
+
+  async updateAdminLastLogin(adminId: number): Promise<Admin> {
+    const result = await this.pool.query(
+      'UPDATE admins SET last_login = NOW() WHERE id = $1 RETURNING *',
+      [adminId]
+    );
+    
+    if (result.rows.length === 0) {
+      throw new Error(`Admin with ID ${adminId} not found`);
+    }
+    
+    return this.pgAdminToAdmin(result.rows[0]);
+  }
+  
+  // Chat operations
+  async getChatMessages(limit?: number): Promise<(ChatMessage & { admin: Admin })[]> {
+    const query = `
+      SELECT 
+        cm.*,
+        a.*
+      FROM 
+        chat_messages cm
+      JOIN 
+        admins a ON cm.admin_id = a.id
+      ORDER BY 
+        cm.created_at DESC
+      ${limit ? 'LIMIT $1' : ''}
+    `;
+    
+    const params = limit ? [limit] : [];
+    const result = await this.pool.query(query, params);
+    
+    return result.rows.map((row: any) => ({
+      ...this.pgChatMessageToChatMessage(row),
+      admin: this.pgAdminToAdmin(row)
+    }));
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const result = await this.pool.query(
+      'INSERT INTO chat_messages(admin_id, content) VALUES($1, $2) RETURNING *',
+      [message.adminId, message.content]
+    );
+    
+    return this.pgChatMessageToChatMessage(result.rows[0]);
+  }
+  
+  // Helper methods for Admin and Chat
+  private pgAdminToAdmin(pgAdmin: any): Admin {
+    return {
+      id: pgAdmin.id,
+      username: pgAdmin.username,
+      passwordHash: pgAdmin.password_hash,
+      displayName: pgAdmin.display_name,
+      role: pgAdmin.role,
+      createdAt: pgAdmin.created_at ? new Date(pgAdmin.created_at) : new Date(),
+      lastLogin: pgAdmin.last_login ? new Date(pgAdmin.last_login) : null
+    };
+  }
+  
+  private pgChatMessageToChatMessage(pgMessage: any): ChatMessage {
+    return {
+      id: pgMessage.id,
+      adminId: pgMessage.admin_id,
+      content: pgMessage.content,
+      createdAt: pgMessage.created_at ? new Date(pgMessage.created_at) : new Date()
     };
   }
 }

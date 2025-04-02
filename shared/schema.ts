@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { createHash } from "crypto";
 
 // Users table (Discord users)
 export const users = pgTable("users", {
@@ -135,3 +136,43 @@ export type InsertTrainingSession = z.infer<typeof insertTrainingSessionSchema>;
 
 export type ServerConfig = typeof serverConfig.$inferSelect;
 export type InsertServerConfig = z.infer<typeof insertServerConfigSchema>;
+
+// Admins table for web admin panel
+export const admins = pgTable("admins", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  displayName: text("display_name").notNull(),
+  role: text("role").default("admin").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLogin: timestamp("last_login"),
+});
+
+export const insertAdminSchema = createInsertSchema(admins).pick({
+  username: true,
+  passwordHash: true,
+  displayName: true,
+  role: true,
+}).extend({
+  // Bu, frontend'den password alır ve schema içinde hash'e çevirir
+  password: z.string().min(6),
+});
+
+// Chat messages for admin panel
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").notNull(), // References admins.id
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).pick({
+  adminId: true,
+  content: true,
+});
+
+export type Admin = typeof admins.$inferSelect;
+export type InsertAdmin = Omit<z.infer<typeof insertAdminSchema>, "password"> & { passwordHash: string };
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
