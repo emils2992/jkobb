@@ -38,6 +38,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Start uptime service
   startUptimeService();
+  
+  // Add health check endpoint specifically for uptime monitoring
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString()
+    });
+  });
 
   // Get all tickets (including closed ones)
   app.get("/api/tickets", async (req, res) => {

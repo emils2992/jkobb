@@ -99,9 +99,9 @@ app.use((req, res, next) => {
       await initDiscordBot();
       log('Discord bot initialization process completed');
       
-      // Uptime servisini başlat
+      // Uptime service'ini başlat
       startUptimeService();
-      log('Uptime servisi başlatıldı');
+      log('Uptime servisi başlatıldı - Uptime sağlanıyor');
     } catch (error) {
       console.error('Error in initialization:', error);
     }
