@@ -378,11 +378,12 @@ export function setupEventHandlers() {
 
               // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
               // source parametresi olarak 'message' ekleyerek bu değişikliğin antrenman kaynağını belirt
+              // Sadece +1 puan eklemek için attributeValue direkt olarak kullanılıyor
               await storage.updateAttribute(
                 user.userId, 
                 attributeName, 
-                attributeValue, // Toplam değeri artır
-                attributeValue, // Haftalık değeri de artır
+                1, // Toplam değeri sadece 1 artır
+                1, // Haftalık değeri de 1 artır
                 false, // absoluteValue
                 false, // onlyUpdateWeekly
                 'message' // source - antrenman kaynaklı olduğunu belirt
