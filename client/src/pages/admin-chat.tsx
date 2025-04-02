@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { useAuth, Admin as AuthAdmin } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 
 interface Admin {
   id: number;
@@ -27,7 +27,7 @@ interface ChatMessage {
 
 const AdminChatPage = () => {
   const { toast } = useToast();
-  const { admin } = useAuth();
+  const { admin, updateAdmin } = useAuth();
   const [message, setMessage] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isProfileSet, setIsProfileSet] = useState(false);
@@ -107,13 +107,26 @@ const AdminChatPage = () => {
       return;
     }
     
+    // Hem localStorage'a kaydet hem de auth context'i güncelle
     localStorage.setItem('admin_display_name', displayName);
     setIsProfileSet(true);
     
-    toast({
-      title: "Başarılı",
-      description: "Sohbet isminiz ayarlandı!",
-    });
+    // Auth context üzerinden admin profilini güncelle
+    if (admin) {
+      // API üzerinden admin bilgilerini güncelle
+      updateAdmin(displayName);
+      
+      toast({
+        title: "Başarılı",
+        description: "Sohbet isminiz güncellendi ve kaydedildi!",
+      });
+    } else {
+      toast({
+        title: "Uyarı",
+        description: "İsminiz yerel olarak kaydedildi fakat oturum açılmadığı için sunucuya kaydedilemedi.",
+        variant: "default",
+      });
+    }
   };
 
   // Sayfayı ziyaret ettiğinde isim kontrolü yapalım
@@ -154,6 +167,10 @@ const AdminChatPage = () => {
               <Button onClick={handleSetProfile} disabled={displayName.trim().length < 3}>
                 Sohbete Başla
               </Button>
+              
+              <div className="text-xs text-gray-400 mt-2">
+                <p>İsim en az 3 karakter olmalıdır. Bu isim diğer adminler tarafından görülecektir.</p>
+              </div>
             </div>
           </CardContent>
         </Card>

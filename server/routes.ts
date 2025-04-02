@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { Session } from "express-session";
 import { storage } from "./storage";
@@ -6,6 +6,7 @@ import { initDiscordBot } from "./discord";
 import { startUptimeService } from "./uptime";
 import { z } from "zod";
 import { createHash } from "crypto";
+import { Admin } from "../shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -412,6 +413,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } else {
       res.json({ message: "Logged out successfully" });
+    }
+  });
+  
+  // Admin profile update endpoint
+  app.put("/api/admin/profile", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      const session = (req as any).session;
+      if (!session || !session.admin) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const admin = session.admin;
+      
+      const profileSchema = z.object({
+        displayName: z.string().min(3)
+      });
+      
+      const { displayName } = profileSchema.parse(req.body);
+      
+      // Admin bilgilerini güncelle
+      const updatedAdmin = await storage.updateAdmin({
+        id: admin.id,
+        displayName
+      });
+      
+      // Güncellenen admin bilgilerini sessiona kaydet
+      const { passwordHash: _ph, ...safeAdminData } = updatedAdmin;
+      session.admin = safeAdminData;
+      
+      res.json({ 
+        success: true, 
+        admin: safeAdminData 
+      });
+    } catch (error) {
+      console.error("Error updating admin profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
     }
   });
   

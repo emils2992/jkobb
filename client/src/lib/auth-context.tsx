@@ -14,6 +14,7 @@ type AuthContextType = {
   admin: Admin | null;
   login: (adminData?: Admin) => void;
   logout: () => void;
+  updateAdmin: (displayName: string) => void; // Yeni fonksiyon: admin bilgilerini güncelleme
 };
 
 // Context'i oluştur
@@ -55,9 +56,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAdmin(null);
     setIsLoggedIn(false);
   };
+  
+  // Admin bilgilerini güncelleme fonksiyonu
+  const updateAdmin = (displayName: string) => {
+    if (!admin) return;
+    
+    // Admin nesnesini güncelle
+    const updatedAdmin = {
+      ...admin,
+      displayName
+    };
+    
+    // State ve localStorage'u güncelle
+    setAdmin(updatedAdmin);
+    localStorage.setItem("admin", JSON.stringify(updatedAdmin));
+    
+    // API'ye güncelleme isteği gönder
+    fetch('/api/admin/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ displayName }),
+    }).catch(error => {
+      console.error('Admin profili güncellenirken hata:', error);
+    });
+  };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, admin, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, admin, login, logout, updateAdmin }}>
       {children}
     </AuthContext.Provider>
   );
