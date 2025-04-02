@@ -91,20 +91,7 @@ app.get('/uptime-check', (req, res) => {
           console.error('Vite ayarlama hatası:', error);
         }
         
-        // Ana sayfayı servis et - ES Module desteği için import.meta.url kullan
-        const __filename = new URL(import.meta.url).pathname;
-        const __dirname = path.dirname(__filename);
-        const publicPath = path.resolve(__dirname, '..', 'public');
-        
-        // Statik dosyaları servis et
-        app.use(express.static(publicPath));
-        
-        // Ana sayfa servis edildiğinde direkt olarak index.html dosyasını gönder
-        app.get('/', (req, res) => {
-          res.sendFile(path.join(publicPath, 'index.html'));
-        });
-        
-        // Ping endpoint'i de direkt buraya ekleyelim
+        // Basit ping endpointleri - bunlar her durumda erişilebilir olmalı
         app.get('/ping', (req, res) => {
           res.status(200).send('Pong!');
         });
@@ -117,6 +104,35 @@ app.get('/uptime-check', (req, res) => {
             server: 'Discord Halısaha Bot'
           });
         });
+        
+        // Vite ayarları - Frontend'i servis et
+        try {
+          // Öncelikle API rotalarımızı tanımla
+          const apiRoutes = ['/api', '/ping', '/uptime-check', '/health'];
+          
+          // API isteği ise pas geç
+          app.use((req, res, next) => {
+            const isApiRequest = apiRoutes.some(route => req.path.startsWith(route));
+            if (isApiRequest) {
+              return next();
+            }
+            
+            // API olmayan istekler için devam et
+            next();
+          });
+          
+          // Vite'ı ayarla
+          const { setupVite, serveStatic } = await import('./vite');
+          if (app.get("env") === "development") {
+            await setupVite(app, server);
+            log('Vite başarıyla ayarlandı ve React uygulaması (development) servis ediliyor');
+          } else {
+            serveStatic(app);
+            log('React uygulaması (production) statik olarak servis ediliyor');
+          }
+        } catch (error) {
+          console.error('Vite ayarlama hatası:', error);
+        }
         
         // Discord bot'u son olarak başlat (bu uzun sürebilir)
         setTimeout(async () => {
