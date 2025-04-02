@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
+  const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [location, setLocation] = useLocation();
@@ -29,14 +30,22 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, location, setLocation]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Basit şifre doğrulama - gerçek bir sunucu API'si olmadığından
-    // doğrudan client tarafında kontrol ediyoruz (üretimde bu güvenli değildir)
-    setTimeout(() => {
-      if (password === "horno1234") {
+    try {
+      // Sunucu üzerinden giriş yap
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
         // Giriş başarılı
         login(); // Auth context'i güncelleyelim
         toast({
@@ -46,14 +55,22 @@ export default function LoginPage() {
         setLocation("/");
       } else {
         // Giriş başarısız
+        const errorData = await response.json();
         toast({
           title: "Giriş Başarısız",
-          description: "Girdiğiniz şifre yanlış",
+          description: errorData.message || "Kullanıcı adı veya şifre yanlış",
           variant: "destructive",
         });
         setIsLoading(false);
       }
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Giriş Hatası",
+        description: "Sunucu bağlantısında bir hata oluştu",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,11 +86,22 @@ export default function LoginPage() {
           <form onSubmit={handleLogin}>
             <div className="grid w-full items-center gap-4">
               <div className="flex flex-col space-y-1.5">
+                <Label htmlFor="username">Kullanıcı Adı</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Kullanıcı adını girin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="password">Şifre</Label>
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Yönetici şifrenizi girin"
+                  placeholder="Şifrenizi girin"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
