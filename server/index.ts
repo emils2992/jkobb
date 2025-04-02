@@ -10,7 +10,7 @@ import { initDiscordBot } from "./discord";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
 import path from "path";
-import { setupStaticServer } from './public-server';
+// Özel sunucu bileşeni kaldırıldı
 
 console.log('PostgreSQL veritabanı depolaması kullanılıyor');
 
@@ -77,20 +77,6 @@ app.get('/uptime-check', (req, res) => {
         startSimpleUptimeService();
         log('Uptime servisi başlatıldı');
         
-        // Vite ayarları - Frontend'i servis et
-        try {
-          const { setupVite, serveStatic } = await import('./vite');
-          if (app.get("env") === "development") {
-            await setupVite(app, server);
-            log('Vite başarıyla ayarlandı');
-          } else {
-            serveStatic(app);
-            log('Statik dosyalar başarıyla servis edildi');
-          }
-        } catch (error) {
-          console.error('Vite ayarlama hatası:', error);
-        }
-        
         // Basit ping endpointleri - bunlar her durumda erişilebilir olmalı
         app.get('/ping', (req, res) => {
           res.status(200).send('Pong!');
@@ -105,31 +91,23 @@ app.get('/uptime-check', (req, res) => {
           });
         });
         
-        // Vite ayarları - Frontend'i servis et
+        // Vite ayarları - Frontend'i servis et (tek bir yapılandırma)
         try {
-          // Öncelikle API rotalarımızı tanımla
-          const apiRoutes = ['/api', '/ping', '/uptime-check', '/health'];
+          // API rotalarını tanımla
+          const apiPaths = ['/api', '/ping', '/uptime-check', '/health'];
           
-          // API isteği ise pas geç
+          // API rotalarını öncelikle işle
           app.use((req, res, next) => {
-            const isApiRequest = apiRoutes.some(route => req.path.startsWith(route));
-            if (isApiRequest) {
+            if (apiPaths.some(path => req.path.startsWith(path))) {
               return next();
             }
-            
-            // API olmayan istekler için devam et
             next();
           });
           
-          // Vite'ı ayarla
-          const { setupVite, serveStatic } = await import('./vite');
-          if (app.get("env") === "development") {
-            await setupVite(app, server);
-            log('Vite başarıyla ayarlandı ve React uygulaması (development) servis ediliyor');
-          } else {
-            serveStatic(app);
-            log('React uygulaması (production) statik olarak servis ediliyor');
-          }
+          // Vite entegrasyonu
+          const { setupVite } = await import('./vite');
+          await setupVite(app, server);
+          log('Vite başarıyla ayarlandı ve React uygulaması servis ediliyor');
         } catch (error) {
           console.error('Vite ayarlama hatası:', error);
         }
