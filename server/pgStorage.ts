@@ -135,8 +135,8 @@ export class PgStorage implements IStorage {
       console.log(`[SUPER-FIX] SONUÇ: ${attributeName} => value=${newValue}, weeklyValue=${newWeeklyValue}`);
       
       const result = await this.pool.query(
-        'UPDATE attributes SET value = $1, weekly_value = $2, updated_at = NOW(), source = $5 WHERE user_id = $3 AND name = $4 RETURNING *',
-        [newValue, newWeeklyValue, userId, attributeName, source]
+        'UPDATE attributes SET value = $1, weekly_value = $2, updated_at = NOW() WHERE user_id = $3 AND name = $4 RETURNING *',
+        [newValue, newWeeklyValue, userId, attributeName]
       );
       
       return this.pgAttributeToAttribute(result.rows[0]);
@@ -146,8 +146,8 @@ export class PgStorage implements IStorage {
       console.log(`Creating new attribute ${attributeName} for user ${userId} with value=${value}`);
       
       const result = await this.pool.query(
-        'INSERT INTO attributes(user_id, name, value, weekly_value, source) VALUES($1, $2, $3, $4, $5) RETURNING *',
-        [userId, attributeName, value, weeklyValue !== undefined ? weeklyValue : value, source]
+        'INSERT INTO attributes(user_id, name, value, weekly_value) VALUES($1, $2, $3, $4) RETURNING *',
+        [userId, attributeName, value, weeklyValue !== undefined ? weeklyValue : value]
       );
       
       return this.pgAttributeToAttribute(result.rows[0]);
