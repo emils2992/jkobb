@@ -123,35 +123,17 @@ export function setupEventHandlers() {
       const ticket = await storage.getTicket(ticketId);
 
       if (ticket && ticket.status !== 'closed' && !isReactionMessage) {
-        // Bu bir ticket kanalıdır ve reaksiyon mesajı değildir, nitelik taleplerini işle
-        const attributeRequest = parseAttributeRequest(message.content);
-
-        if (attributeRequest) {
-          try {
-            // Save the attribute request
-            await storage.createAttributeRequest({
-              ticketId,
-              attributeName: attributeRequest.name,
-              valueRequested: attributeRequest.value,
-              approved: false
-            });
-
-            // Acknowledge the request
-            const embed = new EmbedBuilder()
-              .setTitle('📝 Nitelik Talebi Alındı')
-              .setColor('#5865F2')
-              .addFields(
-                { name: 'Nitelik', value: attributeRequest.name, inline: true },
-                { name: 'Değer', value: `+${attributeRequest.value}`, inline: true }
-              )
-              .setTimestamp();
-
-            await message.reply({ embeds: [embed] });
-          } catch (error) {
-            console.error('Error processing attribute request:', error);
-            await message.reply('Nitelik talebi işlenirken bir hata oluştu.');
-          }
+        // Ticket kanalında mesaj kontrolü - sadece "nitelik ekle" butonundan ekleme yapılabilir
+        // Oyuncuların direkt mesajla nitelik eklemesini engelliyoruz
+        if (message.content.toLowerCase().includes('nitelik:')) {
+          await message.reply({ 
+            content: '⚠️ Nitelik taleplerini direkt mesaj olarak gönderemezsiniz. Lütfen "Nitelik Ekle" butonunu kullanın.', 
+            ephemeral: true 
+          });
+          return;
         }
+
+        // Artık nitelik taleplerini mesajdan işlemiyoruz, sadece buton üzerinden yapılabilir
       }
 
       // Emoji reaksiyonlarını işle - ticket kapatma
@@ -1141,4 +1123,5 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       });
     }
   }
+}
 }
