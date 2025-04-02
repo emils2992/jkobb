@@ -2,10 +2,11 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { initDiscordBot } from "./discord";
+// import { initDiscordBot } from "./discord"; // Devre dışı bırakıldı - karalılık için
 import { initDatabase } from "./db";
 import { pool } from "./db";
 import { startUptimeService } from "./uptime";
+import { startEnhancedKeepAliveService } from "./keepalive";
 import ConnectPgSimple from "connect-pg-simple";
 
 const app = express();
@@ -99,9 +100,10 @@ app.use((req, res, next) => {
       // await initDiscordBot();
       log('Discord bot initialization temporarily skipped for testing');
       
-      // Uptime service'ini başlat
+      // Uptime ve Keepalive servislerini başlat
       startUptimeService();
-      log('Uptime servisi başlatıldı - Uptime sağlanıyor');
+      startEnhancedKeepAliveService();
+      log('Uptime ve Keepalive servisleri başlatıldı - Sistem sürekli çalışmaya hazır');
     } catch (error) {
       console.error('Error in initialization:', error);
     }

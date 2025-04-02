@@ -47,9 +47,8 @@ const AdminChatPage = () => {
   // Mesaj gönder
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      // Görünen ismi mesaj içeriğiyle birleştir
       return apiRequest('/api/chat/messages', 'POST', { 
-        content: `${content} [${displayName}]` 
+        content
       });
     },
     onSuccess: () => {
