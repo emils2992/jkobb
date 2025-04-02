@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth, Admin as AuthAdmin } from '@/lib/auth-context';
 
 interface Admin {
   id: number;
@@ -26,6 +27,7 @@ interface ChatMessage {
 
 const AdminChatPage = () => {
   const { toast } = useToast();
+  const { admin } = useAuth();
   const [message, setMessage] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isProfileSet, setIsProfileSet] = useState(false);
@@ -107,12 +109,18 @@ const AdminChatPage = () => {
 
   // Sayfayı ziyaret ettiğinde isim kontrolü yapalım
   useEffect(() => {
-    const savedName = localStorage.getItem('admin_display_name');
-    if (savedName) {
-      setDisplayName(savedName);
+    // Admin context'ten displayName'i al, yoksa localStorage'dan
+    if (admin?.displayName) {
+      setDisplayName(admin.displayName);
       setIsProfileSet(true);
+    } else {
+      const savedName = localStorage.getItem('admin_display_name');
+      if (savedName) {
+        setDisplayName(savedName);
+        setIsProfileSet(true);
+      }
     }
-  }, []);
+  }, [admin]);
 
   // Kullanıcı isim girmediyse önce isim formu gösterelim
   if (!isProfileSet) {

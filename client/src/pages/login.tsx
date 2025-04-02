@@ -47,7 +47,12 @@ export default function LoginPage() {
       
       if (response.ok) {
         // Giriş başarılı
-        login(); // Auth context'i güncelleyelim
+        const data = await response.json();
+        if (data.admin) {
+          login(data.admin); // Admin bilgilerini de auth context'e aktar
+        } else {
+          login(); // Admin bilgisi yoksa sadece login durumunu güncelle
+        }
         toast({
           title: "Giriş Başarılı",
           description: "Yönetim paneline yönlendiriliyorsunuz",
