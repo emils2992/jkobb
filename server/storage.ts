@@ -60,6 +60,7 @@ export interface IStorage {
   getAdminByUsername(username: string): Promise<Admin | undefined>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
   updateAdminLastLogin(adminId: number): Promise<Admin>;
+  updateAdmin(admin: { id: number, displayName?: string }): Promise<Admin>;
   
   // Chat operations
   getChatMessages(limit?: number): Promise<(ChatMessage & { admin: Admin })[]>;
@@ -595,6 +596,24 @@ export class MemStorage implements IStorage {
     };
     
     this.admins.set(adminId, updated);
+    return updated;
+  }
+  
+  async updateAdmin(admin: { id: number, displayName?: string }): Promise<Admin> {
+    const existing = this.admins.get(admin.id);
+    if (!existing) {
+      throw new Error(`Admin with ID ${admin.id} not found`);
+    }
+    
+    const updated: Admin = {
+      ...existing
+    };
+    
+    if (admin.displayName) {
+      updated.displayName = admin.displayName;
+    }
+    
+    this.admins.set(admin.id, updated);
     return updated;
   }
   

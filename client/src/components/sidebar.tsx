@@ -54,6 +54,12 @@ export default function Sidebar() {
           label: "Ayarlar",
           href: ROUTES.SETTINGS,
           hasShortcut: true
+        },
+        {
+          icon: "fas fa-comments",
+          label: "Admin Sohbet",
+          href: ROUTES.ADMIN_CHAT,
+          hasShortcut: true
         }
       ]
     },
@@ -89,7 +95,8 @@ export default function Sidebar() {
           href: ROUTES.AI_CHAT, // Assumed route
         }
       ]
-    }
+    },
+    /* Ekstra admin menü kaldırıldı */
   ];
 
   return (

@@ -5,5 +5,6 @@ export const ROUTES = {
   TRAINING: '/training',
   SETTINGS: '/settings',
   LOGIN: '/login',
-  AI_CHAT: '/ai-chat' // Yeni route eklendi
+  AI_CHAT: '/ai-chat', // Yeni route eklendi
+  ADMIN_CHAT: '/admin-chat' // Admin sohbet sayfası route'u
 };

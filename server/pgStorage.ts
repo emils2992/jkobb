@@ -726,6 +726,44 @@ export class PgStorage implements IStorage {
     return this.pgAdminToAdmin(result.rows[0]);
   }
   
+  async updateAdmin(admin: { id: number, displayName?: string }): Promise<Admin> {
+    let query = 'UPDATE admins SET ';
+    const params: any[] = [];
+    let paramIndex = 1;
+    const updates: string[] = [];
+    
+    if (admin.displayName) {
+      updates.push(`display_name = $${paramIndex++}`);
+      params.push(admin.displayName);
+    }
+    
+    // Güncellenecek alan yoksa hata döndür
+    if (updates.length === 0) {
+      const existingAdmin = await this.pool.query(
+        'SELECT * FROM admins WHERE id = $1',
+        [admin.id]
+      );
+      
+      if (existingAdmin.rows.length === 0) {
+        throw new Error(`Admin with ID ${admin.id} not found`);
+      }
+      
+      return this.pgAdminToAdmin(existingAdmin.rows[0]);
+    }
+    
+    query += updates.join(', ');
+    query += ` WHERE id = $${paramIndex} RETURNING *`;
+    params.push(admin.id);
+    
+    const result = await this.pool.query(query, params);
+    
+    if (result.rows.length === 0) {
+      throw new Error(`Admin with ID ${admin.id} not found`);
+    }
+    
+    return this.pgAdminToAdmin(result.rows[0]);
+  }
+  
   // Chat operations
   async getChatMessages(limit?: number): Promise<(ChatMessage & { admin: Admin })[]> {
     const query = `

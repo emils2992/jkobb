@@ -418,9 +418,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { content } = messageSchema.parse(req.body);
       
+      // İsimi çıkar - mesaj şablonu "(mesaj) [isim]" şeklinde
+      let displayName = "Admin";
+      let actualContent = content;
+      
+      const nameMatch = content.match(/^(.*?)\s*\[(.*?)\]$/);
+      if (nameMatch && nameMatch.length >= 3) {
+        actualContent = nameMatch[1].trim();
+        displayName = nameMatch[2].trim();
+        
+        // Kullanıcı adı güncelleme isteği
+        if (displayName && displayName.length >= 3) {
+          await storage.updateAdmin({
+            id: admin.id,
+            displayName
+          });
+        }
+      }
+      
       const newMessage = await storage.createChatMessage({
         adminId: admin.id,
-        content
+        content: actualContent
       });
       
       // Fetch complete message with admin info

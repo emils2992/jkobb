@@ -13,6 +13,7 @@ import { AuthProvider } from "./lib/auth-context";
 import ProtectedRoute from "./lib/protected-route";
 import { ROUTES } from "./routes";
 import AIChat from "@/pages/ai-chat"; // Added import
+import AdminChat from "@/pages/admin-chat"; // Admin Chat eklendi
 
 function Router() {
   return (
@@ -41,6 +42,11 @@ function Router() {
       <Route path={ROUTES.AI_CHAT}> {/* Added route for AI Chat */}
         <ProtectedRoute>
           <AIChat />
+        </ProtectedRoute>
+      </Route>
+      <Route path={ROUTES.ADMIN_CHAT}> {/* Admin Chat route */}
+        <ProtectedRoute>
+          <AdminChat />
         </ProtectedRoute>
       </Route>
       {/* Fallback to 404 */}
