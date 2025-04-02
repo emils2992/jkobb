@@ -1,12 +1,17 @@
 import fetch from 'node-fetch';
 import { log } from './vite';
+import { createServer } from 'http';
+import * as fs from 'fs';
 
-// Replit URL'si - doğrudan hardcoded olarak eklendi
-const REPLIT_URL = "https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev";
+// Replit URL'si - çevre değişkeninden al ya da hardcoded değeri kullan
+const REPLIT_URL = process.env.REPLIT_URL || "https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev";
 
 let pingInterval: NodeJS.Timeout | null = null;
 let healthCheckInterval: NodeJS.Timeout | null = null;
+let keepAliveInterval: NodeJS.Timeout | null = null;
+let fileWriteInterval: NodeJS.Timeout | null = null;
 let isHealthy = true;
+const keepAliveFile = './keepalive.json';
 
 /**
  * Uygulamanın uptime'ını korumak için kendi kendine ping atan gelişmiş fonksiyon
@@ -16,6 +21,30 @@ export function startUptimeService() {
   if (pingInterval) {
     stopUptimeService();
   }
+
+  // KeepAlive dosya sistemi - sistem üzerinde periyodik aktivite sağlayarak uptime'ı korur
+  // Bu sistem, tarayıcı kapansa bile uygulamayı aktif tutar
+  fileWriteInterval = setInterval(() => {
+    try {
+      const timestamp = new Date().toISOString();
+      const data = {
+        lastPing: timestamp,
+        status: 'active',
+        uptime: process.uptime(),
+        timestamp: Date.now()
+      };
+      
+      // Dosyaya yaz - bu aktivite, Node.js uygulamasını uyanık tutar
+      fs.writeFileSync(keepAliveFile, JSON.stringify(data, null, 2));
+      
+      // 20 saniyede bir konsola log at
+      if (Math.floor(Date.now() / 1000) % 20 === 0) {
+        log(`KeepAlive dosyası güncellendi: ${timestamp}`, 'uptime');
+      }
+    } catch (err) {
+      log(`KeepAlive dosyası yazılamadı: ${err}`, 'uptime');
+    }
+  }, 5000); // 5 saniyede bir dosyaya yaz (sık disk aktivitesi sunucuyu uyanık tutar)
 
   // 30 saniyede bir ping at (daha sık ping ile uptime güvenliği arttırılıyor)
   pingInterval = setInterval(async () => {
@@ -51,6 +80,31 @@ export function startUptimeService() {
       
       if (homeResponse.ok) {
         log('Ana sayfa erişilebilir durumda', 'uptime');
+        
+        // Düzenli aralıklarla keepalive dosyasını oku, bu da uygulamayı uyanık tutar
+        try {
+          if (fs.existsSync(keepAliveFile)) {
+            const keepAliveData = fs.readFileSync(keepAliveFile, 'utf8');
+            const data = JSON.parse(keepAliveData);
+            const lastPingTime = new Date(data.lastPing);
+            const now = new Date();
+            const diffMinutes = (now.getTime() - lastPingTime.getTime()) / (1000 * 60);
+            
+            // Son ping üzerinden 5 dakikadan fazla geçtiyse uyarı logla
+            if (diffMinutes > 5) {
+              log(`UYARI: Son keepalive aktivitesi ${diffMinutes.toFixed(1)} dakika önce`, 'uptime');
+              // Dosyayı güncelle
+              fs.writeFileSync(keepAliveFile, JSON.stringify({
+                lastPing: now.toISOString(),
+                status: 'recovered',
+                uptime: process.uptime(),
+                timestamp: Date.now()
+              }, null, 2));
+            }
+          }
+        } catch (fileErr) {
+          log(`Keepalive dosyası okuma hatası: ${fileErr}`, 'uptime');
+        }
       } else {
         log(`Ana sayfa erişim hatası (${homeResponse.status})`, 'uptime');
         // Ana sayfa hata veriyorsa ping atmayı tekrar dene
@@ -108,6 +162,16 @@ export function stopUptimeService() {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
     healthCheckInterval = null;
+  }
+  
+  if (keepAliveInterval) {
+    clearInterval(keepAliveInterval);
+    keepAliveInterval = null;
+  }
+  
+  if (fileWriteInterval) {
+    clearInterval(fileWriteInterval);
+    fileWriteInterval = null;
   }
   
   log('Uptime servisi durduruldu', 'uptime');

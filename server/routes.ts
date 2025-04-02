@@ -14,6 +14,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/ping', (req, res) => {
     res.status(200).send('Pong!');
   });
+  
+  // Uptime check endpoint
+  app.get('/uptime-check', (req, res) => {
+    res.status(200).json({
+      status: 'online',
+      timestamp: new Date().toISOString(),
+      server: 'Discord Halısaha Bot'
+    });
+  });
+  
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
 
   // Initialize Discord bot
   await initDiscordBot();

@@ -5,6 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { initDiscordBot } from "./discord";
 import { initDatabase } from "./db";
 import { pool } from "./db";
+import { startUptimeService } from "./uptime";
 import ConnectPgSimple from "connect-pg-simple";
 
 const app = express();
@@ -97,6 +98,10 @@ app.use((req, res, next) => {
       // Initialize Discord bot
       await initDiscordBot();
       log('Discord bot initialization process completed');
+      
+      // Uptime servisini başlat
+      startUptimeService();
+      log('Uptime servisi başlatıldı');
     } catch (error) {
       console.error('Error in initialization:', error);
     }
