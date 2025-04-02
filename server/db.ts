@@ -91,6 +91,30 @@ async function createTables() {
         last_reset_at TIMESTAMP NOT NULL DEFAULT NOW(),
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        display_name TEXT,
+        role TEXT NOT NULL DEFAULT 'admin',
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        last_login TIMESTAMP
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS chat_messages (
+        id SERIAL PRIMARY KEY,
+        admin_id INTEGER NOT NULL REFERENCES admins(id),
+        content TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )`,
+
+      `CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default" PRIMARY KEY,
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL
       )`
     ];
 

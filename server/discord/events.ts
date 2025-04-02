@@ -8,6 +8,7 @@ import {
   ActionRowBuilder, 
   ButtonInteraction, 
   ModalSubmitInteraction,
+  InteractionReplyOptions,
   PermissionFlagsBits, 
   EmbedBuilder,
   ChannelType,
@@ -44,7 +45,7 @@ export function setupEventHandlers() {
           await interaction.reply({ 
             content: `Lütfen ${remainingTime} saniye bekleyin.`,
             ephemeral: true 
-          });
+          } as InteractionReplyOptions);
           return;
         }
 
@@ -126,10 +127,9 @@ export function setupEventHandlers() {
         // Ticket kanalında mesaj kontrolü - sadece "nitelik ekle" butonundan ekleme yapılabilir
         // Oyuncuların direkt mesajla nitelik eklemesini engelliyoruz
         if (message.content.toLowerCase().includes('nitelik:')) {
-          await message.reply({ 
-            content: '⚠️ Nitelik taleplerini direkt mesaj olarak gönderemezsiniz. Lütfen "Nitelik Ekle" butonunu kullanın.', 
-            ephemeral: true 
-          });
+          await message.reply(
+            '⚠️ Nitelik taleplerini direkt mesaj olarak gönderemezsiniz. Lütfen "Nitelik Ekle" butonunu kullanın.'
+          );
           return;
         }
 
@@ -1123,5 +1123,4 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       });
     }
   }
-}
 }

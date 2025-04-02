@@ -1,12 +1,32 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initDiscordBot } from "./discord";
 import { initDatabase } from "./db";
+import { pool } from "./db";
+import ConnectPgSimple from "connect-pg-simple";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session setup
+const PgStore = ConnectPgSimple(session);
+app.use(session({
+  store: new PgStore({
+    pool,
+    tableName: 'session', // Uses the session table we created
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET || 'discord-manager-secret-key', 
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: false, // Set to true in production with HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours 
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();

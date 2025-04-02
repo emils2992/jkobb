@@ -1,5 +1,6 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
+import { Session } from "express-session";
 import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
 import { startUptimeService } from "./uptime";
@@ -325,6 +326,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "İstatistikler yüklenirken bir hata oluştu" });
     }
   });
+
+  // Admin authentication endpoint
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const loginSchema = z.object({
+        username: z.string(),
+        password: z.string().min(6)
+      });
+      
+      const { username, password } = loginSchema.parse(req.body);
+      
+      // Username and password validation
+      const admin = await storage.getAdminByUsername(username);
+      
+      if (!admin) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Hash the received password and compare
+      const passwordHash = createHash('sha256').update(password).digest('hex');
+      
+      if (admin.passwordHash !== passwordHash) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Update last login
+      await storage.updateAdminLastLogin(admin.id);
+      
+      // Send back admin info (except passwordHash)
+      const { passwordHash: _ph, ...safeAdminData } = admin;
+      
+      // Store admin info in session
+      const session = (req as any).session;
+      if (session) {
+        session.admin = safeAdminData;
+      }
+      
+      res.json({
+        success: true,
+        admin: safeAdminData
+      });
+    } catch (error) {
+      console.error("Admin login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+  
+  // Admin logout
+  app.post("/api/admin/logout", (req, res) => {
+    const session = (req as any).session;
+    if (session) {
+      session.destroy((err: any) => {
+        if (err) {
+          console.error("Logout error:", err);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        res.json({ message: "Logged out successfully" });
+      });
+    } else {
+      res.json({ message: "Logged out successfully" });
+    }
+  });
+  
+  // Chat messages endpoint
+  app.get("/api/chat/messages", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const messages = await storage.getChatMessages(limit);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching chat messages:", error);
+      res.status(500).json({ message: "Failed to fetch chat messages" });
+    }
+  });
+  
+  // Post new chat message
+  app.post("/api/chat/messages", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      const session = (req as any).session;
+      if (!session || !session.admin) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const admin = session.admin;
+      
+      const messageSchema = z.object({
+        content: z.string().min(1)
+      });
+      
+      const { content } = messageSchema.parse(req.body);
+      
+      const newMessage = await storage.createChatMessage({
+        adminId: admin.id,
+        content
+      });
+      
+      // Fetch complete message with admin info
+      const messages = await storage.getChatMessages(1);
+      const fullMessage = messages.find(m => m.id === newMessage.id);
+      
+      res.json(fullMessage);
+    } catch (error) {
+      console.error("Error creating chat message:", error);
+      res.status(500).json({ message: "Failed to create chat message" });
+    }
+  });
+  
+  // Create initial admin user if none exists
+  // This will run once at startup
+  (async () => {
+    try {
+      // Check if there's already an admin
+      const existingAdmin = await storage.getAdminByUsername('admin');
+      
+      if (!existingAdmin) {
+        const DEFAULT_PASSWORD = 'horno1234';
+        const passwordHash = createHash('sha256').update(DEFAULT_PASSWORD).digest('hex');
+        
+        // Create default admin
+        await storage.createAdmin({
+          username: 'admin',
+          passwordHash,
+          displayName: 'Admin',
+          role: 'admin'
+        });
+        
+        console.log('Default admin account created with username "admin" and password "horno1234"');
+      }
+    } catch (error) {
+      console.error('Error creating initial admin account:', error);
+    }
+  })();
 
   return httpServer;
 }
