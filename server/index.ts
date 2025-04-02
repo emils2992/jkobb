@@ -9,6 +9,8 @@ import { initDatabase } from "./db";
 import { initDiscordBot } from "./discord";
 import session from "express-session";
 import ConnectPgSimple from "connect-pg-simple";
+import path from "path";
+import { setupStaticServer } from './public-server';
 
 console.log('PostgreSQL veritabanı depolaması kullanılıyor');
 
@@ -89,9 +91,31 @@ app.get('/uptime-check', (req, res) => {
           console.error('Vite ayarlama hatası:', error);
         }
         
-        // İstek almayan root path için fallback
+        // Ana sayfayı servis et - ES Module desteği için import.meta.url kullan
+        const __filename = new URL(import.meta.url).pathname;
+        const __dirname = path.dirname(__filename);
+        const publicPath = path.resolve(__dirname, '..', 'public');
+        
+        // Statik dosyaları servis et
+        app.use(express.static(publicPath));
+        
+        // Ana sayfa servis edildiğinde direkt olarak index.html dosyasını gönder
         app.get('/', (req, res) => {
-          res.redirect('/dashboard');
+          res.sendFile(path.join(publicPath, 'index.html'));
+        });
+        
+        // Ping endpoint'i de direkt buraya ekleyelim
+        app.get('/ping', (req, res) => {
+          res.status(200).send('Pong!');
+        });
+        
+        // Uptime check endpoint'i
+        app.get('/uptime-check', (req, res) => {
+          res.status(200).json({
+            status: 'online',
+            timestamp: new Date().toISOString(),
+            server: 'Discord Halısaha Bot'
+          });
         });
         
         // Discord bot'u son olarak başlat (bu uzun sürebilir)

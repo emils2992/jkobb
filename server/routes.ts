@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import express, { type Express, type Request } from "express";
 import { createServer, type Server } from "http";
 import { Session } from "express-session";
 import { storage } from "./storage";
@@ -6,9 +6,23 @@ import { initDiscordBot } from "./discord";
 import { startSimpleUptimeService } from "./uptime-simple";
 import { z } from "zod";
 import { createHash } from "crypto";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Ana sayfa için statik içerik - import.meta.url kullanarak __dirname eşdeğerini oluştur
+  const __filename = new URL(import.meta.url).pathname;
+  const __dirname = path.dirname(__filename);
+  const publicPath = path.resolve(__dirname, '..', 'public');
+  
+  // Express uygulamamıza statik dosyaları servis etme özelliği ekle
+  app.use(express.static(publicPath));
+  
+  // Ana sayfa route'u - index.html'i göster
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(publicPath, 'index.html'));
+  });
 
   // Ping endpoint for uptime
   app.get('/ping', (req, res) => {
