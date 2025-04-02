@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-// import { initDiscordBot } from "./discord"; // Devre dışı bırakıldı - karalılık için
+import { initDiscordBot } from "./discord"; // Bot başlatma işlemi etkinleştirildi
 import { initDatabase } from "./db";
 import { pool } from "./db";
 import { startUptimeService } from "./uptime";
@@ -96,9 +96,9 @@ app.use((req, res, next) => {
       await initDatabase();
       log('Veritabanı başarıyla başlatıldı');
       
-      // Initialize Discord bot (temporarily commented out for testing)
-      // await initDiscordBot();
-      log('Discord bot initialization temporarily skipped for testing');
+      // Initialize Discord bot
+      await initDiscordBot();
+      log('Discord bot başarıyla başlatıldı');
       
       // Uptime ve Keepalive servislerini başlat
       startUptimeService();
