@@ -33,8 +33,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Initialize Discord bot
-  await initDiscordBot();
+  // Initialize Discord bot (temporarily disabled for testing)
+  // await initDiscordBot();
   
   // Start uptime service
   startUptimeService();

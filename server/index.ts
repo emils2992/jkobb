@@ -95,9 +95,9 @@ app.use((req, res, next) => {
       await initDatabase();
       log('Veritabanı başarıyla başlatıldı');
       
-      // Initialize Discord bot
-      await initDiscordBot();
-      log('Discord bot initialization process completed');
+      // Initialize Discord bot (temporarily commented out for testing)
+      // await initDiscordBot();
+      log('Discord bot initialization temporarily skipped for testing');
       
       // Uptime service'ini başlat
       startUptimeService();
