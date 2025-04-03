@@ -8,7 +8,7 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["sh", "-c", "npm run dev"]
+run = ["sh", "-c", "node server/index.js"]
 
 [[ports]]
 localPort = 5000
@@ -19,7 +19,7 @@ localPort = 8099
 externalPort = 8099
 
 [workflows]
-runButton = "Run"
+runButton = "Keep-Alive Bot"
 
 [[workflows.workflow]]
 name = "Project"
@@ -71,3 +71,12 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Keep-Alive Bot"
+author = 41070071
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server/index.js"
