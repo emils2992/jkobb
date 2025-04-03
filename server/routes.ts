@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { Session } from "express-session";
 import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
+import { client } from "./discord/bot";  // Discord client'ı import ediyoruz
 import { startUptimeService } from "./uptime";
 import { z } from "zod";
 import { createHash } from "crypto";
@@ -392,12 +393,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Kullanıcı bilgilerini al
       const staffStats = await Promise.all(
         rows.map(async (row) => {
-          const user = await storage.getUserById(row.staff_id);
-          console.log(`Kullanıcı bilgisi alındı: ${row.staff_id}`, user);
-          return {
-            user: user || { userId: row.staff_id, username: "Bilinmeyen Yetkili" },
-            closedCount: parseInt(row.closed_count)
-          };
+          try {
+            // Önce veritabanından kullanıcı bilgilerini almaya çalışalım
+            let user = await storage.getUserById(row.staff_id);
+            
+            // Eğer veritabanında yoksa Discord'dan almaya çalışalım
+            if (!user && row.staff_id) {
+              try {
+                // Discord API'den kullanıcı bilgilerini al
+                const discordUser = await client.users.fetch(row.staff_id);
+                if (discordUser) {
+                  // Kullanıcıyı veritabanına kaydet
+                  user = await storage.getOrCreateUser(
+                    discordUser.id,
+                    discordUser.username,
+                    discordUser.displayAvatarURL()
+                  );
+                  console.log(`Discord API'den kullanıcı alındı ve kaydedildi: ${discordUser.username}`);
+                }
+              } catch (discordError) {
+                console.error(`Discord kullanıcısı alınamadı ${row.staff_id}:`, discordError);
+              }
+            }
+            
+            return {
+              user: user || { 
+                userId: row.staff_id, 
+                username: row.staff_id ? `Yetkili (ID: ${row.staff_id.slice(0, 6)})` : "Bilinmeyen Yetkili"
+              },
+              closedCount: parseInt(row.closed_count)
+            };
+          } catch (userError) {
+            console.error(`Kullanıcı bilgisi alınırken hata oluştu ${row.staff_id}:`, userError);
+            return {
+              user: { 
+                userId: row.staff_id || "unknown", 
+                username: row.staff_id ? `Yetkili (ID: ${row.staff_id.slice(0, 6)})` : "Bilinmeyen Yetkili"
+              },
+              closedCount: parseInt(row.closed_count)
+            };
+          }
         })
       );
       
