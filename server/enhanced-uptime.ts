@@ -16,7 +16,7 @@ const FILE_WRITE_INTERVAL = 30 * 1000; // 30 saniye
 const EXTERNAL_PING_CRON = '*/10 * * * *'; // Her 10 dakikada bir
 const HEALTH_CHECK_INTERVAL = 2 * 60 * 1000; // 2 dakika
 const MEMORY_CLEANUP_INTERVAL = 15 * 60 * 1000; // 15 dakika
-const BACKUP_SERVER_PORT = 8088;
+const BACKUP_SERVER_PORT = 8066; // Port çakışmasını önlemek için değiştirildi
 
 // Servis referansları
 let internalPingInterval: NodeJS.Timeout | null = null;

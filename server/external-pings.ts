@@ -9,5 +9,18 @@ export const URLS = [
   'https://betteruptime.com',
   'https://freshping.io',
   'https://ping.gg',
-  'https://hetrixtools.com'
+  'https://hetrixtools.com',
+  
+  // Popüler uptime ping servisleri
+  'https://uptime.kuma.pet',
+  'https://pingpong.one',
+  'https://statuscake.com',
+  'https://updown.io',
+  'https://uptime.com',
+  
+  // Ekstra pinglemek için kendi bot URL'niz - eklediğiniz bot linki
+  'https://discord-halisaha-manager.emilswd.repl.co',
+  
+  // Eklemek istediğiniz diğer bağlantıları buraya ekleyebilirsiniz
+  // 'https://sizin-yeni-linkiniz.com's.com'
 ];
