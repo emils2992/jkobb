@@ -125,9 +125,9 @@ app.use((req, res, next) => {
         await initDatabase();
         log('Veritabanı başarıyla başlatıldı');
         
-        // Discord bot geçici olarak devre dışı bırakıldı
-        // await initDiscordBot();
-        log('Discord bot devre dışı bırakıldı - Client ID sağlanmadığı için');
+        // Discord botu başlat
+        await initDiscordBot();
+        log('Discord bot başlatılıyor - Client ID mevcut');
         
         // Uptime ve Keepalive servislerini başlat
         startUptimeService();
