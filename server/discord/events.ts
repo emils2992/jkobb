@@ -1121,16 +1121,21 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
   // Handle add attribute modal
   if (customId === 'add_attribute_modal') {
     try {
-      // Önce etkileşimi bekletin - "don't response" hatasını önlemek için
-      await interaction.deferReply();
-      
+      // Önce değişkenleri alalım - deferReply'dan önce almalıyız
       const attributeName = interaction.fields.getTextInputValue('attribute_name');
       const attributeValueStr = interaction.fields.getTextInputValue('attribute_value');
       const attributeValue = parseInt(attributeValueStr, 10);
+      
+      // Önce etkileşimi bekletin - "don't response" hatasını önlemek için
+      await interaction.deferReply().catch(error => {
+        console.error("Modal deferReply hatası:", error);
+      });
 
       if (isNaN(attributeValue) || attributeValue < 1 || attributeValue > 10) {
         return interaction.editReply({
           content: 'Geçersiz nitelik değeri. 1 ile 10 arasında bir sayı girin.'
+        }).catch(error => {
+          console.error("Modal yanıt hatası:", error);
         });
       }
 
@@ -1139,6 +1144,8 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       if (!ticketId) {
         return interaction.editReply({
           content: 'Kanal bilgisi alınamadı.'
+        }).catch(error => {
+          console.error("Modal yanıt hatası:", error);
         });
       }
 
@@ -1165,7 +1172,9 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         .setFooter({ text: `Talep ID: ${request.id}` })
         .setTimestamp();
 
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] }).catch(error => {
+        console.error("Modal yanıt gönderirken hata:", error);
+      });
     } catch (error) {
       console.error('Error adding attribute request:', error);
       // Eğer etkileşim henüz yanıtlanmamışsa
