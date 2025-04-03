@@ -354,6 +354,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Yetkili Leaderboard - Ticket kapatma istatistikleri
+  app.get("/api/staff/leaderboard", async (req, res) => {
+    try {
+      // Ticket kapatma istatistiklerini al
+      const { rows } = await pool.query(`
+        SELECT 
+          closed_by as staff_id,
+          COUNT(*) as closed_count
+        FROM 
+          tickets
+        WHERE 
+          status = 'closed' 
+          AND closed_by IS NOT NULL
+        GROUP BY 
+          closed_by
+        ORDER BY 
+          closed_count DESC
+      `);
+      
+      // Kullanıcı bilgilerini al
+      const staffStats = await Promise.all(
+        rows.map(async (row) => {
+          const user = await storage.getUserById(row.staff_id);
+          return {
+            user: user || { userId: row.staff_id, username: "Bilinmeyen Yetkili" },
+            closedCount: parseInt(row.closed_count)
+          };
+        })
+      );
+      
+      res.json(staffStats);
+    } catch (error) {
+      console.error("Yetkili leaderboard alınırken hata:", error);
+      res.status(500).json({ error: "Leaderboard yüklenirken bir hata oluştu" });
+    }
+  });
+
   // Admin authentication endpoint
   app.post("/api/admin/login", async (req, res) => {
     try {

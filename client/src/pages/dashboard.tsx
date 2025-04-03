@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import TicketCard from "@/components/ticket-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, BarChart2, Activity } from "lucide-react";
+import { Search, Plus, BarChart2, Activity, Trophy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Ticket } from "@/lib/types";
@@ -104,6 +104,14 @@ export default function Dashboard() {
             >
               <BarChart2 className="h-4 w-4 mr-2" />
               Nitelik İstatistikleri
+            </Button>
+            
+            <Button 
+              className="bg-[#3eb8df] hover:bg-[#2da7ce] hover-scale gradient-border"
+              onClick={() => navigate(ROUTES.STAFF_LEADERBOARD)}
+            >
+              <Trophy className="h-4 w-4 mr-2" />
+              Yetkili Sıralaması
             </Button>
             
             <Button 

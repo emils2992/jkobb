@@ -249,7 +249,7 @@ export function setupEventHandlers() {
                 }
 
                 // Close the ticket
-                await storage.closeTicket(ticketId);
+                await storage.closeTicket(ticketId, message.author.id); // Added author ID
 
                 // Güncel toplam nitelik değerini alalım
                 const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
@@ -667,12 +667,12 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Yetkili rolünü etiketleme
       let mentionText = '';
-      
+
       // Eğer yetkili rol ID'si varsa, o rolü etiketle
       if (staffRoleId) {
         mentionText = `<@&${staffRoleId}> Yeni bir ticket açıldı!`;
       }
-      
+
       // İlk mesajı ve rol etiketini gönder
       await channel.send({ 
         content: mentionText, 
@@ -798,12 +798,10 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         }
       }
 
-      // Close the ticket
-      await storage.closeTicket(ticketId);
+      // Close the ticket and record who closed it
+      await storage.closeTicket(ticketId, interaction.user.id);
 
       // Toplam nitelik sayısını hesapla - attributeMap'teki değerleri topla
-      // Bu, veri tabanındaki değerle tutarlı olacaktır çünkü attributeMap'i nasıl oluşturduysak
-      // veritabanı güncellemelerini de öyle yaptık
       const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
       console.log(`[YENİ METOT - BUTON] Toplam nitelik puanı: ${updatedTotalAttributes}`);
 
@@ -1036,8 +1034,8 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         }
       }
 
-      // Close the ticket
-      await storage.closeTicket(ticketId);
+      // Close the ticket and record who closed it
+      await storage.closeTicket(ticketId, interaction.user.id);
 
       // Toplam nitelik sayısını hesapla - attributeMap'teki değerleri topla
       const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
@@ -1137,4 +1135,5 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       });
     }
   }
+}
 }

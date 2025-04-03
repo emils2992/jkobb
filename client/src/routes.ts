@@ -1,10 +1,12 @@
 // Sabit yol sabitleri
 export const ROUTES = {
-  HOME: '/',
+  DASHBOARD: '/',
+  LOGIN: '/login',
+  SETTINGS: '/settings',
   PLAYER_STATS: '/player-stats',
   TRAINING: '/training',
-  SETTINGS: '/settings',
-  LOGIN: '/login',
-  AI_CHAT: '/ai-chat', // Yeni route eklendi
-  ADMIN_CHAT: '/admin-chat' // Admin sohbet sayfası route'u
+  AI_CHAT: '/ai-chat',
+  ADMIN_CHAT: '/admin-chat',
+  STAFF_LEADERBOARD: '/staff-leaderboard',
+  NOT_FOUND: '/404'
 };

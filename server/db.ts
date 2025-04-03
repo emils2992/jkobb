@@ -66,7 +66,8 @@ async function createTables() {
         type TEXT NOT NULL DEFAULT 'attribute',
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        closed_at TIMESTAMP
+        closed_at TIMESTAMP,
+        closed_by TEXT
       )`,
       
       `CREATE TABLE IF NOT EXISTS attribute_requests (

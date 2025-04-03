@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import { LogOut, MoreHorizontal, Bot } from "lucide-react"; // Added Bot icon
+import { LogOut, MoreHorizontal, Bot, Trophy } from "lucide-react"; // Added Bot and Trophy icons
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,7 @@ import {
 import { ROUTES } from "@/routes";
 
 interface NavItem {
-  icon: string;
+  icon: string | JSX.Element; //Modified to accept JSX.Element
   label: string;
   href: string;
   isBotCommand?: boolean;
@@ -60,6 +60,12 @@ export default function Sidebar() {
           label: "Admin Sohbet",
           href: ROUTES.ADMIN_CHAT,
           hasShortcut: true
+        },
+        { // Added Leaderboard item
+          icon: <Trophy />,
+          label: "Yetkili Sıralaması",
+          href: ROUTES.STAFF_LEADERBOARD,
+          hasShortcut: true
         }
       ]
     },
@@ -86,17 +92,16 @@ export default function Sidebar() {
         }
       ]
     },
-    { // Added AI Chat section
+    {
       title: "AI",
       items: [
         {
-          icon: "fas fa-comment", // Placeholder icon
+          icon: "fas fa-comment",
           label: "AI Asistanı",
-          href: ROUTES.AI_CHAT, // Assumed route
+          href: ROUTES.AI_CHAT
         }
       ]
-    },
-    /* Ekstra admin menü kaldırıldı */
+    }
   ];
 
   return (
@@ -137,7 +142,7 @@ export default function Sidebar() {
                         <DropdownMenuItem key={hiddenIndex} className="focus:bg-gray-700 focus:text-white">
                           <Link href={item.href}>
                             <div className="flex items-center space-x-2 w-full text-left py-1">
-                              <i className={cn(item.icon, "w-5")}></i>
+                              {typeof item.icon === 'string' ? <i className={cn(item.icon, "w-5")}></i> : item.icon}  {/*Conditional rendering for icon type*/}
                               <span>{item.label}</span>
                             </div>
                           </Link>
@@ -157,7 +162,7 @@ export default function Sidebar() {
                         location === item.href ? "text-white bg-gray-700" : "text-discord-light",
                         item.isBotCommand ? "w-full text-left" : ""
                       )}>
-                        <i className={cn(item.icon, "w-5")}></i>
+                        {typeof item.icon === 'string' ? <i className={cn(item.icon, "w-5")}></i> : item.icon} {/*Conditional rendering for icon type*/}
                         <span>{item.label}</span>
                       </div>
                     </Link>

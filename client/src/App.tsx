@@ -14,6 +14,7 @@ import ProtectedRoute from "./lib/protected-route";
 import { ROUTES } from "./routes";
 import AIChat from "@/pages/ai-chat"; // Added import
 import AdminChat from "@/pages/admin-chat"; // Admin Chat eklendi
+import StaffLeaderboard from "@/pages/staff-leaderboard"; // Added import for StaffLeaderboard
 
 function Router() {
   return (
@@ -47,6 +48,11 @@ function Router() {
       <Route path={ROUTES.ADMIN_CHAT}> {/* Admin Chat route */}
         <ProtectedRoute>
           <AdminChat />
+        </ProtectedRoute>
+      </Route>
+      <Route path={ROUTES.STAFF_LEADERBOARD}> {/* Added route for Staff Leaderboard */}
+        <ProtectedRoute>
+          <StaffLeaderboard />
         </ProtectedRoute>
       </Route>
       {/* Fallback to 404 */}

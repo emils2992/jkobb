@@ -19,7 +19,7 @@ export interface IStorage {
   getUserById(userId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User>;
-  
+
   // Attribute operations
   getAttributes(userId: string): Promise<Attribute[]>;
   getTrainingAttributes(userId: string): Promise<Attribute[]>; // Yalnızca antrenman kaynaklı nitelikler
@@ -30,38 +30,38 @@ export interface IStorage {
   deleteAllAttributes(): Promise<void>; // Tüm nitelik kayıtlarını veritabanından tamamen sil
   getPlayerAttributeStats(userId?: string): Promise<any[]>;
   getPlayerTrainingStats(userId?: string): Promise<any[]>; // Antrenman liderlik tablosu için
-  
+
   // Ticket operations
   getTicket(ticketId: string): Promise<Ticket | undefined>;
   getOpenTickets(): Promise<Ticket[]>;
   getAllTickets(): Promise<Ticket[]>; // Hem açık hem kapalı tüm ticketları getir
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   updateTicketStatus(ticketId: string, status: string): Promise<Ticket>;
-  closeTicket(ticketId: string): Promise<Ticket>;
-  
+  closeTicket(ticketId: string, closedBy?: string): Promise<Ticket>;
+
   // Attribute request operations
   getAttributeRequests(ticketId: string): Promise<AttributeRequest[]>;
   createAttributeRequest(request: InsertAttributeRequest): Promise<AttributeRequest>;
   approveAttributeRequest(requestId: number): Promise<AttributeRequest>;
   getTotalAttributesForTicket(ticketId: string): Promise<number>;
-  
+
   // Training session operations
   createTrainingSession(session: InsertTrainingSession): Promise<TrainingSession>;
   getTrainingSessions(userId: string): Promise<TrainingSession[]>;
-  
+
   // Server config operations
   getServerConfig(guildId: string): Promise<ServerConfig | undefined>;
   setServerConfig(config: InsertServerConfig): Promise<ServerConfig>;
   updateFixLogChannel(guildId: string, channelId: string): Promise<ServerConfig>;
   updateTrainingChannel(guildId: string, channelId: string): Promise<ServerConfig>;
   updateLastReset(guildId: string): Promise<ServerConfig>;
-  
+
   // Admin operations
   getAdminByUsername(username: string): Promise<Admin | undefined>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
   updateAdminLastLogin(adminId: number): Promise<Admin>;
   updateAdmin(admin: { id: number, displayName?: string }): Promise<Admin>;
-  
+
   // Chat operations
   getChatMessages(limit?: number): Promise<(ChatMessage & { admin: Admin })[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
@@ -77,7 +77,7 @@ export class MemStorage implements IStorage {
   private configs: Map<number, ServerConfig>;
   private admins: Map<number, Admin>;
   private chatMessages: Map<number, ChatMessage>;
-  
+
   private currentUserId: number;
   private currentAttributeId: number;
   private currentTicketId: number;
@@ -97,7 +97,7 @@ export class MemStorage implements IStorage {
     this.configs = new Map();
     this.admins = new Map();
     this.chatMessages = new Map();
-    
+
     this.currentUserId = 1;
     this.currentAttributeId = 1;
     this.currentTicketId = 1;
@@ -135,7 +135,7 @@ export class MemStorage implements IStorage {
   async getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User> {
     const existingUser = await this.getUserById(userId);
     if (existingUser) return existingUser;
-    
+
     return this.createUser({
       userId,
       username,
@@ -165,7 +165,7 @@ export class MemStorage implements IStorage {
   ): Promise<Attribute> {
     const existing = await this.getAttribute(userId, attributeName);
     const now = new Date();
-    
+
     if (existing) {
       // YENİ: Tüm kaynaklardan (ticket dahil) değer artışları haftalık değere eklensin
       const updated: Attribute = {
@@ -202,7 +202,7 @@ export class MemStorage implements IStorage {
     // Yineleyicileri kullanmak yerine Array.from kullanıyoruz
     const allAttributes = Array.from(this.attributes.entries());
     const now = new Date();
-    
+
     for (const [id, attribute] of allAttributes) {
       this.attributes.set(id, {
         ...attribute,
@@ -210,7 +210,7 @@ export class MemStorage implements IStorage {
         updatedAt: now
       });
     }
-    
+
     await this.updateLastReset(guildId);
   }
 
@@ -218,7 +218,7 @@ export class MemStorage implements IStorage {
     // Tüm nitelikleri sıfırla
     const allAttributes = Array.from(this.attributes.entries());
     const now = new Date();
-    
+
     for (const [id, attribute] of allAttributes) {
       this.attributes.set(id, {
         ...attribute,
@@ -227,10 +227,10 @@ export class MemStorage implements IStorage {
         updatedAt: now
       });
     }
-    
+
     await this.updateLastReset(guildId);
   }
-  
+
   async deleteAllAttributes(): Promise<void> {
     // Tüm nitelik kayıtlarını sil
     this.attributes.clear();
@@ -241,21 +241,21 @@ export class MemStorage implements IStorage {
     const userList = userId 
       ? [await this.getUserById(userId)].filter(Boolean) as User[]
       : Array.from(this.users.values());
-    
+
     return await Promise.all(userList.map(async (user) => {
       const attributes = await this.getAttributes(user.userId);
-      
+
       // Calculate totals
       const totalValue = attributes.reduce((sum, attr) => sum + attr.value, 0);
       const weeklyValue = attributes.reduce((sum, attr) => sum + attr.weeklyValue, 0);
-      
+
       // Get last training or attribute request
       const userTickets = Array.from(this.tickets.values())
         .filter(t => t.userId === user.userId)
         .sort((a, b) => {
           return (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0);
         });
-      
+
       const lastFixDate = userTickets.length > 0 ? userTickets[0].updatedAt : null;
 
       return {
@@ -267,38 +267,38 @@ export class MemStorage implements IStorage {
       };
     }));
   }
-  
+
   async getPlayerTrainingStats(userId?: string): Promise<any[]> {
     const userList = userId 
       ? [await this.getUserById(userId)].filter(Boolean) as User[]
       : Array.from(this.users.values());
-    
+
     return await Promise.all(userList.map(async (user) => {
       // Kullanıcının antrenman kayıtlarını al
       const trainingSessions = Array.from(this.trainingSessions.values())
         .filter(s => s.userId === user.userId && (s.source === 'message' || s.source === 'training'))
         .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
-      
+
       // Antrenman nitelik puanlarını hesapla
       const attributeMap = new Map<string, number>();
       trainingSessions.forEach(session => {
         if (session.attributeName) {
           const attrName = session.attributeName;
           const attrValue = session.attributesGained || 0;
-          
+
           attributeMap.set(attrName, (attributeMap.get(attrName) || 0) + attrValue);
         }
       });
-      
+
       // Nitelikler listesini oluştur
       const attributes = Array.from(attributeMap.entries()).map(([name, value]) => ({
         name, 
         value
       }));
-      
+
       // Toplam antrenman puanını hesapla
       const totalTrainingValue = trainingSessions.reduce((sum, s) => sum + (s.attributesGained || 0), 0);
-      
+
       return {
         user,
         totalTrainingValue,
@@ -308,23 +308,23 @@ export class MemStorage implements IStorage {
       };
     }));
   }
-  
+
   async getTrainingAttributes(userId: string): Promise<Attribute[]> {
     // Sadece antrenman kaynaklı kazanılmış nitelikleri hesapla
     const trainingSessions = Array.from(this.trainingSessions.values())
       .filter(s => s.userId === userId && (s.source === 'message' || s.source === 'training'));
-    
+
     // Nitelik başına toplam puanları hesapla
     const attributeMap = new Map<string, number>();
     trainingSessions.forEach(session => {
       if (session.attributeName) {
         const attrName = session.attributeName;
         const attrValue = session.attributesGained || 0;
-        
+
         attributeMap.set(attrName, (attributeMap.get(attrName) || 0) + attrValue);
       }
     });
-    
+
     // Nitelikler listesini döndür
     const now = new Date();
     return Array.from(attributeMap.entries()).map(([name, value], index) => ({
@@ -349,7 +349,7 @@ export class MemStorage implements IStorage {
       .filter(t => t.status === 'open' || t.status === 'pending')
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
-  
+
   async getAllTickets(): Promise<Ticket[]> {
     return Array.from(this.tickets.values())
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
@@ -358,7 +358,7 @@ export class MemStorage implements IStorage {
   async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
     const id = this.currentTicketId++;
     const now = new Date();
-    
+
     // Ticket için gerekli tüm alanları açıkça belirt, undefined değerleri engelle
     const ticket: Ticket = { 
       id,
@@ -370,7 +370,7 @@ export class MemStorage implements IStorage {
       updatedAt: now,
       closedAt: null
     };
-    
+
     this.tickets.set(id, ticket);
     return ticket;
   }
@@ -378,20 +378,38 @@ export class MemStorage implements IStorage {
   async updateTicketStatus(ticketId: string, status: string): Promise<Ticket> {
     const ticket = await this.getTicket(ticketId);
     if (!ticket) throw new Error(`Ticket with ID ${ticketId} not found`);
-    
+
     const updated: Ticket = {
       ...ticket,
       status,
       updatedAt: new Date(),
       closedAt: status === 'closed' ? new Date() : ticket.closedAt
     };
-    
+
     this.tickets.set(ticket.id, updated);
     return updated;
   }
 
-  async closeTicket(ticketId: string): Promise<Ticket> {
-    return this.updateTicketStatus(ticketId, 'closed');
+  async closeTicket(ticketId: string, closedBy?: string): Promise<Ticket> {
+    try {
+      const { rows } = await pool.query(
+        `
+        UPDATE tickets 
+        SET 
+          status = 'closed', 
+          closed_at = NOW(), 
+          updated_at = NOW(),
+          closed_by = $2
+        WHERE ticket_id = $1 
+        RETURNING *
+        `,
+        [ticketId, closedBy || null]
+      );
+      return rows[0];
+    } catch (error) {
+      console.error('Error closing ticket:', error);
+      throw error;
+    }
   }
 
   // Attribute request operations
@@ -403,7 +421,7 @@ export class MemStorage implements IStorage {
   async createAttributeRequest(insertRequest: InsertAttributeRequest): Promise<AttributeRequest> {
     const id = this.currentRequestId++;
     const now = new Date();
-    
+
     // Tüm gerekli alanları açıkça belirt, undefined değerleri engelle
     const request: AttributeRequest = { 
       id, 
@@ -413,7 +431,7 @@ export class MemStorage implements IStorage {
       valueRequested: insertRequest.valueRequested,
       approved: insertRequest.approved !== undefined ? insertRequest.approved : false // Default değer
     };
-    
+
     this.attributeRequests.set(id, request);
     return request;
   }
@@ -421,12 +439,12 @@ export class MemStorage implements IStorage {
   async approveAttributeRequest(requestId: number): Promise<AttributeRequest> {
     const request = this.attributeRequests.get(requestId);
     if (!request) throw new Error(`Request with ID ${requestId} not found`);
-    
+
     const updated: AttributeRequest = {
       ...request,
       approved: true
     };
-    
+
     this.attributeRequests.set(requestId, updated);
     return updated;
   }
@@ -440,7 +458,7 @@ export class MemStorage implements IStorage {
   async createTrainingSession(insertSession: InsertTrainingSession): Promise<TrainingSession> {
     const id = this.currentSessionId++;
     const now = new Date();
-    
+
     // Tüm gerekli alanları açıkça belirt, undefined değerleri engelle
     const session: TrainingSession = {
       id, 
@@ -455,7 +473,7 @@ export class MemStorage implements IStorage {
       messageId: insertSession.messageId || null,
       channelId: insertSession.channelId || null
     };
-    
+
     this.trainingSessions.set(id, session);
     return session;
   }
@@ -474,7 +492,7 @@ export class MemStorage implements IStorage {
   async setServerConfig(insertConfig: InsertServerConfig): Promise<ServerConfig> {
     const existing = await this.getServerConfig(insertConfig.guildId);
     const now = new Date();
-    
+
     if (existing) {
       // Tüm gerekli alanları açıkça belirt
       const updated: ServerConfig = {
@@ -544,9 +562,9 @@ export class MemStorage implements IStorage {
     if (!config) {
       throw new Error(`No config found for guild ${guildId}`);
     }
-    
+
     const now = new Date();
-    
+
     // Tüm gerekli alanları açıkça belirt
     const updated: ServerConfig = {
       id: config.id,
@@ -557,11 +575,11 @@ export class MemStorage implements IStorage {
       createdAt: config.createdAt,
       updatedAt: now
     };
-    
+
     this.configs.set(config.id, updated);
     return updated;
   }
-  
+
   // Admin operations
   async getAdminByUsername(username: string): Promise<Admin | undefined> {
     return Array.from(this.admins.values()).find(a => a.username === username);
@@ -570,7 +588,7 @@ export class MemStorage implements IStorage {
   async createAdmin(admin: InsertAdmin): Promise<Admin> {
     const id = this.currentAdminId++;
     const now = new Date();
-    
+
     const newAdmin: Admin = {
       id,
       username: admin.username,
@@ -580,7 +598,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       lastLogin: null
     };
-    
+
     this.admins.set(id, newAdmin);
     return newAdmin;
   }
@@ -588,46 +606,46 @@ export class MemStorage implements IStorage {
   async updateAdminLastLogin(adminId: number): Promise<Admin> {
     const admin = this.admins.get(adminId);
     if (!admin) throw new Error(`Admin with ID ${adminId} not found`);
-    
+
     const now = new Date();
     const updated: Admin = {
       ...admin,
       lastLogin: now
     };
-    
+
     this.admins.set(adminId, updated);
     return updated;
   }
-  
+
   async updateAdmin(admin: { id: number, displayName?: string }): Promise<Admin> {
     const existing = this.admins.get(admin.id);
     if (!existing) {
       throw new Error(`Admin with ID ${admin.id} not found`);
     }
-    
+
     const updated: Admin = {
       ...existing
     };
-    
+
     if (admin.displayName) {
       updated.displayName = admin.displayName;
     }
-    
+
     this.admins.set(admin.id, updated);
     return updated;
   }
-  
+
   // Chat operations
   async getChatMessages(limit?: number): Promise<(ChatMessage & { admin: Admin })[]> {
     const allMessages = Array.from(this.chatMessages.values())
       .sort((a, b) => (b.createdAt.getTime()) - (a.createdAt.getTime()));
-    
+
     const messages = limit ? allMessages.slice(0, limit) : allMessages;
-    
+
     return messages.map(msg => {
       const admin = this.admins.get(msg.adminId);
       if (!admin) throw new Error(`Admin with ID ${msg.adminId} not found for message ${msg.id}`);
-      
+
       return {
         ...msg,
         admin
@@ -638,14 +656,14 @@ export class MemStorage implements IStorage {
   async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
     const id = this.currentChatMessageId++;
     const now = new Date();
-    
+
     const newMessage: ChatMessage = {
       id,
       adminId: message.adminId,
       content: message.content,
       createdAt: now
     };
-    
+
     this.chatMessages.set(id, newMessage);
     return newMessage;
   }
