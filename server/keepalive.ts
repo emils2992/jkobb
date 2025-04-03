@@ -186,9 +186,9 @@ export function startEnhancedKeepAliveService() {
       }));
     });
     
-    // 8099 portundan yedek servis başlat
-    backupServer.listen(8099, '0.0.0.0', () => {
-      logToFile('Yedek HTTP sunucusu 8099 portunda başlatıldı');
+    // 8077 portundan yedek servis başlat (çakışmayı önlemek için port değiştirildi)
+    backupServer.listen(8077, '0.0.0.0', () => {
+      logToFile('Yedek HTTP sunucusu 8077 portunda başlatıldı');
     });
   } catch (error) {
     logToFile(`Yedek sunucu hatası: ${error}`);
