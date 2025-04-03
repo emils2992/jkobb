@@ -103,10 +103,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requestId = parseInt(req.params.requestId);
       const { attributeName, valueRequested, approved } = req.body;
       
+      console.log(`Attribute request onay işlemi: ID=${requestId}, approved=${approved}`);
+      
       // İstek onaylanıyorsa
       if (approved) {
-        const updatedRequest = await storage.approveAttributeRequest(requestId);
-        return res.json(updatedRequest);
+        try {
+          const updatedRequest = await storage.approveAttributeRequest(requestId);
+          console.log(`Attribute request başarıyla onaylandı: ID=${requestId}`);
+          return res.json(updatedRequest);
+        } catch (approveError) {
+          console.error(`Attribute request onaylama hatası: ID=${requestId}`, approveError);
+          return res.status(500).json({ message: "Attribute request onaylanamadı", error: approveError.message });
+        }
       }
       
       // Burada normalde attributeName ve valueRequested güncelleme kodu olmalı
@@ -221,23 +229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update attribute request approval status
-  app.patch("/api/attribute-requests/:requestId", async (req, res) => {
-    try {
-      const { requestId } = req.params;
-      const requestIdNum = parseInt(requestId, 10);
-      
-      if (isNaN(requestIdNum)) {
-        return res.status(400).json({ message: "Invalid request ID" });
-      }
-      
-      const updated = await storage.approveAttributeRequest(requestIdNum);
-      res.json(updated);
-    } catch (error) {
-      console.error("Error updating attribute request:", error);
-      res.status(500).json({ message: "Failed to update attribute request" });
-    }
-  });
+  // Not: Bu endpoint yukarıda daha kapsamlı tanımlandı, duplicate endpoint kaldırıldı.
 
   // Reset all attributes (fixreset)
   app.post("/api/fix/reset", async (req, res) => {
