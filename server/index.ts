@@ -16,10 +16,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Replit proxy'lerini güven - X-Forwarded-For header hatası için gerekli
+app.set('trust proxy', 1);
+
 // API istekleri için hız sınırlayıcı - yüksek yük altında performansı korur
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 dakika
-  max: 60, // Her IP'den dakikada maksimum 60 istek
+  max: 120, // Her IP'den dakikada maksimum 120 istek (daha yüksek limit)
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Çok fazla istek gönderildi, lütfen bir süre bekleyin." }

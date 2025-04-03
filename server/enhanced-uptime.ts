@@ -5,8 +5,8 @@ import * as fs from 'fs';
 import { createServer } from 'http';
 import { URLS } from './external-pings';
 
-// Replit URL'si - çevre değişkeninden al ya da dinamik olarak tespit et
-const REPLIT_URL = process.env.REPLIT_URL || getReplicUrl();
+// Replit URL'si - çevre değişkeninden al ya da sabit URL kullan
+const REPLIT_URL = process.env.REPLIT_URL || 'https://discord-halisaha-manager.emilswd.repl.co';
 const KEEPALIVE_FILE = './keepalive.json';
 const UPTIME_LOG = './uptime.log';
 
