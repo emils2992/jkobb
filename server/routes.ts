@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
 import { client } from "./discord/bot";  // Discord client'ı import ediyoruz
 import { startUptimeService } from "./uptime";
+import { getUptimeStatus } from "./enhanced-uptime";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { Admin } from "../shared/schema";
@@ -292,6 +293,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // UptimeRobot için ek endpoint
   app.get("/uptime-check", (req, res) => {
     res.status(200).send("UptimeRobot servisi tarafından kontrol edildi");
+  });
+  
+  // Gelişmiş uptime durumu
+  app.get("/uptime-status", (req, res) => {
+    res.status(200).json({
+      status: "online",
+      system: "Discord Halısaha Bot",
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      uptimeStats: getUptimeStatus()
+    });
   });
 
   // Günlük ticket istatistikleri

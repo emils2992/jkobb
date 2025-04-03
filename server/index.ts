@@ -9,6 +9,7 @@ import { initDatabase } from "./db";
 import { pool } from "./db";
 import { startUptimeService } from "./uptime";
 import { startEnhancedKeepAliveService } from "./keepalive";
+import { startEnhancedUptimeService } from "./enhanced-uptime";
 import ConnectPgSimple from "connect-pg-simple";
 
 const app = express();
@@ -132,7 +133,8 @@ app.use((req, res, next) => {
         // Uptime ve Keepalive servislerini başlat
         startUptimeService();
         startEnhancedKeepAliveService();
-        log('Uptime ve Keepalive servisleri başlatıldı - Sistem sürekli çalışmaya hazır');
+        startEnhancedUptimeService(); // Süper gelişmiş uptime servisi
+        log('Tüm uptime servisleri başlatıldı - Sistem sürekli çalışmaya hazır (internet bağlantısı kopsa bile)');
       } catch (error) {
         console.error('Error in initialization:', error);
       }
