@@ -159,8 +159,9 @@ export default function Sidebar() {
                     <Link href={item.href} onClick={(e) => {
                       // Prevent default to let Wouter handle navigation
                       e.preventDefault();
-                      // Force navigate to the route
-                      window.location.href = item.href;
+                      // Use Wouter navigate instead of window.location
+                      window.history.pushState(null, '', item.href);
+                      window.dispatchEvent(new PopStateEvent('popstate'));
                     }}>
                       <div className={cn(
                         "flex items-center space-x-2 p-3 rounded hover:bg-gray-700 cursor-pointer",
