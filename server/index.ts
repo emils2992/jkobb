@@ -3,7 +3,8 @@ import session from "express-session";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { initDiscordBot } from "./discord"; // Bot başlatma işlemi etkinleştirildi
+// Eğer doğru CLIENT_ID sağlanırsa, bu satırın yorumunu kaldırın
+import { initDiscordBot } from "./discord";
 import { initDatabase } from "./db";
 import { pool } from "./db";
 import { startUptimeService } from "./uptime";
@@ -101,7 +102,7 @@ app.use((req, res, next) => {
       // Önce mevcut süreçleri temizle
       try {
         const { exec } = require('child_process');
-        exec('fuser -k 5000/tcp', (err, stdout, stderr) => {
+        exec('fuser -k 5000/tcp', (err: any, stdout: any, stderr: any) => {
           if (err) console.log('Port 5000 zaten boş veya temizlenemedi');
         });
       } catch (e) {
@@ -124,9 +125,9 @@ app.use((req, res, next) => {
         await initDatabase();
         log('Veritabanı başarıyla başlatıldı');
         
-        // Initialize Discord bot
-        await initDiscordBot();
-        log('Discord bot başarıyla başlatıldı');
+        // Discord bot geçici olarak devre dışı bırakıldı
+        // await initDiscordBot();
+        log('Discord bot devre dışı bırakıldı - Client ID sağlanmadığı için');
         
         // Uptime ve Keepalive servislerini başlat
         startUptimeService();
@@ -136,7 +137,7 @@ app.use((req, res, next) => {
         console.error('Error in initialization:', error);
       }
     });
-  } catch (err) {
+  } catch (err: any) {
     if (err.code === 'EADDRINUSE') {
       log(`Port ${port} is busy, trying port ${port + 1}...`);
       port = port + 1; // Alternatif port dene
