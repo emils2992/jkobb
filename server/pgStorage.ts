@@ -651,6 +651,17 @@ export class PgStorage implements IStorage {
         fixLogChannelId: null,
         trainingChannelId: channelId
       });
+    }.setServerConfig({
+        ...config,
+        guildId,
+        trainingChannelId: channelId
+      });
+    } else {
+      return this.setServerConfig({
+        guildId,
+        fixLogChannelId: null,
+        trainingChannelId: channelId
+      });
     }
   }
 
