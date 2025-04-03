@@ -262,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Tüm nitelikler sıfırlandı ve silindi" });
     } catch (error) {
       console.error("Error resetting attributes:", error);
-      res.status(500).json({ success: false, message: "Nitelikler sıfırlanırken bir hata oluştu" });nırken bir hata oluştu" });
+      res.status(500).json({ success: false, message: "Nitelikler sıfırlanırken bir hata oluştu" });
     }
   });
 
