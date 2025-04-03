@@ -97,26 +97,15 @@ app.use((req, res, next) => {
 
   // Önceki tüm süreçleri öldür ve ardından yeni sunucuyu başlat
   // Ana port 5000, eğer meşgulse 5001 veya başka bir port denenecek
-  let port = 5000;
+  let port = 5001; // 5000 portunu değiştiriyoruz çünkü muhtemelen zaten kullanımda
   const startServer = async () => {
     try {
-      // Önce mevcut süreçleri temizle
-      try {
-        const { exec } = require('child_process');
-        exec('fuser -k 5000/tcp', (err: any, stdout: any, stderr: any) => {
-          if (err) console.log('Port 5000 zaten boş veya temizlenemedi');
-        });
-      } catch (e) {
-        console.log('Port temizleme işlemi başarısız oldu, devam ediliyor');
-      }
-      
-      // Kısa bir bekleme süresi ekle
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Port temizleme işlemini atlıyoruz çünkü sorun yaratıyor
       
       server.listen({
         port,
         host: "0.0.0.0", // Tüm ağ arayüzlerinden erişilebilir olmasını sağlar
-        reusePort: true,
+        reusePort: false, // Port yeniden kullanımını devre dışı bırakıyoruz
       }, async () => {
     log(`serving on port ${port} (http://0.0.0.0:${port})`);
       log(`Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev'}`);
