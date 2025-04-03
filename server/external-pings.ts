@@ -18,9 +18,20 @@ export const URLS = [
   'https://updown.io',
   'https://uptime.com',
   
+  // Popüler Uptime Ping Servisleri
+  'https://uptimerobot.com/ping-details',
+  'https://cronitor.io',
+  'https://betteruptime.com/api/v1/heartbeat',
+  'https://healthchecks.io',
+  
   // Ekstra pinglemek için kendi bot URL'niz - eklediğiniz bot linki
   'https://discord-halisaha-manager.emilswd.repl.co',
   
+  // UptimeRobot için ekleyebileceğiniz link
+  'https://discord-halisaha-manager.emilswd.repl.co/ping',
+  'https://discord-halisaha-manager.emilswd.repl.co/uptime-check',
+  'https://discord-halisaha-manager.emilswd.repl.co/api/health',
+  
   // Eklemek istediğiniz diğer bağlantıları buraya ekleyebilirsiniz
-  // 'https://sizin-yeni-linkiniz.com's.com'
+  // 'https://sizin-yeni-linkiniz.com'
 ];
