@@ -8,7 +8,7 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "autoscale"
 build = ["sh", "-c", "npm run build"]
-run = ["sh", "-c", "node server/index.js"]
+run = ["sh", "-c", "node dist/index.js"]
 
 [[ports]]
 localPort = 5000
@@ -79,4 +79,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node server/index.js"
+args = "npm run dev"
