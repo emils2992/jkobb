@@ -665,7 +665,20 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             .setStyle(ButtonStyle.Primary)
         );
 
-      await channel.send({ embeds: [embed], components: [row] });
+      // Yetkili rolünü etiketleme
+      let mentionText = '';
+      
+      // Eğer yetkili rol ID'si varsa, o rolü etiketle
+      if (staffRoleId) {
+        mentionText = `<@&${staffRoleId}> Yeni bir ticket açıldı!`;
+      }
+      
+      // İlk mesajı ve rol etiketini gönder
+      await channel.send({ 
+        content: mentionText, 
+        embeds: [embed], 
+        components: [row] 
+      });
 
       await interaction.editReply(`Ticket oluşturuldu: <#${channel.id}>`);
     } catch (error) {
