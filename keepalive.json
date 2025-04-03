@@ -1,20 +1,6 @@
 {
-  "status": "healthy",
-  "lastUpdate": "2025-04-03T22:26:17.450Z",
-  "uptime": {
-    "server": 129.551412152,
-    "service": 120.004
-  },
-  "stats": {
-    "pingCount": 2,
-    "successRate": "0.00%",
-    "failureCount": 1,
-    "recoveryAttempts": 2
-  },
-  "memory": {
-    "rss": "272MB",
-    "heapTotal": "122MB",
-    "heapUsed": "117MB"
-  },
-  "timestamp": 1743719177451
+  "lastPing": "2025-04-03T22:31:10.791Z",
+  "status": "active",
+  "uptime": 182.523508565,
+  "timestamp": 1743719470791
 }
