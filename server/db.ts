@@ -8,8 +8,11 @@ export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 20, // maksimum bağlantı sayısı
   idleTimeoutMillis: 30000, // boşta kalan bağlantıların ne kadar süre korunacağı
-  connectionTimeoutMillis: 2000, // bağlantı zaman aşımı
+  connectionTimeoutMillis: 5000, // bağlantı zaman aşımı
   maxUses: 7500, // bir bağlantının yeniden kullanılma sayısı
+  ssl: {
+    rejectUnauthorized: false // Replit için SSL sertifikası kontrolünü devre dışı bırak
+  }
 });
 
 // Drizzle ORM'yi yapılandır
