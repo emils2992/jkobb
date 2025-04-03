@@ -7,6 +7,7 @@ import { startUptimeService } from "./uptime";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { Admin } from "../shared/schema";
+import { pool } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
