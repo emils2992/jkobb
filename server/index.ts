@@ -95,20 +95,16 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Önceki tüm süreçleri öldür ve ardından yeni sunucuyu başlat
-  // Ana port 5000, eğer meşgulse 5001 veya başka bir port denenecek
-  let port = 5001; // 5000 portunu değiştiriyoruz çünkü muhtemelen zaten kullanımda
+  // Basitleştirilmiş server başlatma kodu
+  // Sabit port kullan ve process hataları için basit bir çözüm ekle
+  const PORT = 5002; // Tamamen yeni bir port kullanıyoruz
   const startServer = async () => {
+    // Önce mevcut süreçleri zorla kapatmayı denemeyeceğiz
+    // Bu yaklaşım daha güvenli
     try {
-      // Port temizleme işlemini atlıyoruz çünkü sorun yaratıyor
-      
-      server.listen({
-        port,
-        host: "0.0.0.0", // Tüm ağ arayüzlerinden erişilebilir olmasını sağlar
-        reusePort: false, // Port yeniden kullanımını devre dışı bırakıyoruz
-      }, async () => {
-    log(`serving on port ${port} (http://0.0.0.0:${port})`);
-      log(`Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev'}`);
+      server.listen(PORT, "0.0.0.0", async () => {
+        log(`✅ Server çalışıyor: port ${PORT} (http://0.0.0.0:${PORT})`);
+        log(`🌐 Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev'}`);
       
       try {
         // Veritabanını başlat
