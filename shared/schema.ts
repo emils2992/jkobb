@@ -130,6 +130,7 @@ export const insertServerConfigSchema = createInsertSchema(serverConfig).pick({
   role7080Id: true,
   role8090Id: true,
   role9099Id: true,
+  lastResetAt: true,
 });
 
 // Type exports

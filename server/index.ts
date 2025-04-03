@@ -98,8 +98,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Dinamik port kullanımı - hata durumunda yeni port deneyin
-  let port = 3030; // Uptime servisleri için sabit bir port
+  // Replit'in beklediği port olan 5000'i kullan
+  let port = 5000; // Replit 5000 portunu bekliyor
   
   // Temel uptime/health endpoint'leri için genişletilmiş rotalar
   app.get('/', (req, res) => {
@@ -123,12 +123,12 @@ app.use((req, res, next) => {
       }
 
       try {
-        server.listen(currentPort, "0.0.0.0", async () => {
+        // Önce sunucuyu başlat, diğer işlemleri paralel olarak yap
+        server.listen(currentPort, "0.0.0.0", () => {
           log(`✅ Server çalışıyor: port ${currentPort} (http://0.0.0.0:${currentPort})`);
           
           // Replit URL'sini al ve UptimeRobot için ping endpoint'lerini logla
-          const baseUrl = process.env.REPLIT_URL || 
-                          'https://discord-halisaha-manager.emilswd.repl.co';
+          const baseUrl = process.env.REPL_URL || process.env.REPLIT_URL || `http://0.0.0.0:${currentPort}`;
           log(`🌐 Dış erişim URL'si: ${baseUrl}`);
           
           // UptimeRobot için URL'leri logla
@@ -137,24 +137,35 @@ app.use((req, res, next) => {
           log(`   • ${baseUrl}/uptime-check`);
           log(`   • ${baseUrl}/api/health`);
           
-          try {
-            // Veritabanını başlat
-        await initDatabase();
-        log('Veritabanı başarıyla başlatıldı');
-        
-        // Discord botu başlat
-        await initDiscordBot();
-        log('Discord bot başlatılıyor - Client ID mevcut');
-        
-        // Uptime ve Keepalive servislerini başlat
-        startUptimeService();
-        startEnhancedKeepAliveService();
-        startEnhancedUptimeService(); // Süper gelişmiş uptime servisi
-        log('Tüm uptime servisleri başlatıldı - Sistem sürekli çalışmaya hazır (internet bağlantısı kopsa bile)');
-      } catch (error) {
-        console.error('Error in initialization:', error);
-      }
-    });
+          // Veritabanı ve Discord bot başlatma işlemlerini paralel olarak yap
+          // Sunucu çalışmaya başladığı için bu işlemler arka planda yapılabilir
+          (async () => {
+            try {
+              // Veritabanını başlat
+              log('Veritabanını başlatmayı deniyor...');
+              await initDatabase();
+              log('Veritabanı başarıyla başlatıldı');
+              
+              // Discord botu başlat
+              if (process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_CLIENT_ID) {
+                log('Discord bot başlatılıyor - Token ve Client ID mevcut');
+                initDiscordBot().catch(err => {
+                  console.error('Discord bot başlatılamadı, ancak sunucu çalışmaya devam edecek', err);
+                });
+              } else {
+                console.log('DISCORD_BOT_TOKEN veya DISCORD_CLIENT_ID bulunamadı. Bot başlatılmayacak.');
+              }
+              
+              // Uptime ve Keepalive servislerini başlat
+              startUptimeService();
+              startEnhancedKeepAliveService();
+              startEnhancedUptimeService(); // Süper gelişmiş uptime servisi
+              log('Tüm uptime servisleri başlatıldı - Sistem sürekli çalışmaya hazır');
+            } catch (error) {
+              console.error('Error in initialization:', error);
+            }
+          })();
+        });
   } catch (err: any) {
     if (err.code === 'EADDRINUSE') {
       log(`Port ${currentPort} meşgul, port ${currentPort + 1} deneniyor...`);

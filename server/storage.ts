@@ -720,6 +720,7 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-let storage: IStorage = new PgStorage(pool);
+// Geçici olarak MemStorage kullan, PgStorage düzeltilene kadar
+let storage: IStorage = new MemStorage();
 
 export { storage };

@@ -236,7 +236,7 @@ export class PgStorage implements IStorage {
       `, params);
       
       // Paralel sorgular için Promise.all kullanarak verimlilik artışı
-      const playerStats = await Promise.all(result.rows.map(async (row) => {
+      const playerStats = await Promise.all(result.rows.map(async (row: any) => {
         // Her kullanıcı için nitelikleri al
         const attributes = await this.getAttributes(row.user_id);
         
@@ -651,24 +651,19 @@ export class PgStorage implements IStorage {
         fixLogChannelId: null,
         trainingChannelId: channelId
       });
-    }.setServerConfig({
-        ...config,
-        guildId,
-        trainingChannelId: channelId
-      });
-    } else {
-      return this.setServerConfig({
-        guildId,
-        fixLogChannelId: null,
-        trainingChannelId: channelId
-      });
     }
   }
 
   async updateLastReset(guildId: string): Promise<ServerConfig> {
     const config = await this.getServerConfig(guildId);
     
-    if (!config) {
+    if (config) {
+      return this.setServerConfig({
+        ...config,
+        guildId,
+        lastResetAt: new Date()
+      });
+    } else {
       // Eğer config yoksa, otomatik olarak oluştur
       console.log(`Config not found for guild ${guildId}, creating automatically`);
       return this.setServerConfig({
@@ -679,16 +674,10 @@ export class PgStorage implements IStorage {
         role6070Id: null,
         role7080Id: null,
         role8090Id: null,
-        role9099Id: null
+        role9099Id: null,
+        lastResetAt: new Date()
       });
     }
-    
-    const result = await this.pool.query(
-      'UPDATE server_config SET last_reset_at = NOW(), updated_at = NOW() WHERE guild_id = $1 RETURNING *',
-      [guildId]
-    );
-    
-    return this.pgServerConfigToServerConfig(result.rows[0]);
   }
 
   // Yardımcı dönüştürme işlevleri

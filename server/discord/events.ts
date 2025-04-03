@@ -35,6 +35,9 @@ export function setupEventHandlers() {
     try {
       // Handle slash commands
       if (interaction.isChatInputCommand()) {
+        // Add debug log for slash commands
+        console.log(`[DEBUG] Slash command executed: /${interaction.commandName} ${interaction.options.getSubcommand(false) || ''}`);
+        
         // Rate limiting kontrolü
         const userId = interaction.user.id;
         const now = Date.now();

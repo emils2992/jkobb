@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const updatedRequest = await storage.approveAttributeRequest(requestId);
           console.log(`Attribute request başarıyla onaylandı: ID=${requestId}`);
           return res.json(updatedRequest);
-        } catch (approveError) {
+        } catch (approveError: any) {
           console.error(`Attribute request onaylama hatası: ID=${requestId}`, approveError);
           return res.status(500).json({ message: "Attribute request onaylanamadı", error: approveError.message });
         }

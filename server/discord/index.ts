@@ -1,6 +1,4 @@
 import { initBot } from './bot';
-import { setupEventHandlers } from './events';
-import { registerCommands } from './commands';
 
 export async function initDiscordBot() {
   try {
@@ -10,14 +8,13 @@ export async function initDiscordBot() {
       return; // Gracefully exit if no tokens
     }
     
-    // Properly handle the Discord bot initialization flow to avoid circular dependencies
+    console.log('Starting Discord bot initialization');
+    
+    // Properly handle the Discord bot initialization flow
     const botClient = await initBot();
     
-    // Only setup event handlers and register commands if bot login was successful
+    // Check if bot was initialized successfully
     if (botClient) {
-      console.log('Bot logged in successfully, setting up handlers and commands...');
-      setupEventHandlers();
-      // Don't register commands again, it's already done in initBot
       console.log('Discord bot initialized successfully');
     } else {
       console.log('Bot client not initialized properly');
