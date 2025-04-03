@@ -8,7 +8,7 @@ import { URLS } from './external-pings';
 // TypeScript için global gc tanımlaması yok - runtime checking kullanılacak
 
 // Replit URL'si - çevre değişkeninden al ya da sağlanan hardcoded değeri kullan
-const REPLIT_URL = process.env.REPLIT_URL || "https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev";
+const REPLIT_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
 const KEEPALIVE_FILE = './keepalive.json';
 const INTERNAL_PING_INTERVAL = 5 * 60 * 1000; // 5 dakika
 const EXTERNAL_PING_INTERVAL = '*/15 * * * *'; // Her 15 dakikada bir cron job (daha sık)
