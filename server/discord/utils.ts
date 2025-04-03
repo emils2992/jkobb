@@ -1,6 +1,6 @@
-import { EmbedBuilder } from 'discord.js';
-import { User, AttributeRequest, Attribute } from '@shared/schema';
-import { isValidAttribute, getRequiredHours, getCategoryForAttribute } from './training-config';
+import { EmbedBuilder, GuildMember } from 'discord.js';
+import { User, AttributeRequest, Attribute, ServerConfig } from '@shared/schema';
+import { isValidAttribute, getRequiredHours, getCategoryForAttribute, getTrainingHoursByRoles } from './training-config';
 
 // Format date for display
 export function formatDate(date: Date): string {
@@ -171,16 +171,20 @@ export function createAttributeEmbed(
 }
 
 /**
- * Antrenman mesajı analizini yapar, seviye bilgisine göre doğrular
+ * Antrenman mesajı analizini yapar, seviye bilgisine ve rollere göre doğrular
  * @param content Mesaj içeriği
  * @param attributes Kullanıcının nitelikleri
  * @param lastTrainingTime Kullanıcının son antrenman zamanı (her nitelik için)
+ * @param member Discord sunucusundaki üye bilgisi (rol kontrolü için)
+ * @param serverConfig Sunucu yapılandırması (rol id'leri için)
  * @returns Eğer mesaj geçerli bir antrenman mesajıysa antrenman detayları, değilse null
  */
 export function parseTrainingMessage(
   content: string,
   attributes: Attribute[],
-  lastTrainingTime: Date | null
+  lastTrainingTime: Date | null,
+  member?: GuildMember | null,
+  serverConfig?: ServerConfig | null
 ): { 
   attributeName: string; 
   duration: number; 
@@ -232,8 +236,21 @@ export function parseTrainingMessage(
   // Basit formül: süre * yoğunluk / 10, minimum 1, maksimum 5 puan
   const points = Math.min(5, Math.max(1, Math.floor(duration * intensity / 10)));
   
-  // Bu nitelik için gereken bekleme süresini al
-  const hoursRequired = getRequiredHours(attributeName, attributeValue);
+  // Kullanıcının nitelik seviyesine göre gereken bekleme süresini hesapla
+  let hoursRequired = getRequiredHours(attributeName, attributeValue);
+  
+  // Eğer Discord üyesi ve sunucu yapılandırması mevcutsa, role göre süreyi kontrol et
+  if (member && serverConfig) {
+    // Rolü kontrol et ve rolün gerektirdiği süreyi al
+    const roleDependentHours = getTrainingHoursByRoles(member, serverConfig, hoursRequired);
+    
+    console.log(`[TRAINING] Rating rol kontrolü: Önceki süre: ${hoursRequired} saat, Rol bazlı süre: ${roleDependentHours} saat`);
+    
+    // Rol bazlı süreyi kullan - bu, nitelik seviyesinden daha öncelikli
+    hoursRequired = roleDependentHours;
+  } else {
+    console.log(`[TRAINING] Discord üyesi veya sunucu yapılandırması eksik, varsayılan süre kullanılıyor: ${hoursRequired} saat`);
+  }
   
   // Kullanıcının son antrenmanından bu yana geçen süreyi hesapla
   const now = new Date();

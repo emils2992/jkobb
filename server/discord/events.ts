@@ -450,8 +450,14 @@ export function setupEventHandlers() {
             lastTrainingTime = new Date(lastSession.createdAt);
           }
 
-          // Antrenman mesajını analiz et
-          const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
+          // Antrenman mesajını analiz et - kullanıcının rollerini de kontrol et
+          const trainingInfo = parseTrainingMessage(
+            message.content, 
+            attributes, 
+            lastTrainingTime,
+            message.member, // Discord sunucusundaki üye bilgisi (rol kontrolü için)
+            serverConfig    // Rol ID'leri için sunucu yapılandırması
+          );
 
           if (trainingInfo) {
             // Antrenman yapılabilir mi kontrol et

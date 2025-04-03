@@ -120,25 +120,36 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
     const now = new Date();
-    // avatarUrl null olarak ayarla, undefined olmasını engelle
+    // avatarUrl ve nickname null olarak ayarla, undefined olmasını engelle
     const user: User = { 
       ...insertUser, 
       id, 
       createdAt: now,
-      avatarUrl: insertUser.avatarUrl || null 
+      avatarUrl: insertUser.avatarUrl || null,
+      nickname: insertUser.nickname || null
     };
     this.users.set(id, user);
     this.usersByDiscordId.set(user.userId, user);
     return user;
   }
 
-  async getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User> {
+  async getOrCreateUser(userId: string, username: string, avatarUrl?: string, nickname?: string): Promise<User> {
     const existingUser = await this.getUserById(userId);
-    if (existingUser) return existingUser;
+    if (existingUser) {
+      // Eğer kullanıcı varsa ve takma ad güncellenecekse
+      if (nickname && existingUser.nickname !== nickname) {
+        existingUser.nickname = nickname;
+        // In-memory veritabanında kaydı güncelle
+        this.users.set(existingUser.id, existingUser);
+        this.usersByDiscordId.set(existingUser.userId, existingUser);
+      }
+      return existingUser;
+    }
 
     return this.createUser({
       userId,
       username,
+      nickname,
       avatarUrl
     });
   }
@@ -368,7 +379,8 @@ export class MemStorage implements IStorage {
       ticketId: insertTicket.ticketId,
       createdAt: now, 
       updatedAt: now,
-      closedAt: null
+      closedAt: null,
+      closedBy: null
     };
 
     this.tickets.set(id, ticket);
@@ -383,7 +395,8 @@ export class MemStorage implements IStorage {
       ...ticket,
       status,
       updatedAt: new Date(),
-      closedAt: status === 'closed' ? new Date() : ticket.closedAt
+      closedAt: status === 'closed' ? new Date() : ticket.closedAt,
+      closedBy: ticket.closedBy // Mevcut closedBy değerini koru
     };
 
     this.tickets.set(ticket.id, updated);
@@ -503,6 +516,12 @@ export class MemStorage implements IStorage {
         guildId: insertConfig.guildId,
         fixLogChannelId: insertConfig.fixLogChannelId !== undefined ? insertConfig.fixLogChannelId : existing.fixLogChannelId,
         trainingChannelId: insertConfig.trainingChannelId !== undefined ? insertConfig.trainingChannelId : existing.trainingChannelId,
+        staffRoleId: insertConfig.staffRoleId !== undefined ? insertConfig.staffRoleId : existing.staffRoleId,
+        // Rating bazlı roller
+        role6070Id: insertConfig.role6070Id !== undefined ? insertConfig.role6070Id : existing.role6070Id,
+        role7080Id: insertConfig.role7080Id !== undefined ? insertConfig.role7080Id : existing.role7080Id,
+        role8090Id: insertConfig.role8090Id !== undefined ? insertConfig.role8090Id : existing.role8090Id,
+        role9099Id: insertConfig.role9099Id !== undefined ? insertConfig.role9099Id : existing.role9099Id,
         lastResetAt: existing.lastResetAt,
         createdAt: existing.createdAt,
         updatedAt: now
@@ -517,6 +536,12 @@ export class MemStorage implements IStorage {
         guildId: insertConfig.guildId,
         fixLogChannelId: insertConfig.fixLogChannelId || null,
         trainingChannelId: insertConfig.trainingChannelId || null,
+        staffRoleId: insertConfig.staffRoleId || null,
+        // Rating bazlı roller varsayılan olarak null
+        role6070Id: insertConfig.role6070Id || null,
+        role7080Id: insertConfig.role7080Id || null,
+        role8090Id: insertConfig.role8090Id || null,
+        role9099Id: insertConfig.role9099Id || null,
         lastResetAt: now,
         createdAt: now,
         updatedAt: now
@@ -538,7 +563,12 @@ export class MemStorage implements IStorage {
       return this.setServerConfig({
         guildId,
         fixLogChannelId: channelId,
-        trainingChannelId: null
+        trainingChannelId: null,
+        staffRoleId: null,
+        role6070Id: null,
+        role7080Id: null,
+        role8090Id: null,
+        role9099Id: null
       });
     }
   }
@@ -555,7 +585,12 @@ export class MemStorage implements IStorage {
       return this.setServerConfig({
         guildId,
         fixLogChannelId: null,
-        trainingChannelId: channelId
+        trainingChannelId: channelId,
+        staffRoleId: null,
+        role6070Id: null,
+        role7080Id: null,
+        role8090Id: null,
+        role9099Id: null
       });
     }
   }
@@ -574,6 +609,12 @@ export class MemStorage implements IStorage {
       guildId: config.guildId,
       fixLogChannelId: config.fixLogChannelId,
       trainingChannelId: config.trainingChannelId,
+      staffRoleId: config.staffRoleId,
+      // Rating bazlı roller
+      role6070Id: config.role6070Id,
+      role7080Id: config.role7080Id,
+      role8090Id: config.role8090Id,
+      role9099Id: config.role9099Id,
       lastResetAt: now,
       createdAt: config.createdAt,
       updatedAt: now

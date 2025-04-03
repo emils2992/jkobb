@@ -7,7 +7,8 @@ import { createHash } from "crypto";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull().unique(), // Discord user ID
-  username: text("username").notNull(),
+  username: text("username").notNull(), // Discord username
+  nickname: text("nickname"), // Discord sunucusundaki görüntülenen isim
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -15,6 +16,7 @@ export const users = pgTable("users", {
 export const insertUserSchema = createInsertSchema(users).pick({
   userId: true,
   username: true,
+  nickname: true,
   avatarUrl: true,
 });
 
@@ -109,6 +111,11 @@ export const serverConfig = pgTable("server_config", {
   fixLogChannelId: text("fix_log_channel_id"), // Channel ID for fix logs
   trainingChannelId: text("training_channel_id"), // Channel ID for training logs
   staffRoleId: text("staff_role_id"), // Staff role ID
+  // Rating bazlı roller
+  role6070Id: text("role_60_70_id"), // 60-70 rating arası oyuncular için rol ID
+  role7080Id: text("role_70_80_id"), // 70-80 rating arası oyuncular için rol ID
+  role8090Id: text("role_80_90_id"), // 80-90 rating arası oyuncular için rol ID
+  role9099Id: text("role_90_99_id"), // 90-99 rating arası oyuncular için rol ID
   lastResetAt: timestamp("last_reset_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -119,6 +126,10 @@ export const insertServerConfigSchema = createInsertSchema(serverConfig).pick({
   fixLogChannelId: true,
   trainingChannelId: true,
   staffRoleId: true,
+  role6070Id: true,
+  role7080Id: true,
+  role8090Id: true,
+  role9099Id: true,
 });
 
 // Type exports

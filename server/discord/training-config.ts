@@ -17,12 +17,13 @@ export interface TrainingCategory {
 }
 
 // Antrenman limitleri 
-// Her seviye aralığı için, o seviyede bir antrenman yapmak için gereken saat sayısı
+// Her rating aralığı için, o rating seviyesinde bir antrenman yapmak için gereken saat sayısı
 export const trainingLimits: TrainingLimit[] = [
-  { minLevel: 50, maxLevel: 60, hoursRequired: 1 },
-  { minLevel: 61, maxLevel: 70, hoursRequired: 2 },
-  { minLevel: 71, maxLevel: 80, hoursRequired: 3 },
-  { minLevel: 81, maxLevel: 99, hoursRequired: 5 }
+  { minLevel: 0, maxLevel: 59, hoursRequired: 1 }, // Rolsüz oyuncular için default süre: 1 saat
+  { minLevel: 60, maxLevel: 70, hoursRequired: 2 }, // 60-70 rating arası: 2 saat
+  { minLevel: 71, maxLevel: 80, hoursRequired: 3 }, // 70-80 rating arası: 3 saat
+  { minLevel: 81, maxLevel: 90, hoursRequired: 4 }, // 80-90 rating arası: 4 saat
+  { minLevel: 91, maxLevel: 99, hoursRequired: 5 }, // 90-99 rating arası: 5 saat
 ];
 
 // Antrenman kategorileri ve içerdiği nitelikler
@@ -129,4 +130,30 @@ export function getCategoryForAttribute(attributeName: string): string | null {
     }
   }
   return null;
+}
+
+// Kullanıcının rolüne göre antrenman beklemesi gereken süre
+export function getTrainingHoursByRoles(
+  member: any, // Discord.js GuildMember
+  serverConfig: any, // ServerConfig
+  defaultValue: number
+): number {
+  if (!member || !serverConfig) return defaultValue;
+
+  // Kullanıcının rollerini kontrol et ve uygun süreyi döndür
+  if (serverConfig.role9099Id && member.roles.cache.has(serverConfig.role9099Id)) {
+    return 5; // 90-99 rating arası: 5 saat
+  }
+  else if (serverConfig.role8090Id && member.roles.cache.has(serverConfig.role8090Id)) {
+    return 4; // 80-90 rating arası: 4 saat
+  }
+  else if (serverConfig.role7080Id && member.roles.cache.has(serverConfig.role7080Id)) {
+    return 3; // 70-80 rating arası: 3 saat 
+  }
+  else if (serverConfig.role6070Id && member.roles.cache.has(serverConfig.role6070Id)) {
+    return 2; // 60-70 rating arası: 2 saat
+  }
+
+  // Hiçbir rating rolü yoksa varsayılan 1 saat dön
+  return 1;
 }
