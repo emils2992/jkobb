@@ -6,8 +6,8 @@ export const URLS = [
   // Ücretsiz uptime servisleri - bunlar da uygulamayı ayakta tutar
   // Ana servislere sadece kendi URL'inizi gönderin
   'https://discord-halisaha-manager.emilswd.repl.co/ping',
-  'https://discord-halisaha-manager.emilswd.repl.co/keep-alive',
-  'https://discord-halisaha-manager.emilswd.repl.co/api/health',
+  'https://discord-halisaha-manager.emilswd.repl.co/',
+  'https://discord-halisaha-manager.emilswd.repl.co/health',
   
   // Popüler uptime ping servisleri
   'https://uptime.kuma.pet',

@@ -192,7 +192,19 @@ export function startEnhancedKeepAliveService() {
       
       // Yedek sunucuya özel rotalar ekle
       backupServer.on('request', (req, res) => {
-        if (req.url?.includes('/ping') || req.url?.includes('/keep-alive') || req.url?.includes('/health')) {
+        const url = req.url || '/';
+        
+        // Tüm sağlık kontrolü URL'leri için yanıt ver
+        if (url === '/ping' || 
+            url === '/keep-alive' || 
+            url === '/health' || 
+            url === '/api/health' || 
+            url === '/uptime-check' || 
+            url === '/uptime-status' ||
+            url.includes('/ping') || 
+            url.includes('/health') || 
+            url.includes('/uptime')) {
+          
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             status: 'active',
@@ -201,8 +213,9 @@ export function startEnhancedKeepAliveService() {
             uptime: process.uptime()
           }));
         } else {
+          // Kök dizin veya diğer URL'ler için basit metin yanıtı
           res.writeHead(200, { 'Content-Type': 'text/plain' });
-          res.end('Discord Bot Backup Service');
+          res.end('Discord Bot Backup Service - Active');
         }
       });
     });

@@ -98,13 +98,27 @@ app.use((req, res, next) => {
   // Basitleştirilmiş server başlatma kodu
   // Sabit port kullan ve process hataları için basit bir çözüm ekle
   const PORT = 5002; // Tamamen yeni bir port kullanıyoruz
+  
+  // Temel uptime/health endpoint'leri
+  app.get('/', (req, res) => {
+    res.status(200).send('Discord Bot Server Running');
+  });
+  
+  app.get('/ping', (req, res) => {
+    res.status(200).send('Pong!');
+  });
+  
+  app.get('/uptime-check', (req, res) => {
+    res.status(200).json({ status: 'online', time: new Date().toISOString() });
+  });
+  
   const startServer = async () => {
     // Önce mevcut süreçleri zorla kapatmayı denemeyeceğiz
     // Bu yaklaşım daha güvenli
     try {
       server.listen(PORT, "0.0.0.0", async () => {
         log(`✅ Server çalışıyor: port ${PORT} (http://0.0.0.0:${PORT})`);
-        log(`🌐 Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev'}`);
+        log(`🌐 Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://discord-halisaha-manager.emilswd.repl.co'}`);
       
       try {
         // Veritabanını başlat

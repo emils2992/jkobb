@@ -37,6 +37,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Ana HTTP sağlık kontrolü ve UptimeRobot için endpoint'ler
+  app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+  });
+
   // Initialize Discord bot
   await initDiscordBot();
   
