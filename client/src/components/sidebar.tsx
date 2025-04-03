@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useNavigate } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { LogOut, MoreHorizontal, Bot, Trophy } from "lucide-react"; // Added Bot and Trophy icons
@@ -190,7 +190,9 @@ export default function Sidebar() {
         <button
           onClick={() => {
             logout();
-            window.location.href = ROUTES.LOGIN;
+            setTimeout(() => {
+              window.location.href = ROUTES.LOGIN;
+            }, 100);
           }}
           className="w-full flex items-center justify-center space-x-2 p-2 rounded bg-red-600 hover:bg-red-700 text-white transition-colors"
         >

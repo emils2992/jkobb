@@ -15,14 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
+const ROUTES = {
+  HOME: "/"
+};
+
 export default function LoginPage() {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(""); // Added error state
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const { login, isLoggedIn } = useAuth();
-  
+
   // Eğer kullanıcı zaten giriş yapmışsa anasayfaya yönlendir
   useEffect(() => {
     if (isLoggedIn && location === "/login") {
@@ -33,9 +38,9 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(""); // Clear error on new attempt
 
     try {
-      // Sunucu üzerinden giriş yap
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: {
@@ -44,36 +49,27 @@ export default function LoginPage() {
         body: JSON.stringify({ username, password }),
         credentials: 'include'
       });
-      
-      if (response.ok) {
-        // Giriş başarılı
-        const data = await response.json();
-        if (data.admin) {
-          login(data.admin); // Admin bilgilerini de auth context'e aktar
-        } else {
-          login(); // Admin bilgisi yoksa sadece login durumunu güncelle
-        }
-        toast({
-          title: "Giriş Başarılı",
-          description: "Yönetim paneline yönlendiriliyorsunuz",
-        });
-        setLocation("/");
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Giriş başarılı, kullanıcıyı giriş yapmış olarak işaretle
+        login(data.admin);
+
+        // Kısa bir gecikme ile ana sayfaya yönlendir
+        setTimeout(() => {
+          setLocation(ROUTES.HOME);
+        }, 100);
       } else {
-        // Giriş başarısız
-        const errorData = await response.json();
-        toast({
-          title: "Giriş Başarısız",
-          description: errorData.message || "Kullanıcı adı veya şifre yanlış",
-          variant: "destructive",
-        });
+        // Giriş başarısız, hata mesajını göster
+        setError(data.message || 'Kullanıcı adı veya şifre hatalı');
         setIsLoading(false);
       }
     } catch (error) {
-      toast({
-        title: "Giriş Hatası",
-        description: "Sunucu bağlantısında bir hata oluştu",
-        variant: "destructive",
-      });
+      console.error('Login error:', error);
+      setError('Bağlantı hatası. Lütfen daha sonra tekrar deneyin.');
+      setIsLoading(false);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -112,6 +108,7 @@ export default function LoginPage() {
                   required
                 />
               </div>
+              {error && <p className="text-red-500 text-sm">{error}</p>} {/* Display error message */}
             </div>
             <CardFooter className="flex justify-end gap-2 px-0 pt-6">
               <Button type="submit" disabled={isLoading}>

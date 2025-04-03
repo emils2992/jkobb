@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Route, Switch } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,54 +12,37 @@ import Layout from "@/components/layout";
 import { AuthProvider } from "./lib/auth-context";
 import ProtectedRoute from "./lib/protected-route";
 import { ROUTES } from "./routes";
-import AIChat from "@/pages/ai-chat"; // Added import
-import AdminChat from "@/pages/admin-chat"; // Admin Chat eklendi
-import StaffLeaderboard from "@/pages/staff-leaderboard"; // Added import for StaffLeaderboard
+import AIChat from "@/pages/ai-chat"; 
+import AdminChat from "@/pages/admin-chat"; 
+import StaffLeaderboard from "@/pages/staff-leaderboard"; 
 
 function Router() {
   return (
     <Switch>
       <Route path={ROUTES.LOGIN} component={LoginPage} />
       <Route path={ROUTES.HOME}>
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
+        <Dashboard />
       </Route>
       <Route path={ROUTES.PLAYER_STATS}>
-        <ProtectedRoute>
-          <PlayerStats />
-        </ProtectedRoute>
+        <PlayerStats />
       </Route>
       <Route path={ROUTES.TRAINING}>
-        <ProtectedRoute>
-          <TrainingPage />
-        </ProtectedRoute>
+        <TrainingPage />
       </Route>
       <Route path={ROUTES.SETTINGS}>
-        <ProtectedRoute>
-          <SettingsPage />
-        </ProtectedRoute>
+        <SettingsPage />
       </Route>
-      <Route path={ROUTES.AI_CHAT}> {/* Added route for AI Chat */}
-        <ProtectedRoute>
-          <AIChat />
-        </ProtectedRoute>
+      <Route path={ROUTES.AI_CHAT}> 
+        <AIChat />
       </Route>
-      <Route path={ROUTES.ADMIN_CHAT}> {/* Admin Chat route */}
-        <ProtectedRoute>
-          <AdminChat />
-        </ProtectedRoute>
+      <Route path={ROUTES.ADMIN_CHAT}> 
+        <AdminChat />
       </Route>
-      <Route path={ROUTES.STAFF_LEADERBOARD}> {/* Added route for Staff Leaderboard */}
-        <ProtectedRoute>
-          <StaffLeaderboard />
-        </ProtectedRoute>
+      <Route path={ROUTES.STAFF_LEADERBOARD}> 
+        <StaffLeaderboard />
       </Route>
-      {/* Fallback to 404 */}
       <Route>
-        <ProtectedRoute>
-          <NotFound />
-        </ProtectedRoute>
+        <NotFound />
       </Route>
     </Switch>
   );
