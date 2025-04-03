@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PlayerStats } from "@/lib/types";
-import { Search } from "lucide-react";
+import { Search, RefreshCcw } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { FixModal } from "@/components/fix-modal";
 import { FixResetModal } from "@/components/fix-reset-modal";
@@ -13,9 +13,21 @@ export default function PlayerStatsPage() {
   const [showFixsonModal, setShowFixsonModal] = useState(false);
   const [showFixresetModal, setShowFixresetModal] = useState(false);
   
-  const { data: playersStats, isLoading, error } = useQuery<PlayerStats[]>({
+  const { data: playersStats, isLoading, error, refetch } = useQuery<PlayerStats[]>({
     queryKey: ['/api/players/stats'],
+    refetchInterval: 30000, // Her 30 saniyede bir otomatik yenile
+    staleTime: 15000, // 15 saniye sonra veriyi bayat olarak işaretle
+    refetchOnWindowFocus: true, // Sayfa odağa geldiğinde otomatik yenile
   });
+  
+  // Düzenli aralıklarla yenileme için
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log("Player stats yenileniyor...");
+      refetch();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   const filteredPlayers = playersStats?.filter(player => 
     player.user.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -113,6 +125,15 @@ export default function PlayerStatsPage() {
       <header className="bg-discord-dark p-4 border-b border-gray-800 flex justify-between items-center">
         <h1 className="text-xl font-bold">Nitelik İstatistikleri</h1>
         <div className="flex items-center space-x-3">
+          <button 
+            onClick={() => {
+              console.log("Manuel yenileme yapılıyor...");
+              refetch();
+            }}
+            className="flex items-center bg-discord-blue px-3 py-1.5 rounded text-sm hover:bg-blue-700 transition"
+          >
+            <RefreshCcw className="h-4 w-4 mr-1" /> Yenile
+          </button>
           <div className="relative">
             <Input 
               type="text"

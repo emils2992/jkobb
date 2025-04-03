@@ -33,21 +33,28 @@ export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
 
     try {
       setIsResetting(true);
-      await apiRequest("POST", "/api/fix/reset");
       
-      // Başarılı olursa, veriyi yeniden getir
+      // API isteğini yap
+      const result = await apiRequest("POST", "/api/fix/reset");
+      console.log("Fixreset API yanıtı:", result);
+      
+      // Tüm ilgili verileri yeniden getir
       queryClient.invalidateQueries({ queryKey: ['/api/players/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/players/stats/weekly'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/players/training-stats'] });
       
       toast({
         title: "Başarılı",
-        description: "Tüm nitelikler sıfırlandı.",
+        description: "Tüm nitelikler başarıyla sıfırlandı.",
       });
+      
       setConfirmText("");
       onClose();
     } catch (error) {
+      console.error("Fixreset hatası:", error);
       toast({
         title: "Hata",
-        description: "Nitelikler sıfırlanırken bir hata oluştu.",
+        description: "Nitelikler sıfırlanırken bir hata oluştu. Tekrar deneyin.",
         variant: "destructive",
       });
     } finally {
