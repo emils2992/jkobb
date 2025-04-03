@@ -1,133 +1,138 @@
+
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, AlertTriangle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface FixResetModalProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
 }
 
-export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
+export function FixResetModal({ open, onClose }: FixResetModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const [confirmText, setConfirmText] = useState("");
-  const [isResetting, setIsResetting] = useState(false);
-  const { toast } = useToast();
-
-  const handleCancel = () => {
-    setConfirmText("");
-    onClose();
-  };
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleReset = async () => {
     if (confirmText !== "ONAYLA") {
-      toast({
-        title: "Onay Hatası",
-        description: "Sıfırlama işlemini onaylamak için 'ONAYLA' yazmalısınız.",
-        variant: "destructive",
-      });
+      setError("Lütfen 'ONAYLA' yazarak işlemi onaylayın.");
       return;
     }
 
+    setIsLoading(true);
+    setError("");
+    
     try {
-      setIsResetting(true);
+      // axios kullanarak POST isteği gönder
+      const response = await axios.post("/api/fix/reset");
       
-      // API isteğini yap
-      const result = await apiRequest("POST", "/api/fix/reset");
-      console.log("Fixreset API yanıtı:", result);
+      console.log("Reset yanıtı:", response.data);
       
-      // Tüm ilgili verileri yeniden getir
-      queryClient.invalidateQueries();  // Tüm sorguları geçersiz kıl
-      
-      toast({
-        title: "Başarılı",
-        description: "Tüm nitelikler ve antrenman verileri başarıyla sıfırlandı.",
-      });
-      
-      setConfirmText("");
-      onClose();
-    } catch (error) {
+      if (response.data.success) {
+        setSuccess(true);
+        
+        // Tüm ilgili sorguları yeniden yükle
+        queryClient.invalidateQueries({ queryKey: ['/api/players/stats'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/players/training-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/training-sessions'] });
+        
+        setTimeout(() => {
+          onClose();
+          setSuccess(false);
+          setConfirmText("");
+        }, 2000);
+      } else {
+        setError(response.data.message || "İşlem sırasında bir hata oluştu");
+      }
+    } catch (error: any) {
       console.error("Fixreset hatası:", error);
-      toast({
-        title: "Hata",
-        description: "Nitelikler sıfırlanırken bir hata oluştu. Tekrar deneyin.",
-        variant: "destructive",
-      });
+      setError(
+        error.response?.data?.message || 
+        "Nitelikler sıfırlanırken bir hata oluştu. Lütfen tekrar deneyin."
+      );
     } finally {
-      setIsResetting(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!isLoading) {
+      setConfirmText("");
+      setError("");
+      setSuccess(false);
+      onClose();
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-discord-dark text-white max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center text-lg">
-            <RefreshCcw className="h-5 w-5 text-discord-red mr-2" />
-            /fixreset Komutu
-          </DialogTitle>
+          <DialogTitle className="text-red-500">⚠️ Tüm Nitelikleri Sıfırla</DialogTitle>
+          <DialogDescription>
+            Bu işlem tüm oyuncuların niteliklerini ve antrenman kayıtlarını <strong>tamamen silecek</strong> ve sıfırlayacaktır.
+            Bu işlem geri alınamaz!
+          </DialogDescription>
         </DialogHeader>
-
-        <div className="mb-6">
-          <p className="text-discord-light mb-4">
-            Bu komut, tüm nitelik değerlerini tamamen sıfırlar. Dikkatli kullanılmalıdır, bu işlem geri alınamaz!
-          </p>
-          
-          <div className="bg-gray-800 rounded-md p-3 font-mono text-sm">
-            <code>/fixreset [onay_kodu]</code>
-          </div>
-        </div>
         
-        <div className="bg-discord-red bg-opacity-10 border border-discord-red rounded-md p-4 mb-6">
-          <div className="flex items-start">
-            <AlertTriangle className="text-discord-red mt-1 mr-3 h-5 w-5" />
-            <div>
-              <h3 className="font-bold text-discord-red">Uyarı</h3>
-              <p className="text-sm text-discord-light">
-                Bu işlem tüm oyuncuların nitelik değerlerini ve haftalık sayaçlarını tamamen sıfırlayacaktır. Bu işlem geri alınamaz. İşlemi onaylamak için aşağıdaki kutuya "ONAYLA" yazınız.
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Hata</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
+        {success ? (
+          <Alert className="bg-green-50 border-green-200">
+            <AlertTitle className="text-green-800">Başarılı</AlertTitle>
+            <AlertDescription className="text-green-700">
+              Tüm nitelikler başarıyla sıfırlandı ve silindi.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div className="py-4">
+              <p className="text-sm text-red-600 mb-2">
+                Onaylamak için aşağıdaki alana "ONAYLA" yazın.
               </p>
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="ONAYLA"
+                className="w-full p-2 border border-gray-300 rounded"
+                disabled={isLoading}
+              />
             </div>
-          </div>
-        </div>
-        
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-discord-light mb-2">Onay Kodu</label>
-          <Input
-            type="text"
-            placeholder="ONAYLA"
-            className="w-full bg-gray-700 rounded px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-blue"
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-          />
-        </div>
-
-        <DialogFooter className="flex justify-end space-x-3">
-          <Button 
-            variant="secondary" 
-            className="bg-gray-700 hover:bg-gray-600" 
-            onClick={handleCancel}
-          >
-            İptal
-          </Button>
-          <Button 
-            variant="destructive" 
-            className="bg-discord-red hover:bg-red-600" 
-            onClick={handleReset}
-            disabled={isResetting}
-          >
-            {isResetting ? (
-              <>
-                <RefreshCcw className="h-4 w-4 mr-1 animate-spin" /> Sıfırlanıyor...
-              </>
-            ) : (
-              <>
-                <RefreshCcw className="h-4 w-4 mr-1" /> Sıfırla
-              </>
-            )}
-          </Button>
-        </DialogFooter>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+                İptal
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleReset} 
+                disabled={isLoading || confirmText !== "ONAYLA"}
+              >
+                {isLoading ? "İşleniyor..." : "Tüm Nitelikleri Sıfırla"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
