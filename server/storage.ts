@@ -391,37 +391,28 @@ export class MemStorage implements IStorage {
   }
 
   async closeTicket(ticketId: string, closedBy?: string): Promise<Ticket> {
-    try {
-      // Make sure closedBy is always set
-      const finalClosedBy = closedBy || 'unknown';
+    // Var olan ticket'ı bul
+    const ticket = await this.getTicket(ticketId);
+    if (!ticket) throw new Error(`Ticket with ID ${ticketId} not found`);
 
-      console.log(`Ticket kapatılıyor ${ticketId}, kapatan: ${finalClosedBy}`);
+    // Güvenli bir şekilde closedBy değerini ayarla
+    const finalClosedBy = closedBy || null;
+    
+    console.log(`Ticket kapatılıyor: ${ticketId}, kapatan: ${finalClosedBy || 'bilinmiyor'}`);
 
-      const query = `
-        UPDATE tickets 
-        SET status = 'closed', closed_at = NOW(), closed_by = $2
-        WHERE ticket_id = $1
-      `;
+    // Ticket'ı kapat
+    const updated: Ticket = {
+      ...ticket,
+      status: 'closed',
+      updatedAt: new Date(),
+      closedAt: new Date(),
+      closedBy: finalClosedBy
+    };
 
-      await this.pool.query(query, [ticketId, finalClosedBy]);
-      console.log(`Ticket closed successfully: ${ticketId}, closed by: ${finalClosedBy}`);
-
-      // Şimdi güncellenmiş veriyi alalım
-      const { rows } = await this.pool.query(
-        `SELECT * FROM tickets WHERE ticket_id = $1`,
-        [ticketId]
-      );
-
-      if (rows.length > 0) {
-        console.log("Ticket başarıyla kapatıldı:", rows[0]);
-        return rows[0];
-      } else {
-        throw new Error(`Ticket bulunamadı: ${ticketId}`);
-      }
-    } catch (error) {
-      console.error('Error closing ticket:', error);
-      throw error;
-    }
+    this.tickets.set(ticket.id, updated);
+    console.log(`Ticket başarıyla kapatıldı: ${ticketId}`);
+    
+    return updated;
   }
 
   // Attribute request operations
