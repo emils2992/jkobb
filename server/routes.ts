@@ -244,10 +244,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Burada "1" değerini guildId olarak kullanıyoruz, çünkü web uygulamasında sadece bir sunucu var
       await storage.resetAllAttributes("1");
-      res.json({ success: true, message: "Tüm nitelikler sıfırlandı" });
+      
+      // Nitelik kayıtlarını veritabanından tamamen sil
+      await storage.deleteAllAttributes();
+      
+      // Antrenman verilerini de sıfırla
+      try {
+        // Tüm antrenman verilerini silen SQL sorgusu
+        await pool.query(`
+          DELETE FROM training_sessions;
+        `);
+        console.log('Tüm antrenman verileri başarıyla silindi.');
+      } catch (dbError) {
+        console.error('Antrenman verileri silinirken hata:', dbError);
+      }
+      
+      res.json({ success: true, message: "Tüm nitelikler sıfırlandı ve silindi" });
     } catch (error) {
       console.error("Error resetting attributes:", error);
-      res.status(500).json({ success: false, message: "Nitelikler sıfırlanırken bir hata oluştu" });
+      res.status(500).json({ success: false, message: "Nitelikler sıfırlanırken bir hata oluştu" });nırken bir hata oluştu" });
     }
   });
 

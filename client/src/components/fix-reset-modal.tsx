@@ -39,13 +39,11 @@ export function FixResetModal({ isOpen, onClose }: FixResetModalProps) {
       console.log("Fixreset API yanıtı:", result);
       
       // Tüm ilgili verileri yeniden getir
-      queryClient.invalidateQueries({ queryKey: ['/api/players/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/players/stats/weekly'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/players/training-stats'] });
+      queryClient.invalidateQueries();  // Tüm sorguları geçersiz kıl
       
       toast({
         title: "Başarılı",
-        description: "Tüm nitelikler başarıyla sıfırlandı.",
+        description: "Tüm nitelikler ve antrenman verileri başarıyla sıfırlandı.",
       });
       
       setConfirmText("");
