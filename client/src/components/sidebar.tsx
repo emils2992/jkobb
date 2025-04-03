@@ -156,7 +156,12 @@ export default function Sidebar() {
               <ul>
                 {sectionItems.map((item, itemIndex) => (
                   <li key={itemIndex}>
-                    <Link href={item.href}>
+                    <Link href={item.href} onClick={(e) => {
+                      // Prevent default to let Wouter handle navigation
+                      e.preventDefault();
+                      // Force navigate to the route
+                      window.location.href = item.href;
+                    }}>
                       <div className={cn(
                         "flex items-center space-x-2 p-3 rounded hover:bg-gray-700 cursor-pointer",
                         location === item.href ? "text-white bg-gray-700" : "text-discord-light",

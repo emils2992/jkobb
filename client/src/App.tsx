@@ -20,26 +20,40 @@ function Router() {
   return (
     <Switch>
       <Route path={ROUTES.LOGIN} component={LoginPage} />
-      <Route path={ROUTES.HOME}>
-        <Dashboard />
+      <Route path={ROUTES.DASHBOARD}>
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
       </Route>
       <Route path={ROUTES.PLAYER_STATS}>
-        <PlayerStats />
+        <ProtectedRoute>
+          <PlayerStats />
+        </ProtectedRoute>
       </Route>
       <Route path={ROUTES.TRAINING}>
-        <TrainingPage />
+        <ProtectedRoute>
+          <TrainingPage />
+        </ProtectedRoute>
       </Route>
       <Route path={ROUTES.SETTINGS}>
-        <SettingsPage />
+        <ProtectedRoute>
+          <SettingsPage />
+        </ProtectedRoute>
       </Route>
       <Route path={ROUTES.AI_CHAT}> 
-        <AIChat />
+        <ProtectedRoute>
+          <AIChat />
+        </ProtectedRoute>
       </Route>
       <Route path={ROUTES.ADMIN_CHAT}> 
-        <AdminChat />
+        <ProtectedRoute>
+          <AdminChat />
+        </ProtectedRoute>
       </Route>
       <Route path={ROUTES.STAFF_LEADERBOARD}> 
-        <StaffLeaderboard />
+        <ProtectedRoute>
+          <StaffLeaderboard />
+        </ProtectedRoute>
       </Route>
       <Route>
         <NotFound />
