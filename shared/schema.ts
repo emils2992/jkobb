@@ -108,6 +108,7 @@ export const serverConfig = pgTable("server_config", {
   guildId: text("guild_id").notNull().unique(), // Discord guild/server ID
   fixLogChannelId: text("fix_log_channel_id"), // Channel ID for fix logs
   trainingChannelId: text("training_channel_id"), // Channel ID for training logs
+  staffRoleId: text("staff_role_id"), // Staff role ID
   lastResetAt: timestamp("last_reset_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -117,6 +118,7 @@ export const insertServerConfigSchema = createInsertSchema(serverConfig).pick({
   guildId: true,
   fixLogChannelId: true,
   trainingChannelId: true,
+  staffRoleId: true,
 });
 
 // Type exports

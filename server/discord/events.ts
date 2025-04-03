@@ -538,120 +538,134 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     await interaction.deferReply({ ephemeral: true });
 
     try {
+      console.time('ticket_creation_total');
       // Hız optimizasyonu için asenkron işlemleri önden başlat
       const guild = interaction.guild;
       if (!guild) {
         return interaction.editReply('Bu komut sadece sunucularda kullanılabilir.');
       }
 
-      // Create user if doesn't exist
-      await storage.getOrCreateUser(
-        interaction.user.id,
-        interaction.user.username,
-        interaction.user.displayAvatarURL()
-      );
+      // Kullanıcı ve config işlemlerini paralel olarak başlat (hızlandırma)
+      console.time('parallel_operations');
+      const [user, serverConfig] = await Promise.all([
+        // Kullanıcı oluşturma/alma
+        storage.getOrCreateUser(
+          interaction.user.id,
+          interaction.user.username,
+          interaction.user.displayAvatarURL()
+        ),
+        
+        // Sunucu konfigürasyonunu alma
+        storage.getServerConfig(guild.id)
+      ]);
+      console.timeEnd('parallel_operations');
 
-      // Get server config to check for staff role
-      const serverConfig = await storage.getServerConfig(guild.id);
-      let staffRoleId = null;
-
-      // Veritabanından staff_role_id'yi almak için
-      if (serverConfig) {
+      // Staff rol ID'sini ayarla
+      let staffRoleId = serverConfig?.staffRoleId || null;
+      if (!staffRoleId && serverConfig) {
         try {
-          const query = `
-            SELECT staff_role_id 
-            FROM server_config 
-            WHERE guild_id = $1
-          `;
-
+          // Neden veritabanında yok? Direkt SQL ile kontrol edelim
+          console.time('staff_role_query');
+          const query = 'SELECT staff_role_id FROM server_config WHERE guild_id = $1';
           const { rows } = await pool.query(query, [guild.id]);
           if (rows.length > 0 && rows[0].staff_role_id) {
             staffRoleId = rows[0].staff_role_id;
-            console.log(`Ticket oluşturuluyor, yetkili rol ID'si: ${staffRoleId}`);
           }
+          console.timeEnd('staff_role_query');
         } catch (error) {
           console.error('Error fetching staff role ID:', error);
         }
       }
 
-      // Create ticket channel - SADECE ticket oluşturana ve yetkililere görünür
+      // Permission Overwrite'ları hızlı bir şekilde oluştur
+      console.time('permission_setup');
       const permissionOverwrites = [
         {
           id: guild.id, // @everyone role
-          deny: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory
-          ]
+          deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
         },
         {
           id: interaction.user.id, // Ticket oluşturan
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory
-          ]
-        },
-        // Yöneticilere her zaman yazma yetkisi ver
-        {
-          id: guild.roles.cache.find(r => r.permissions.has(PermissionFlagsBits.Administrator))?.id || guild.id,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory
-          ]
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
         }
       ];
 
-      // Eğer özel bir yetkili rolü ayarlanmışsa, ona da izin ver
-      if (staffRoleId) {
+      // Admin rolünü hızlı bir şekilde bul
+      const adminRole = guild.roles.cache.find(r => r.permissions.has(PermissionFlagsBits.Administrator));
+      if (adminRole) {
         permissionOverwrites.push({
-          id: staffRoleId,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory
-          ]
+          id: adminRole.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
         });
       }
 
+      // Yetkili rolünü ekle
+      if (staffRoleId) {
+        permissionOverwrites.push({
+          id: staffRoleId,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+        });
+      }
+      console.timeEnd('permission_setup');
+
+      // Kanal oluşturma ve ticket oluşturma işlemlerini paralel başlat
+      console.time('channel_creation');
+      const channelName = `ticket-${interaction.user.username}-${Date.now().toString().slice(-4)}`;
       const channel = await guild.channels.create({
-        name: `ticket-${interaction.user.username}-${Date.now().toString().slice(-4)}`,
+        name: channelName,
         type: ChannelType.GuildText,
         permissionOverwrites: permissionOverwrites
       });
+      console.timeEnd('channel_creation');
 
-      // Create ticket in database
-      const ticket = await storage.createTicket({
-        ticketId: channel.id,
-        userId: interaction.user.id,
-        status: 'open',
-        type: 'attribute'
-      });
-
-      // Get player stats to show in the ticket
-      const playerStats = await storage.getPlayerAttributeStats(interaction.user.id);
+      // Veritabanı işlemlerini ve UI hazırlığını paralel yap
+      console.time('parallel_ui_db');
+      
+      // Ticket DB kayıt işlemi ve oyuncu istatistikleri işlemlerini paralel başlat
+      const [ticket, playerStats] = await Promise.all([
+        // Ticket oluştur
+        storage.createTicket({
+          ticketId: channel.id,
+          userId: interaction.user.id,
+          status: 'open',
+          type: 'attribute'
+        }),
+        
+        // Oyuncu istatistiklerini getir
+        storage.getPlayerAttributeStats(interaction.user.id)
+      ]);
+      
+      // UI bileşenlerini hızlı bir şekilde hazırla
       const playerStat = playerStats && playerStats.length > 0 ? playerStats[0] : null;
-
-      // Prepare player stats text
+      
+      // Oyuncu istatistik metni hazırla - limit ile kısa tut
       let statsText = '';
       if (playerStat) {
-        statsText = `\n\n**Mevcut Nitelik Durumu:**\nToplam Nitelik: **${playerStat.totalValue}**\nBu Hafta: **${playerStat.weeklyValue}**`;
-
+        statsText = `\n\n**Mevcut Nitelik Durumu:**\nToplam: **${playerStat.totalValue}** | Bu Hafta: **${playerStat.weeklyValue}**`;
+        
+        // En önemli 3 niteliği göster (çok uzun olmasın)
         if (playerStat.attributes && playerStat.attributes.length > 0) {
-          statsText += '\n\n**Detaylı Nitelikler:**\n';
-          playerStat.attributes.forEach((attr: { name: string, value: number }) => {
-            statsText += `${attr.name}: **${attr.value}**\n`;
-          });
+          const topAttributes = playerStat.attributes
+            .sort((a: any, b: any) => b.value - a.value)
+            .slice(0, 3);
+            
+          if (topAttributes.length > 0) {
+            statsText += '\n\n**En Yüksek Nitelikler:**\n';
+            topAttributes.forEach((attr: { name: string, value: number }) => {
+              statsText += `${attr.name}: **${attr.value}** | `;
+            });
+            statsText = statsText.slice(0, -3); // Son separator'ı kaldır
+          }
         }
       }
-
-      // Send initial message in the ticket channel
+      
+      // Embed ve butonları hazırla
       const embed = new EmbedBuilder()
         .setTitle('🎫 Yeni Nitelik Talebi')
         .setColor('#5865F2')
-        .setDescription(`${interaction.user} tarafından açıldı.\n\nNitelik talebini aşağıdaki formatta gönderebilirsin:\n\`\`\`Nitelik: +2 Hız\nNitelik: +1 Şut\n\`\`\`${statsText}`)
-        .setTimestamp();
+        .setDescription(`${interaction.user} tarafından açıldı.\n\nNitelik talebini "Nitelik Ekle" butonu ile ekleyebilirsin.${statsText}`)
+        .setTimestamp()
+        .setFooter({ text: `Ticket ID: ${channel.id}` });
 
       const row = new ActionRowBuilder<ButtonBuilder>()
         .addComponents(
@@ -664,23 +678,28 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             .setLabel('Nitelik Ekle')
             .setStyle(ButtonStyle.Primary)
         );
-
-      // Yetkili rolünü etiketleme
-      let mentionText = '';
-
-      // Eğer yetkili rol ID'si varsa, o rolü etiketle
-      if (staffRoleId) {
-        mentionText = `<@&${staffRoleId}> Yeni bir ticket açıldı!`;
-      }
-
-      // İlk mesajı ve rol etiketini gönder
+      
+      console.timeEnd('parallel_ui_db');
+      
+      // Son mesaj gönderme işlemleri
+      console.time('final_messages');
+      
+      // Eğer varsa staff rol mention'ı
+      let mentionText = staffRoleId ? `<@&${staffRoleId}> Yeni bir ticket açıldı!` : '';
+      
+      // Channel mesajını gönder
       await channel.send({ 
         content: mentionText, 
         embeds: [embed], 
         components: [row] 
       });
-
-      await interaction.editReply(`Ticket oluşturuldu: <#${channel.id}>`);
+      
+      // Son kullanıcı mesajını gönder
+      await interaction.editReply(`✅ Ticket oluşturuldu: <#${channel.id}>`);
+      
+      console.timeEnd('final_messages');
+      console.timeEnd('ticket_creation_total');
+      
     } catch (error) {
       console.error('Error creating ticket:', error);
       await interaction.editReply('Ticket oluşturulurken bir hata oluştu.');
@@ -716,9 +735,9 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     let hasStaffRole = false;
     if (interaction.guild) {
       const serverConfig = await storage.getServerConfig(interaction.guild.id);
-      if (serverConfig?.staff_role_id) {
+      if (serverConfig?.staffRoleId) {
         const member = await interaction.guild.members.fetch(interaction.user.id);
-        hasStaffRole = member.roles.cache.has(serverConfig.staff_role_id);
+        hasStaffRole = member.roles.cache.has(serverConfig.staffRoleId);
       }
     }
     
@@ -1101,39 +1120,39 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
   // Handle add attribute modal
   if (customId === 'add_attribute_modal') {
-    const attributeName = interaction.fields.getTextInputValue('attribute_name');
-    const attributeValueStr = interaction.fields.getTextInputValue('attribute_value');
-
-    const attributeValue = parseInt(attributeValueStr, 10);
-
-    if (isNaN(attributeValue) || attributeValue < 1 || attributeValue > 10) {
-      return interaction.reply({
-        content: 'Geçersiz nitelik değeri. 1 ile 10 arasında bir sayı girin.',
-        ephemeral: true
-      });
-    }
-
     try {
-      // Save attribute request
-      const ticketId = interaction.channelId;
+      // Önce etkileşimi bekletin - "don't response" hatasını önlemek için
+      await interaction.deferReply();
+      
+      const attributeName = interaction.fields.getTextInputValue('attribute_name');
+      const attributeValueStr = interaction.fields.getTextInputValue('attribute_value');
+      const attributeValue = parseInt(attributeValueStr, 10);
 
-      if (!ticketId) {
-        return interaction.reply({
-          content: 'Kanal bilgisi alınamadı.',
-          ephemeral: true
+      if (isNaN(attributeValue) || attributeValue < 1 || attributeValue > 10) {
+        return interaction.editReply({
+          content: 'Geçersiz nitelik değeri. 1 ile 10 arasında bir sayı girin.'
         });
       }
 
-      // Burada aynı nitelik için birden fazla talep olması durumunu
-      // ticket kapatılırken ele alacağız, şimdilik yeni talebi ekliyoruz
+      // Save attribute request
+      const ticketId = interaction.channelId;
+      if (!ticketId) {
+        return interaction.editReply({
+          content: 'Kanal bilgisi alınamadı.'
+        });
+      }
+
+      console.log(`Nitelik talebi oluşturuluyor: ${attributeName} +${attributeValue} (Ticket: ${ticketId})`);
 
       // Şimdi yeni talebi ekleyelim
-      await storage.createAttributeRequest({
+      const request = await storage.createAttributeRequest({
         ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
         attributeName,
         valueRequested: attributeValue,
         approved: false
       });
+
+      console.log(`Nitelik talebi başarıyla oluşturuldu: ID=${request.id}`);
 
       // Create response embed
       const embed = new EmbedBuilder()
@@ -1143,15 +1162,24 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           { name: 'Nitelik', value: attributeName, inline: true },
           { name: 'Değer', value: `+${attributeValue}`, inline: true }
         )
+        .setFooter({ text: `Talep ID: ${request.id}` })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed] });
+      await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       console.error('Error adding attribute request:', error);
-      await interaction.reply({
-        content: 'Nitelik talebi eklenirken bir hata oluştu.',
-        ephemeral: true
-      });
+      // Eğer etkileşim henüz yanıtlanmamışsa
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: 'Nitelik talebi eklenirken bir hata oluştu.',
+          ephemeral: true
+        }).catch(err => console.error('Modal yanıtlanırken hata:', err));
+      } else {
+        // Eğer zaten bir yanıt bekleniyorsa
+        await interaction.editReply({
+          content: 'Nitelik talebi eklenirken bir hata oluştu.'
+        }).catch(err => console.error('Modal yanıtı düzenlenirken hata:', err));
+      }
     }
   }
 }
