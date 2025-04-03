@@ -100,7 +100,7 @@ app.use((req, res, next) => {
 
   // Basitleştirilmiş server başlatma kodu
   // Sabit port kullan ve process hataları için basit bir çözüm ekle
-  const PORT = 5002; // Tamamen yeni bir port kullanıyoruz
+  const PORT = 5009; // Kullanılmayan bir port kullanıyoruz
   
   // Temel uptime/health endpoint'leri
   app.get('/', (req, res) => {
