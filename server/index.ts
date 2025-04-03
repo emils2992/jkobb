@@ -93,33 +93,45 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0", // Tüm ağ arayüzlerinden erişilebilir olmasını sağlar
-    reusePort: true,
-  }, async () => {
-    log(`serving on port ${port} (http://0.0.0.0:${port})`);
-    log(`Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev/'}`);
-    
+  // Ana port 5000, eğer meşgulse 5001 veya başka bir port denenecek
+  let port = 5000;
+  const startServer = async () => {
     try {
-      // Veritabanını başlat
-      await initDatabase();
-      log('Veritabanı başarıyla başlatıldı');
+      server.listen({
+        port,
+        host: "0.0.0.0", // Tüm ağ arayüzlerinden erişilebilir olmasını sağlar
+        reusePort: true,
+      }, async () => {
+    log(`serving on port ${port} (http://0.0.0.0:${port})`);
+      log(`Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://discord-halisaha-manager.emilswd.repl.co'}`);
       
-      // Initialize Discord bot
-      await initDiscordBot();
-      log('Discord bot başarıyla başlatıldı');
-      
-      // Uptime ve Keepalive servislerini başlat
-      startUptimeService();
-      startEnhancedKeepAliveService();
-      log('Uptime ve Keepalive servisleri başlatıldı - Sistem sürekli çalışmaya hazır');
-    } catch (error) {
-      console.error('Error in initialization:', error);
+      try {
+        // Veritabanını başlat
+        await initDatabase();
+        log('Veritabanı başarıyla başlatıldı');
+        
+        // Initialize Discord bot
+        await initDiscordBot();
+        log('Discord bot başarıyla başlatıldı');
+        
+        // Uptime ve Keepalive servislerini başlat
+        startUptimeService();
+        startEnhancedKeepAliveService();
+        log('Uptime ve Keepalive servisleri başlatıldı - Sistem sürekli çalışmaya hazır');
+      } catch (error) {
+        console.error('Error in initialization:', error);
+      }
+    });
+  } catch (err) {
+    if (err.code === 'EADDRINUSE') {
+      log(`Port ${port} is busy, trying port ${port + 1}...`);
+      port = port + 1; // Alternatif port dene
+      startServer(); // Yeniden başlatma denemesi
+    } else {
+      console.error('Server error:', err);
     }
-  });
+  }
+};
+
+startServer(); // Sunucuyu başlat
 })();
