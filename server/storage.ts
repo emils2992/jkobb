@@ -392,7 +392,10 @@ export class MemStorage implements IStorage {
 
   async closeTicket(ticketId: string, closedBy?: string): Promise<Ticket> {
     try {
-      const { rows } = await pool.query(
+      console.log(`Ticket kapatılıyor: ${ticketId}, Kapatan: ${closedBy || 'Belirtilmemiş'}`);
+      
+      // Yeni bir sorgu - önce RETURNING * kullanmıyoruz çünkü hata olabilir
+      await pool.query(
         `
         UPDATE tickets 
         SET 
@@ -400,12 +403,23 @@ export class MemStorage implements IStorage {
           closed_at = NOW(), 
           updated_at = NOW(),
           closed_by = $2
-        WHERE ticket_id = $1 
-        RETURNING *
+        WHERE ticket_id = $1
         `,
         [ticketId, closedBy || null]
       );
-      return rows[0];
+      
+      // Şimdi güncellenmiş veriyi alalım
+      const { rows } = await pool.query(
+        `SELECT * FROM tickets WHERE ticket_id = $1`,
+        [ticketId]
+      );
+      
+      if (rows.length > 0) {
+        console.log("Ticket başarıyla kapatıldı:", rows[0]);
+        return rows[0];
+      } else {
+        throw new Error(`Ticket bulunamadı: ${ticketId}`);
+      }
     } catch (error) {
       console.error('Error closing ticket:', error);
       throw error;

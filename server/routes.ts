@@ -358,6 +358,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Yetkili Leaderboard - Ticket kapatma istatistikleri
   app.get("/api/staff/leaderboard", async (req, res) => {
     try {
+      console.log("Yetkili sıralama isteği alındı");
+      
       // Ticket kapatma istatistiklerini al
       const { rows } = await pool.query(`
         SELECT 
@@ -374,10 +376,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           closed_count DESC
       `);
       
+      console.log("Veritabanından gelen sonuçlar:", JSON.stringify(rows));
+      
       // Kullanıcı bilgilerini al
       const staffStats = await Promise.all(
         rows.map(async (row) => {
           const user = await storage.getUserById(row.staff_id);
+          console.log(`Kullanıcı bilgisi alındı: ${row.staff_id}`, user);
           return {
             user: user || { userId: row.staff_id, username: "Bilinmeyen Yetkili" },
             closedCount: parseInt(row.closed_count)
@@ -385,6 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
+      console.log("İşlenmiş yetkili istatistikleri:", JSON.stringify(staffStats));
       res.json(staffStats);
     } catch (error) {
       console.error("Yetkili leaderboard alınırken hata:", error);
