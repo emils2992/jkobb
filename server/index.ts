@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initDiscordBot } from "./discord"; // Bot başlatma işlemi etkinleştirildi
@@ -12,6 +13,18 @@ import ConnectPgSimple from "connect-pg-simple";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// API istekleri için hız sınırlayıcı - yüksek yük altında performansı korur
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 dakika
+  max: 60, // Her IP'den dakikada maksimum 60 istek
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Çok fazla istek gönderildi, lütfen bir süre bekleyin." }
+});
+
+// Sadece /api endpointleri için limitleme uygula
+app.use('/api', apiLimiter);
 
 // Session setup
 const PgStore = ConnectPgSimple(session);

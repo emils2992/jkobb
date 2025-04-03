@@ -185,54 +185,64 @@ export class PgStorage implements IStorage {
   }
 
   async getPlayerAttributeStats(userId?: string): Promise<any[]> {
-    let userQuery;
-    let params: any[] = [];
-    
-    if (userId) {
-      userQuery = 'WHERE u.user_id = $1';
-      params.push(userId);
-    } else {
-      userQuery = '';
-    }
-    
-    // Kullanıcı bilgileri ve toplam nitelik değerleri
-    const result = await this.pool.query(`
-      SELECT 
-        u.*, 
-        COALESCE(SUM(a.value), 0) as total_value,
-        COALESCE(SUM(a.weekly_value), 0) as weekly_value,
-        (
-          SELECT updated_at 
-          FROM tickets 
-          WHERE user_id = u.user_id AND status = 'closed'
-          ORDER BY updated_at DESC
-          LIMIT 1
-        ) as last_fix_date
-      FROM 
-        users u
-      LEFT JOIN 
-        attributes a ON u.user_id = a.user_id
-      ${userQuery}
-      GROUP BY 
-        u.id
-    `, params);
-    
-    const playerStats = [];
-    
-    for (const row of result.rows) {
-      // Her kullanıcı için nitelikleri al
-      const attributes = await this.getAttributes(row.user_id);
+    try {
+      let userQuery;
+      let params: any[] = [];
       
-      playerStats.push({
-        user: this.pgUserToUser(row),
-        totalValue: parseInt(row.total_value) || 0,
-        weeklyValue: parseInt(row.weekly_value) || 0,
-        lastFixDate: row.last_fix_date ? new Date(row.last_fix_date) : null,
-        attributes
-      });
+      if (userId) {
+        userQuery = 'WHERE u.user_id = $1';
+        params.push(userId);
+      } else {
+        userQuery = '';
+      }
+      
+      // Optimize edilmiş sorgu - alt sorgu yerine LEFT JOIN kullanarak performans artışı
+      const result = await this.pool.query(`
+        SELECT 
+          u.*, 
+          COALESCE(SUM(a.value), 0) as total_value,
+          COALESCE(SUM(a.weekly_value), 0) as weekly_value,
+          t.updated_at as last_fix_date
+        FROM 
+          users u
+        LEFT JOIN 
+          attributes a ON u.user_id = a.user_id
+        LEFT JOIN (
+          SELECT 
+            user_id, 
+            MAX(updated_at) as updated_at
+          FROM 
+            tickets
+          WHERE 
+            status = 'closed'
+          GROUP BY 
+            user_id
+        ) t ON u.user_id = t.user_id
+        ${userQuery}
+        GROUP BY 
+          u.id, t.updated_at
+      `, params);
+      
+      // Paralel sorgular için Promise.all kullanarak verimlilik artışı
+      const playerStats = await Promise.all(result.rows.map(async (row) => {
+        // Her kullanıcı için nitelikleri al
+        const attributes = await this.getAttributes(row.user_id);
+        
+        return {
+          user: this.pgUserToUser(row),
+          totalValue: parseInt(row.total_value) || 0,
+          weeklyValue: parseInt(row.weekly_value) || 0,
+          lastFixDate: row.last_fix_date ? new Date(row.last_fix_date) : null,
+          attributes
+        };
+      }));
+      
+      return playerStats;
+    } catch (error) {
+      console.error('getPlayerAttributeStats hata:', error);
+      // Hata durumunda boş dizi döndür ama uygulamanın çalışmaya devam etmesini sağla
+      return [];
     }
-    
-    return playerStats;
   }
   
   async getPlayerTrainingStats(userId?: string): Promise<any[]> {

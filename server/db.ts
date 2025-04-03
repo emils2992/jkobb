@@ -3,9 +3,13 @@ const { Pool } = pg;
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '../shared/schema';
 
-// Veritabanı bağlantı havuzu oluştur
+// Veritabanı bağlantı havuzu oluştur - ölçeklenebilirlik için optimize edilmiş
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 20, // maksimum bağlantı sayısı
+  idleTimeoutMillis: 30000, // boşta kalan bağlantıların ne kadar süre korunacağı
+  connectionTimeoutMillis: 2000, // bağlantı zaman aşımı
+  maxUses: 7500, // bir bağlantının yeniden kullanılma sayısı
 });
 
 // Drizzle ORM'yi yapılandır
