@@ -43,6 +43,7 @@ localPort = 8099
 externalPort = 8099
 
 [workflows]
+runButton = "UptimeBot"
 
 [[workflows.workflow]]
 name = "Project"
@@ -106,6 +107,35 @@ args = "npm run dev"
 
 [[workflows.workflow]]
 name = "Restart Bot"
+author = 41128090
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Tüm Node.js işlemlerini temizle"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"node|tsx\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# 3 saniye bekle"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 3"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Botu yeniden başlat"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "UptimeBot"
 author = 41128090
 mode = "sequential"
 

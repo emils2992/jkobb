@@ -98,11 +98,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Basitleştirilmiş server başlatma kodu
-  // Sabit port kullan ve process hataları için basit bir çözüm ekle
-  const PORT = 5009; // Kullanılmayan bir port kullanıyoruz
+  // Dinamik port kullanımı - hata durumunda yeni port deneyin
+  let port = 3030; // Uptime servisleri için sabit bir port
   
-  // Temel uptime/health endpoint'leri
+  // Temel uptime/health endpoint'leri için genişletilmiş rotalar
   app.get('/', (req, res) => {
     res.status(200).send('Discord Bot Server Running');
   });
@@ -116,15 +115,30 @@ app.use((req, res, next) => {
   });
   
   const startServer = async () => {
-    // Önce mevcut süreçleri zorla kapatmayı denemeyeceğiz
-    // Bu yaklaşım daha güvenli
-    try {
-      server.listen(PORT, "0.0.0.0", async () => {
-        log(`✅ Server çalışıyor: port ${PORT} (http://0.0.0.0:${PORT})`);
-        log(`🌐 Dış erişim URL'si: ${process.env.REPLIT_URL || 'https://discord-halisaha-manager.emilswd.repl.co'}`);
-      
+    // Dinamik port deneme mekanizması ile sunucu başlatma
+    const tryStartServer = (currentPort: number, maxRetries = 5) => {
+      if (maxRetries <= 0) {
+        log(`❌ Maksimum port deneme sayısına ulaşıldı, sunucu başlatılamıyor.`);
+        return;
+      }
+
       try {
-        // Veritabanını başlat
+        server.listen(currentPort, "0.0.0.0", async () => {
+          log(`✅ Server çalışıyor: port ${currentPort} (http://0.0.0.0:${currentPort})`);
+          
+          // Replit URL'sini al ve UptimeRobot için ping endpoint'lerini logla
+          const baseUrl = process.env.REPLIT_URL || 
+                          'https://discord-halisaha-manager.emilswd.repl.co';
+          log(`🌐 Dış erişim URL'si: ${baseUrl}`);
+          
+          // UptimeRobot için URL'leri logla
+          log(`🔔 UptimeRobot için ping URL'leri:`);
+          log(`   • ${baseUrl}/ping`);
+          log(`   • ${baseUrl}/uptime-check`);
+          log(`   • ${baseUrl}/api/health`);
+          
+          try {
+            // Veritabanını başlat
         await initDatabase();
         log('Veritabanı başarıyla başlatıldı');
         
@@ -143,14 +157,18 @@ app.use((req, res, next) => {
     });
   } catch (err: any) {
     if (err.code === 'EADDRINUSE') {
-      log(`Port ${port} is busy, trying port ${port + 1}...`);
-      port = port + 1; // Alternatif port dene
-      startServer(); // Yeniden başlatma denemesi
+      log(`Port ${currentPort} meşgul, port ${currentPort + 1} deneniyor...`);
+      // Bir sonraki portu dene
+      tryStartServer(currentPort + 1, maxRetries - 1);
     } else {
       console.error('Server error:', err);
     }
   }
 };
 
-startServer(); // Sunucuyu başlat
+    // İlk portu kullanarak sunucuyu başlatmayı dene
+    tryStartServer(port);
+  };
+
+  startServer(); // Sunucuyu başlat
 })();
