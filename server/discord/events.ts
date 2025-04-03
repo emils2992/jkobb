@@ -707,6 +707,25 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     if (ticket.status === 'closed') {
       return interaction.editReply('Bu ticket zaten kapatılmış.');
     }
+    
+    // Yetki kontrolü - sadece yöneticiler veya ticket sahibi kapatabilir
+    const hasAdminPermission = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+    const isTicketOwner = interaction.user.id === ticket.userId;
+    
+    // Staff rol ID'sini kontrol et
+    let hasStaffRole = false;
+    if (interaction.guild) {
+      const serverConfig = await storage.getServerConfig(interaction.guild.id);
+      if (serverConfig?.staff_role_id) {
+        const member = await interaction.guild.members.fetch(interaction.user.id);
+        hasStaffRole = member.roles.cache.has(serverConfig.staff_role_id);
+      }
+    }
+    
+    // Eğer yönetici veya staff rolüne sahip değilse ve ticket sahibi de değilse, erişimi engelle
+    if (!hasAdminPermission && !hasStaffRole && !isTicketOwner) {
+      return interaction.editReply('Bu ticketı kapatma yetkiniz yok. Sadece yetkililer veya ticket sahibi kapatabilir.');
+    }
 
     // İlk mesajı gönder (hızlı yanıt için)
     await interaction.editReply('Ticket kapatılıyor...');

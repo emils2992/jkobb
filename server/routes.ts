@@ -360,6 +360,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Yetkili sıralama isteği alındı");
       
+      // Ticket kapatma istatistiklerini al (veritabanındaki hataları da logla)
+      const checkQuery = await pool.query(`
+        SELECT * FROM tickets 
+        WHERE status = 'closed' 
+        ORDER BY closed_at DESC 
+        LIMIT 10
+      `);
+      
+      console.log("Son 10 kapatılan ticket kontrol:", JSON.stringify(checkQuery.rows));
+      
       // Ticket kapatma istatistiklerini al
       const { rows } = await pool.query(`
         SELECT 
@@ -370,6 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE 
           status = 'closed' 
           AND closed_by IS NOT NULL
+          AND closed_by != ''
         GROUP BY 
           closed_by
         ORDER BY 
