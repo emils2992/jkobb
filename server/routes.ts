@@ -149,6 +149,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Yeni keep-alive endpoint
+  app.get('/keep-alive', (req, res) => {
+    res.status(200).json({
+      status: 'active',
+      message: 'Bot is alive and running!',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   // Get ticket by ID
   app.get("/api/tickets/:ticketId", async (req, res) => {
     try {

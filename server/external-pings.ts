@@ -1,15 +1,13 @@
 // Uygulamayı sürekli aktif tutmak için çeşitli ücretsiz ping servisleri
 export const URLS = [
   // Replit'in kendi URL'i - kendi kendini ping atmak için
-  process.env.REPLIT_URL || 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev',
-  
+  process.env.REPLIT_URL || 'https://discord-halisaha-manager.emilswd.repl.co',
+
   // Ücretsiz uptime servisleri - bunlar da uygulamayı ayakta tutar
-  'https://uptimerobot.com',
-  'https://cron-job.org',
-  'https://betteruptime.com',
-  'https://freshping.io',
-  'https://ping.gg',
-  'https://hetrixtools.com',
+  // Ana servislere sadece kendi URL'inizi gönderin
+  'https://discord-halisaha-manager.emilswd.repl.co/ping',
+  'https://discord-halisaha-manager.emilswd.repl.co/keep-alive',
+  'https://discord-halisaha-manager.emilswd.repl.co/api/health',
   
   // Popüler uptime ping servisleri
   'https://uptime.kuma.pet',

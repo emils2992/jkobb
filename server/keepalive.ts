@@ -189,6 +189,22 @@ export function startEnhancedKeepAliveService() {
     // 8077 portundan yedek servis başlat (çakışmayı önlemek için port değiştirildi)
     backupServer.listen(8077, '0.0.0.0', () => {
       logToFile('Yedek HTTP sunucusu 8077 portunda başlatıldı');
+      
+      // Yedek sunucuya özel rotalar ekle
+      backupServer.on('request', (req, res) => {
+        if (req.url?.includes('/ping') || req.url?.includes('/keep-alive') || req.url?.includes('/health')) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'active',
+            service: 'backup-server',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime()
+          }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('Discord Bot Backup Service');
+        }
+      });
     });
   } catch (error) {
     logToFile(`Yedek sunucu hatası: ${error}`);
