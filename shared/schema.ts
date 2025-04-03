@@ -48,6 +48,7 @@ export const tickets = pgTable("tickets", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   closedAt: timestamp("closed_at"),
+  closedBy: text("closed_by"), // Discord user ID who closed the ticket
 });
 
 export const insertTicketSchema = createInsertSchema(tickets).pick({
@@ -125,7 +126,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Attribute = typeof attributes.$inferSelect;
 export type InsertAttribute = z.infer<typeof insertAttributeSchema>;
 
-export type Ticket = typeof tickets.$inferSelect;
+export type Ticket = typeof tickets.$inferSelect & { closedBy?: string | null };
 export type InsertTicket = z.infer<typeof insertTicketSchema>;
 
 export type AttributeRequest = typeof attributeRequests.$inferSelect;

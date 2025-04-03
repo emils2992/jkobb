@@ -411,8 +411,17 @@ export class PgStorage implements IStorage {
     return this.pgTicketToTicket(result.rows[0]);
   }
 
-  async closeTicket(ticketId: string): Promise<Ticket> {
-    return this.updateTicketStatus(ticketId, 'closed');
+  async closeTicket(ticketId: string, closedBy?: string): Promise<Ticket> {
+    const result = await this.pool.query(
+      'UPDATE tickets SET status = $1, closed_by = $2, closed_at = CURRENT_TIMESTAMP WHERE ticket_id = $3 RETURNING *',
+      ['closed', closedBy || null, ticketId]
+    );
+    
+    if (result.rows.length === 0) {
+      throw new Error(`Ticket with ID ${ticketId} not found`);
+    }
+    
+    return this.pgTicketToTicket(result.rows[0]);
   }
 
   // Attribute request operations
@@ -659,7 +668,8 @@ export class PgStorage implements IStorage {
       type: pgTicket.type,
       createdAt: new Date(pgTicket.created_at),
       updatedAt: new Date(pgTicket.updated_at),
-      closedAt: pgTicket.closed_at ? new Date(pgTicket.closed_at) : null
+      closedAt: pgTicket.closed_at ? new Date(pgTicket.closed_at) : null,
+      closedBy: pgTicket.closed_by || null
     };
   }
 
