@@ -30,8 +30,15 @@ export default function StaffLeaderboard() {
 
   if (error) {
     return (
-      <div className="text-red-500 p-4">
-        Yetkili istatistikleri yüklenirken bir hata oluştu: {(error as Error).message}
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="text-5xl mb-4">🛠️</div>
+        <h3 className="text-2xl font-medium mb-2">Geliştirme Aşamasında</h3>
+        <p className="text-discord-light mb-4 max-w-lg">
+          Yetkili sıralaması özelliği şu anda geliştirme aşamasındadır ve yakında kullanıma sunulacaktır.
+        </p>
+        <div className="text-red-500 text-sm mt-2 bg-red-500/10 p-3 rounded-md">
+          Teknik bilgi: {(error as Error).message}
+        </div>
       </div>
     );
   }
