@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
 import { client } from "./discord/bot";  // Discord client'ı import ediyoruz
 import { startUptimeService } from "./uptime";
-import { getEnhancedServiceStatus } from "./enhanced-uptime";
+import { getUptimeStatus } from "./enhanced-uptime";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { Admin } from "../shared/schema";
@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const updatedRequest = await storage.approveAttributeRequest(requestId);
           console.log(`Attribute request başarıyla onaylandı: ID=${requestId}`);
           return res.json(updatedRequest);
-        } catch (approveError: any) {
+        } catch (approveError) {
           console.error(`Attribute request onaylama hatası: ID=${requestId}`, approveError);
           return res.status(500).json({ message: "Attribute request onaylanamadı", error: approveError.message });
         }
@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       system: "Discord Halısaha Bot",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      uptimeStats: getEnhancedServiceStatus()
+      uptimeStats: getUptimeStatus()
     });
   });
 

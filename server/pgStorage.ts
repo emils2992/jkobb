@@ -45,32 +45,20 @@ export class PgStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await this.pool.query(
-      'INSERT INTO users(user_id, username, nickname, avatar_url) VALUES($1, $2, $3, $4) RETURNING *',
-      [insertUser.userId, insertUser.username, insertUser.nickname || null, insertUser.avatarUrl || null]
+      'INSERT INTO users(user_id, username, avatar_url) VALUES($1, $2, $3) RETURNING *',
+      [insertUser.userId, insertUser.username, insertUser.avatarUrl || null]
     );
     
     return this.pgUserToUser(result.rows[0]);
   }
 
-  async getOrCreateUser(userId: string, username: string, avatarUrl?: string, nickname?: string): Promise<User> {
+  async getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User> {
     const existingUser = await this.getUserById(userId);
-    // Eğer kullanıcı varsa ve takma ad güncellenecekse
-    if (existingUser && nickname && existingUser.nickname !== nickname) {
-      // Kullanıcının takma adını güncelle
-      const result = await this.pool.query(
-        'UPDATE users SET nickname = $1 WHERE user_id = $2 RETURNING *',
-        [nickname, userId]
-      );
-      return this.pgUserToUser(result.rows[0]);
-    }
-    else if (existingUser) {
-      return existingUser;
-    }
+    if (existingUser) return existingUser;
     
     return this.createUser({
       userId,
       username,
-      nickname,
       avatarUrl
     });
   }
@@ -236,7 +224,7 @@ export class PgStorage implements IStorage {
       `, params);
       
       // Paralel sorgular için Promise.all kullanarak verimlilik artışı
-      const playerStats = await Promise.all(result.rows.map(async (row: any) => {
+      const playerStats = await Promise.all(result.rows.map(async (row) => {
         // Her kullanıcı için nitelikleri al
         const attributes = await this.getAttributes(row.user_id);
         
@@ -566,24 +554,10 @@ export class PgStorage implements IStorage {
     if (existing) {
       // Mevcut yapılandırmayı güncelle
       const result = await this.pool.query(
-        `UPDATE server_config SET 
-          fix_log_channel_id = $1, 
-          training_channel_id = $2, 
-          staff_role_id = $3,
-          role_60_70_id = $4,
-          role_70_80_id = $5,
-          role_80_90_id = $6,
-          role_90_99_id = $7,
-          updated_at = NOW() 
-        WHERE guild_id = $8 RETURNING *`,
+        'UPDATE server_config SET fix_log_channel_id = $1, training_channel_id = $2, updated_at = NOW() WHERE guild_id = $3 RETURNING *',
         [
           insertConfig.fixLogChannelId !== undefined ? insertConfig.fixLogChannelId : existing.fixLogChannelId, 
-          insertConfig.trainingChannelId !== undefined ? insertConfig.trainingChannelId : existing.trainingChannelId,
-          insertConfig.staffRoleId !== undefined ? insertConfig.staffRoleId : existing.staffRoleId,
-          insertConfig.role6070Id !== undefined ? insertConfig.role6070Id : existing.role6070Id,
-          insertConfig.role7080Id !== undefined ? insertConfig.role7080Id : existing.role7080Id,
-          insertConfig.role8090Id !== undefined ? insertConfig.role8090Id : existing.role8090Id,
-          insertConfig.role9099Id !== undefined ? insertConfig.role9099Id : existing.role9099Id,
+          insertConfig.trainingChannelId !== undefined ? insertConfig.trainingChannelId : existing.trainingChannelId, 
           insertConfig.guildId
         ]
       );
@@ -592,25 +566,11 @@ export class PgStorage implements IStorage {
     } else {
       // Yeni yapılandırma oluştur
       const result = await this.pool.query(
-        `INSERT INTO server_config(
-          guild_id, 
-          fix_log_channel_id, 
-          training_channel_id,
-          staff_role_id,
-          role_60_70_id,
-          role_70_80_id,
-          role_80_90_id,
-          role_90_99_id
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        'INSERT INTO server_config(guild_id, fix_log_channel_id, training_channel_id) VALUES($1, $2, $3) RETURNING *',
         [
           insertConfig.guildId, 
           insertConfig.fixLogChannelId || null, 
-          insertConfig.trainingChannelId || null,
-          insertConfig.staffRoleId || null,
-          insertConfig.role6070Id || null,
-          insertConfig.role7080Id || null,
-          insertConfig.role8090Id || null,
-          insertConfig.role9099Id || null
+          insertConfig.trainingChannelId || null
         ]
       );
       
@@ -657,27 +617,22 @@ export class PgStorage implements IStorage {
   async updateLastReset(guildId: string): Promise<ServerConfig> {
     const config = await this.getServerConfig(guildId);
     
-    if (config) {
-      return this.setServerConfig({
-        ...config,
-        guildId,
-        lastResetAt: new Date()
-      });
-    } else {
+    if (!config) {
       // Eğer config yoksa, otomatik olarak oluştur
       console.log(`Config not found for guild ${guildId}, creating automatically`);
       return this.setServerConfig({
         guildId,
         fixLogChannelId: null,
-        trainingChannelId: null,
-        staffRoleId: null,
-        role6070Id: null,
-        role7080Id: null,
-        role8090Id: null,
-        role9099Id: null,
-        lastResetAt: new Date()
+        trainingChannelId: null
       });
     }
+    
+    const result = await this.pool.query(
+      'UPDATE server_config SET last_reset_at = NOW(), updated_at = NOW() WHERE guild_id = $1 RETURNING *',
+      [guildId]
+    );
+    
+    return this.pgServerConfigToServerConfig(result.rows[0]);
   }
 
   // Yardımcı dönüştürme işlevleri
@@ -686,7 +641,6 @@ export class PgStorage implements IStorage {
       id: pgUser.id,
       userId: pgUser.user_id,
       username: pgUser.username,
-      nickname: pgUser.nickname || null, // Discord sunucusundaki görünen isim
       avatarUrl: pgUser.avatar_url,
       createdAt: new Date(pgUser.created_at)
     };
@@ -752,12 +706,6 @@ export class PgStorage implements IStorage {
       guildId: pgConfig.guild_id,
       fixLogChannelId: pgConfig.fix_log_channel_id,
       trainingChannelId: pgConfig.training_channel_id,
-      staffRoleId: pgConfig.staff_role_id,
-      // Rating bazlı roller
-      role6070Id: pgConfig.role_60_70_id,
-      role7080Id: pgConfig.role_70_80_id,
-      role8090Id: pgConfig.role_80_90_id,
-      role9099Id: pgConfig.role_90_99_id,
       lastResetAt: new Date(pgConfig.last_reset_at),
       createdAt: new Date(pgConfig.created_at),
       updatedAt: new Date(pgConfig.updated_at)

@@ -1,13 +1,6 @@
-import { EmbedBuilder, GuildMember } from 'discord.js';
-import { User, AttributeRequest, Attribute, ServerConfig } from '@shared/schema';
-import { isValidAttribute, getRequiredHours, getCategoryForAttribute, getTrainingHoursByRoles } from './training-config';
-
-/**
- * Belirli bir aralıktaki rastgele sayı oluşturur (min ve max dahil)
- */
-export function getRandomNumber(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+import { EmbedBuilder } from 'discord.js';
+import { User, AttributeRequest, Attribute } from '@shared/schema';
+import { isValidAttribute, getRequiredHours, getCategoryForAttribute } from './training-config';
 
 // Format date for display
 export function formatDate(date: Date): string {
@@ -178,20 +171,16 @@ export function createAttributeEmbed(
 }
 
 /**
- * Antrenman mesajı analizini yapar, seviye bilgisine ve rollere göre doğrular
+ * Antrenman mesajı analizini yapar, seviye bilgisine göre doğrular
  * @param content Mesaj içeriği
  * @param attributes Kullanıcının nitelikleri
  * @param lastTrainingTime Kullanıcının son antrenman zamanı (her nitelik için)
- * @param member Discord sunucusundaki üye bilgisi (rol kontrolü için)
- * @param serverConfig Sunucu yapılandırması (rol id'leri için)
  * @returns Eğer mesaj geçerli bir antrenman mesajıysa antrenman detayları, değilse null
  */
 export function parseTrainingMessage(
   content: string,
   attributes: Attribute[],
-  lastTrainingTime: Date | null,
-  member?: GuildMember | null,
-  serverConfig?: ServerConfig | null
+  lastTrainingTime: Date | null
 ): { 
   attributeName: string; 
   duration: number; 
@@ -243,51 +232,17 @@ export function parseTrainingMessage(
   // Basit formül: süre * yoğunluk / 10, minimum 1, maksimum 5 puan
   const points = Math.min(5, Math.max(1, Math.floor(duration * intensity / 10)));
   
-  // Kullanıcının nitelik seviyesine göre gereken bekleme süresini hesapla
-  let hoursRequired = getRequiredHours(attributeName, attributeValue);
+  // Bu nitelik için gereken bekleme süresini al
+  const hoursRequired = getRequiredHours(attributeName, attributeValue);
   
-  // Eğer Discord üyesi ve sunucu yapılandırması mevcutsa, role göre süreyi kontrol et
-  if (member && serverConfig) {
-    // Rolü kontrol et ve rolün gerektirdiği süreyi al
-    const roleDependentHours = getTrainingHoursByRoles(member, serverConfig, hoursRequired);
-    
-    console.log(`[TRAINING] Rating rol kontrolü: Önceki süre: ${hoursRequired} saat, Rol bazlı süre: ${roleDependentHours} saat`);
-    
-    // Rol bazlı süreyi kullan - bu, nitelik seviyesinden daha öncelikli
-    hoursRequired = roleDependentHours;
-  } else {
-    console.log(`[TRAINING] Discord üyesi veya sunucu yapılandırması eksik, varsayılan süre kullanılıyor: ${hoursRequired} saat`);
-  }
-  
-  // ZAMAN KONTROLÜ BÜYÜK FİX - Artık nitelikten bağımsız olarak, son antrenmandan beri geçen süre kontrol ediliyor
+  // Kullanıcının son antrenmanından bu yana geçen süreyi hesapla
   const now = new Date();
-  
-  // Eğer daha önce hiç antrenman yapılmamışsa izin ver (lastTrainingTime null ise)
-  // Önceki antrenman varsa, geçen süreyi saat cinsinden hesapla
   const timeSinceLastTraining = lastTrainingTime
     ? (now.getTime() - lastTrainingTime.getTime()) / (1000 * 60 * 60) // saat cinsinden
-    : 999; // Eğer hiç antrenman yapılmamışsa çok büyük bir değer koy (her zaman izin ver)
+    : 24; // Eğer daha önce antrenman yapılmadıysa 24 saat (varsayılan olarak izin verir)
   
-  // Kullanıcıları bilgilendirmek için loglar
-  if (lastTrainingTime) {
-    console.log(`[TRAINING] Son antrenmandan bu yana geçen süre: ${timeSinceLastTraining.toFixed(2)} saat`);
-    console.log(`[TRAINING] Gereken bekleme süresi: ${hoursRequired} saat`);
-    console.log(`[TRAINING] GLOBAL ZAMAN SINIRI KONTROLÜ: ${timeSinceLastTraining} >= ${hoursRequired} ?`);
-  } else {
-    console.log(`[TRAINING] ⭐ İLK ANTRENMAN YAPILIYOR! Daha önce hiç antrenman yapılmamış.`);
-  }
-  
-  // Kesin kuraldır - yeterli süre geçmiş mi kontrol et
+  // Antrenman yapılabilir mi kontrol et
   const isAllowed = timeSinceLastTraining >= hoursRequired;
-  
-  // Sonuç hakkında bilgilendirme
-  console.log(`[TRAINING] ANTRENMAN İZNİ: ${isAllowed ? 'EVET ✓' : 'HAYIR ✗'}`);
-  
-  // Eğer izin verilmediyse, beklemesi gereken süreyi göster
-  if (!isAllowed) {
-    const hoursLeft = Math.max(0, hoursRequired - timeSinceLastTraining).toFixed(1);
-    console.log(`[TRAINING] BEKLEMESI GEREKEN SÜRE: ${hoursLeft} saat`);
-  }
   
   return {
     attributeName,

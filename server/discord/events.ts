@@ -35,9 +35,6 @@ export function setupEventHandlers() {
     try {
       // Handle slash commands
       if (interaction.isChatInputCommand()) {
-        // Add debug log for slash commands
-        console.log(`[DEBUG] Slash command executed: /${interaction.commandName} ${interaction.options.getSubcommand(false) || ''}`);
-        
         // Rate limiting kontrolü
         const userId = interaction.user.id;
         const now = Date.now();
@@ -442,57 +439,22 @@ export function setupEventHandlers() {
           // Kullanıcının niteliklerini al
           const attributes = await storage.getAttributes(user.userId);
 
-          // Kullanıcının son antrenman kaydını - bu nitelik için - al
+          // Kullanıcının son antrenman kaydını al
           const trainingSessions = await storage.getTrainingSessions(user.userId);
           let lastTrainingTime: Date | null = null;
 
-          // TAMAMEN YENİDEN YAZILAN GLOBAL ANTRENMAN ZAMANI KONTROLÜ
-          // Artık hangi nitelikte olursa olsun, son antrenmandan 2 saat geçmeden (veya rol bazlı süre) yeni antrenman yapılamayacak
-          
-          console.log(`[ANTRENMAN] YENİ KONTROL: Nitelikten bağımsız, her tür antrenman için süre kısıtlaması aktif!`);
-          
-          // Tüm antrenmanlar içinde en yeni olanını bul
-          const tumAntrenmanlar = trainingSessions.sort((a, b) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-          
-          if (tumAntrenmanlar.length > 0) {
-            // En son yapılan herhangi bir antrenman zamanını kullan
-            lastTrainingTime = new Date(tumAntrenmanlar[0].createdAt);
-            console.log(`[ANTRENMAN] Son yapılan antrenman (herhangi bir nitelikte): ${lastTrainingTime.toISOString()}`);
-            console.log(`[ANTRENMAN] GLOBAL ZAMAN KONTROLÜ AKTİF!`);
-          } else {
-            // Eğer daha önce hiç antrenman yapılmamışsa, null bırak (ilk antrenman)
-            lastTrainingTime = null;
-            console.log(`[ANTRENMAN] Daha önce hiç antrenman yapılmamış - ilk antrenman izni verilecek!`);
+          if (trainingSessions.length > 0) {
+            const lastSession = trainingSessions.sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            )[0];
+            lastTrainingTime = new Date(lastSession.createdAt);
           }
 
-          // Antrenman mesajını analiz et - kullanıcının rollerini de kontrol et
-          const trainingInfo = parseTrainingMessage(
-            message.content, 
-            attributes, 
-            lastTrainingTime,
-            message.member, // Discord sunucusundaki üye bilgisi (rol kontrolü için)
-            serverConfig    // Rol ID'leri için sunucu yapılandırması
-          );
+          // Antrenman mesajını analiz et
+          const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
 
           if (trainingInfo) {
-            // Log tüm bilgileri
-            console.log(`[ANTRENMAN KONTROLÜ] TrainingInfo: `, {
-              attributeName: trainingInfo.attributeName,
-              isAllowed: trainingInfo.isAllowed,
-              hoursRequired: trainingInfo.hoursRequired,
-              timeSinceLastTraining: trainingInfo.timeSinceLastTraining
-            });
-            
-            // ROL BAZLI KONTROL ARTIK TAMAMEN AKTİF
-            // İzin kontrolü tamamen etkinleştirildi
-            
-            // ForceAllow'u kaldırıyoruz, artık doğrudan kontrol ediyoruz
-            // Sadece log amaçlı belirtelim
-            console.log(`[ANTRENMAN KONTROLÜ] SÜRE KISITLAMASI KONTROLÜ AKTİF! (İstek izinli mi: ${trainingInfo.isAllowed ? 'EVET' : 'HAYIR'})`);
-            
-            // İzin verilmiyorsa (süre yeterli değilse) mesaj göster
+            // Antrenman yapılabilir mi kontrol et
             if (!trainingInfo.isAllowed) {
               // Daha çok beklenmesi gerekiyorsa bilgilendir
               const hoursLeft = Math.max(0, trainingInfo.hoursRequired - trainingInfo.timeSinceLastTraining).toFixed(1);

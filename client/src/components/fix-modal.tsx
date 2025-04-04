@@ -6,12 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 
 interface FixModalProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
   playerStats: PlayerStats[];
 }
 
-export function FixModal({ open, onClose, playerStats }: FixModalProps) {
+export function FixModal({ isOpen, onClose, playerStats }: FixModalProps) {
   const { toast } = useToast();
 
   const handleCopy = () => {
@@ -34,7 +34,7 @@ export function FixModal({ open, onClose, playerStats }: FixModalProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-discord-dark text-white max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center text-lg">
