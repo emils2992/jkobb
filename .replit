@@ -8,7 +8,7 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "autoscale"
 build = ["sh", "-c", "npm run build"]
-run = ["sh", "-c", "npm run dev"]
+run = ["sh", "-c", "npm run start"]
 
 [[ports]]
 localPort = 3030
@@ -47,7 +47,7 @@ localPort = 8099
 externalPort = 8099
 
 [workflows]
-runButton = "UptimeBot"
+runButton = "Bot Ve Web Başlat"
 
 [[workflows.workflow]]
 name = "Project"
@@ -162,6 +162,35 @@ args = "sleep 3"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "# Botu yeniden başlat"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Bot Ve Web Başlat"
+author = 41128090
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Tüm Node.js işlemlerini temizle"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"node|tsx\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# 3 saniye bekle"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 3"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Botu ve web uygulamasını yeniden başlat"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

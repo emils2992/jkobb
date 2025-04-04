@@ -1,3 +1,4 @@
+
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { Session } from "express-session";
@@ -5,7 +6,6 @@ import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
 import { client } from "./discord/bot";  // Discord client'ı import ediyoruz
 import { startUptimeService } from "./uptime";
-import { getUptimeStatus } from "./enhanced-uptime";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { Admin } from "../shared/schema";
@@ -245,8 +245,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Not: Bu endpoint yukarıda daha kapsamlı tanımlandı, duplicate endpoint kaldırıldı.
-
   // Reset all attributes (fixreset)
   app.post("/api/fix/reset", async (req, res) => {
     try {
@@ -306,27 +304,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error updating server config:", error);
       res.status(500).json({ message: "Failed to update server config" });
     }
-  });
-
-  // Uptime için ping endpoint'i
-  app.get("/ping", (req, res) => {
-    res.status(200).send("Bot ve web panel çalışıyor!");
-  });
-  
-  // UptimeRobot için ek endpoint
-  app.get("/uptime-check", (req, res) => {
-    res.status(200).send("UptimeRobot servisi tarafından kontrol edildi");
-  });
-  
-  // Gelişmiş uptime durumu
-  app.get("/uptime-status", (req, res) => {
-    res.status(200).json({
-      status: "online",
-      system: "Discord Halısaha Bot",
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
-      uptimeStats: getUptimeStatus()
-    });
   });
 
   // Günlük ticket istatistikleri
