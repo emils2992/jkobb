@@ -2,7 +2,6 @@ export interface User {
   id: number;
   userId: string;
   username: string;
-  displayName?: string;
   avatarUrl?: string;
   createdAt: string;
 }

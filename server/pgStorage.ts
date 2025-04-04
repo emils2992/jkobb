@@ -45,22 +45,21 @@ export class PgStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await this.pool.query(
-      'INSERT INTO users(user_id, username, avatar_url, display_name) VALUES($1, $2, $3, $4) RETURNING *',
-      [insertUser.userId, insertUser.username, insertUser.avatarUrl || null, insertUser.displayName || null]
+      'INSERT INTO users(user_id, username, avatar_url) VALUES($1, $2, $3) RETURNING *',
+      [insertUser.userId, insertUser.username, insertUser.avatarUrl || null]
     );
     
     return this.pgUserToUser(result.rows[0]);
   }
 
-  async getOrCreateUser(userId: string, username: string, avatarUrl?: string, displayName?: string): Promise<User> {
+  async getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User> {
     const existingUser = await this.getUserById(userId);
     if (existingUser) return existingUser;
     
     return this.createUser({
       userId,
       username,
-      avatarUrl,
-      displayName
+      avatarUrl
     });
   }
 
@@ -197,10 +196,10 @@ export class PgStorage implements IStorage {
         userQuery = '';
       }
       
-      // Optimize edilmiş sorgu - display_name alanını da dahil ediyoruz
+      // Optimize edilmiş sorgu - alt sorgu yerine LEFT JOIN kullanarak performans artışı
       const result = await this.pool.query(`
         SELECT 
-          u.*,
+          u.*, 
           COALESCE(SUM(a.value), 0) as total_value,
           COALESCE(SUM(a.weekly_value), 0) as weekly_value,
           t.updated_at as last_fix_date
@@ -256,10 +255,10 @@ export class PgStorage implements IStorage {
     }
     
     // Sadece GERÇEK antrenman kaynaklı nitelik puanlarını topla
-    // display_name alanını da dahil ediyoruz
+    // Sorguyu daha güvenli hale getiriyoruz ve ts.source kolon hatalarını önlüyoruz
     const query = `
       SELECT 
-        u.id, u.user_id, u.username, u.display_name, u.avatar_url, u.created_at,
+        u.id, u.user_id, u.username, u.avatar_url, u.created_at,
         COALESCE(SUM(ts.attributes_gained), 0) AS total_training_value,
         COUNT(DISTINCT ts.id) AS training_count
       FROM 
@@ -314,7 +313,6 @@ export class PgStorage implements IStorage {
           id: row.id,
           userId: row.user_id,
           username: row.username,
-          displayName: row.display_name || row.username,
           avatarUrl: row.avatar_url,
           createdAt: new Date(row.created_at)
         },
@@ -554,57 +552,25 @@ export class PgStorage implements IStorage {
     const existing = await this.getServerConfig(insertConfig.guildId);
     
     if (existing) {
-      // Mevcut yapılandırmayı güncelle - tüm antrenman kanallarını dahil et
+      // Mevcut yapılandırmayı güncelle
       const result = await this.pool.query(
-        `UPDATE server_config SET 
-         fix_log_channel_id = $1, 
-         training_channel_id = $2,
-         training_channel_id_1 = $3,
-         training_channel_id_2 = $4,
-         training_channel_id_3 = $5,
-         training_channel_id_4 = $6,
-         training_channel_id_5 = $7,
-         staff_role_id = $8,
-         updated_at = NOW() 
-         WHERE guild_id = $9 RETURNING *`,
+        'UPDATE server_config SET fix_log_channel_id = $1, training_channel_id = $2, updated_at = NOW() WHERE guild_id = $3 RETURNING *',
         [
           insertConfig.fixLogChannelId !== undefined ? insertConfig.fixLogChannelId : existing.fixLogChannelId, 
-          insertConfig.trainingChannelId !== undefined ? insertConfig.trainingChannelId : existing.trainingChannelId,
-          insertConfig.trainingChannelId1 !== undefined ? insertConfig.trainingChannelId1 : existing.trainingChannelId1,
-          insertConfig.trainingChannelId2 !== undefined ? insertConfig.trainingChannelId2 : existing.trainingChannelId2,
-          insertConfig.trainingChannelId3 !== undefined ? insertConfig.trainingChannelId3 : existing.trainingChannelId3,
-          insertConfig.trainingChannelId4 !== undefined ? insertConfig.trainingChannelId4 : existing.trainingChannelId4,
-          insertConfig.trainingChannelId5 !== undefined ? insertConfig.trainingChannelId5 : existing.trainingChannelId5,
-          insertConfig.staffRoleId !== undefined ? insertConfig.staffRoleId : existing.staffRoleId,
+          insertConfig.trainingChannelId !== undefined ? insertConfig.trainingChannelId : existing.trainingChannelId, 
           insertConfig.guildId
         ]
       );
       
       return this.pgServerConfigToServerConfig(result.rows[0]);
     } else {
-      // Yeni yapılandırma oluştur - tüm alanları dahil et
+      // Yeni yapılandırma oluştur
       const result = await this.pool.query(
-        `INSERT INTO server_config(
-          guild_id, 
-          fix_log_channel_id, 
-          training_channel_id,
-          training_channel_id_1,
-          training_channel_id_2,
-          training_channel_id_3,
-          training_channel_id_4,
-          training_channel_id_5,
-          staff_role_id
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        'INSERT INTO server_config(guild_id, fix_log_channel_id, training_channel_id) VALUES($1, $2, $3) RETURNING *',
         [
           insertConfig.guildId, 
           insertConfig.fixLogChannelId || null, 
-          insertConfig.trainingChannelId || null,
-          insertConfig.trainingChannelId1 || null,
-          insertConfig.trainingChannelId2 || null,
-          insertConfig.trainingChannelId3 || null,
-          insertConfig.trainingChannelId4 || null,
-          insertConfig.trainingChannelId5 || null,
-          insertConfig.staffRoleId || null
+          insertConfig.trainingChannelId || null
         ]
       );
       
@@ -645,148 +611,6 @@ export class PgStorage implements IStorage {
         fixLogChannelId: null,
         trainingChannelId: channelId
       });
-    }
-  }
-  
-  // 5 farklı antrenman kanalını yapılandırmak için yeni metotlar
-  async updateTrainingChannel1(guildId: string, channelId: string): Promise<ServerConfig> {
-    const config = await this.getServerConfig(guildId);
-    
-    if (config) {
-      return this.setServerConfig({
-        ...config,
-        guildId,
-        trainingChannelId1: channelId
-      });
-    } else {
-      return this.setServerConfig({
-        guildId,
-        trainingChannelId1: channelId
-      });
-    }
-  }
-  
-  async updateTrainingChannel2(guildId: string, channelId: string): Promise<ServerConfig> {
-    const config = await this.getServerConfig(guildId);
-    
-    if (config) {
-      return this.setServerConfig({
-        ...config,
-        guildId,
-        trainingChannelId2: channelId
-      });
-    } else {
-      return this.setServerConfig({
-        guildId,
-        trainingChannelId2: channelId
-      });
-    }
-  }
-  
-  async updateTrainingChannel3(guildId: string, channelId: string): Promise<ServerConfig> {
-    const config = await this.getServerConfig(guildId);
-    
-    if (config) {
-      return this.setServerConfig({
-        ...config,
-        guildId,
-        trainingChannelId3: channelId
-      });
-    } else {
-      return this.setServerConfig({
-        guildId,
-        trainingChannelId3: channelId
-      });
-    }
-  }
-  
-  async updateTrainingChannel4(guildId: string, channelId: string): Promise<ServerConfig> {
-    const config = await this.getServerConfig(guildId);
-    
-    if (config) {
-      return this.setServerConfig({
-        ...config,
-        guildId,
-        trainingChannelId4: channelId
-      });
-    } else {
-      return this.setServerConfig({
-        guildId,
-        trainingChannelId4: channelId
-      });
-    }
-  }
-  
-  async updateTrainingChannel5(guildId: string, channelId: string): Promise<ServerConfig> {
-    const config = await this.getServerConfig(guildId);
-    
-    if (config) {
-      return this.setServerConfig({
-        ...config,
-        guildId,
-        trainingChannelId5: channelId
-      });
-    } else {
-      return this.setServerConfig({
-        guildId,
-        trainingChannelId5: channelId
-      });
-    }
-  }
-  
-  // Belirli bir kanal ID'sine göre kanal tipini ve süresini belirle
-  async getTrainingChannelDuration(guildId: string, channelId: string): Promise<number> {
-    console.log(`getTrainingChannelDuration çağrıldı: guildId=${guildId}, channelId=${channelId}`);
-    
-    // Parametreler null veya undefined ise varsayılan değer döndür
-    if (!guildId || !channelId) {
-      console.log(`getTrainingChannelDuration: Eksik parametreler! guildId=${guildId}, channelId=${channelId}`);
-      return 1; // Varsayılan süre
-    }
-    
-    try {
-      const config = await this.getServerConfig(guildId);
-      console.log(`Sunucu konfigürasyonu alındı:`, config);
-      
-      if (!config) {
-        console.log(`${guildId} için sunucu konfigürasyonu bulunamadı.`);
-        return 1; // Varsayılan süre
-      }
-      
-      // Her bir kanal için süreyi kontrol et
-      if (channelId === config.trainingChannelId1) {
-        console.log(`Kanal ${channelId} kanal1 olarak eşleşti - 1 saat`);
-        return 1; // 1 saat
-      }
-      if (channelId === config.trainingChannelId2) {
-        console.log(`Kanal ${channelId} kanal2 olarak eşleşti - 2 saat`);
-        return 2; // 2 saat
-      }
-      if (channelId === config.trainingChannelId3) {
-        console.log(`Kanal ${channelId} kanal3 olarak eşleşti - 3 saat`);
-        return 3; // 3 saat
-      }
-      if (channelId === config.trainingChannelId4) {
-        console.log(`Kanal ${channelId} kanal4 olarak eşleşti - 4 saat`);
-        return 4; // 4 saat
-      }
-      if (channelId === config.trainingChannelId5) {
-        console.log(`Kanal ${channelId} kanal5 olarak eşleşti - 5 saat`);
-        return 5; // 5 saat
-      }
-      
-      // Ana kanal kontrolü
-      if (channelId === config.trainingChannelId) {
-        console.log(`Kanal ${channelId} ana kanal olarak eşleşti - 1 saat`);
-        return 1; // Ana kanal - 1 saat
-      }
-      
-      // Eşleşme yoksa varsayılan ana antrenman kanalı olarak kabul et
-      console.log(`Kanal ${channelId} için eşleşme bulunamadı, varsayılan 1 saat kullanılıyor`);
-      return 1; // Varsayılan süre
-    } catch (error) {
-      console.error(`getTrainingChannelDuration hata oluştu:`, error);
-      return 1; // Hata durumunda varsayılan süre
     }
   }
 

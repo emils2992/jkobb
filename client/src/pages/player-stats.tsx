@@ -29,25 +29,22 @@ export default function PlayerStatsPage() {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  const filteredPlayers = playersStats?.filter(player => {
-    const displayName = player.user.displayName || player.user.username;
-    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  const filteredPlayers = playersStats?.filter(player => 
+    player.user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const columns = [
     {
-      accessorKey: "user.displayName",
+      accessorKey: "user.username",
       header: "Oyuncu",
       cell: ({ row }: any) => {
         const player = row.original;
-        // Sadece displayName kullan, yoksa username
-        const displayName = player.user.displayName || player.user.username;
         return (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
-              {displayName.charAt(0).toUpperCase()}
+              {player.user.username.charAt(0).toUpperCase()}
             </div>
-            <span>{displayName}</span>
+            <span>{player.user.username}</span>
           </div>
         );
       }

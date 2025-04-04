@@ -3,32 +3,26 @@ import session from "express-session";
 import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+// Eğer doğru CLIENT_ID sağlanırsa, bu satırın yorumunu kaldırın
 import { initDiscordBot } from "./discord";
 import { initDatabase } from "./db";
 import { pool } from "./db";
 import { startUptimeService } from "./uptime";
+import { startEnhancedKeepAliveService } from "./keepalive";
+import { startEnhancedUptimeService } from "./enhanced-uptime";
 import ConnectPgSimple from "connect-pg-simple";
-
-// Hata yakalama için global handler
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Replit proxy'lerini güven
+// Replit proxy'lerini güven - X-Forwarded-For header hatası için gerekli
 app.set('trust proxy', 1);
 
-// API istekleri için hız sınırlayıcı
+// API istekleri için hız sınırlayıcı - yüksek yük altında performansı korur
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 dakika
-  max: 120, // Her IP'den dakikada maksimum 120 istek
+  max: 120, // Her IP'den dakikada maksimum 120 istek (daha yüksek limit)
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Çok fazla istek gönderildi, lütfen bir süre bekleyin." }
@@ -42,14 +36,14 @@ const PgStore = ConnectPgSimple(session);
 app.use(session({
   store: new PgStore({
     pool,
-    tableName: 'session',
+    tableName: 'session', // Uses the session table we created
     createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET || 'discord-manager-secret-key', 
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: false,
+    secure: false, // Set to true in production with HTTPS
     maxAge: 24 * 60 * 60 * 1000 // 24 hours 
   }
 }));
@@ -84,71 +78,97 @@ app.use((req, res, next) => {
   next();
 });
 
-// Basit health check endpoint'leri
-app.get('/ping', (req, res) => {
-  res.status(200).send('Pong!');
-});
-
-app.get('/uptime-check', (req, res) => {
-  res.status(200).json({ 
-    status: 'online', 
-    timestamp: new Date().toISOString(),
-    server: 'Discord Halısaha Bot'
-  });
-});
-
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
-
-app.get('/', (req, res) => {
-  res.status(200).send('Discord Bot Server Running');
-});
-
 (async () => {
-  try {
-    // Veritabanını başlat
-    await initDatabase();
-    console.log('Veritabanı başarıyla başlatıldı');
+  const server = await registerRoutes(app);
 
-    const server = await registerRoutes(app);
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-      console.error('Server error:', err);
-    });
+    res.status(status).json({ message });
+    throw err;
+  });
 
-    // Development ortamında Vite'ı kur
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
 
-    // Sunucuyu başlat
-    const port = 5000;
-    server.listen(port, "0.0.0.0", async () => {
-      console.log(`✅ Server çalışıyor: port ${port} (http://0.0.0.0:${port})`);
+  // Dinamik port kullanımı - hata durumunda yeni port deneyin
+  let port = 3030; // Uptime servisleri için sabit bir port
+  
+  // Temel uptime/health endpoint'leri için genişletilmiş rotalar
+  app.get('/', (req, res) => {
+    res.status(200).send('Discord Bot Server Running');
+  });
+  
+  app.get('/ping', (req, res) => {
+    res.status(200).send('Pong!');
+  });
+  
+  app.get('/uptime-check', (req, res) => {
+    res.status(200).json({ status: 'online', time: new Date().toISOString() });
+  });
+  
+  const startServer = async () => {
+    // Dinamik port deneme mekanizması ile sunucu başlatma
+    const tryStartServer = (currentPort: number, maxRetries = 5) => {
+      if (maxRetries <= 0) {
+        log(`❌ Maksimum port deneme sayısına ulaşıldı, sunucu başlatılamıyor.`);
+        return;
+      }
 
       try {
+        server.listen(currentPort, "0.0.0.0", async () => {
+          log(`✅ Server çalışıyor: port ${currentPort} (http://0.0.0.0:${currentPort})`);
+          
+          // Replit URL'sini al ve UptimeRobot için ping endpoint'lerini logla
+          const baseUrl = process.env.REPLIT_URL || 
+                          'https://discord-halisaha-manager.emilswd.repl.co';
+          log(`🌐 Dış erişim URL'si: ${baseUrl}`);
+          
+          // UptimeRobot için URL'leri logla
+          log(`🔔 UptimeRobot için ping URL'leri:`);
+          log(`   • ${baseUrl}/ping`);
+          log(`   • ${baseUrl}/uptime-check`);
+          log(`   • ${baseUrl}/api/health`);
+          
+          try {
+            // Veritabanını başlat
+        await initDatabase();
+        log('Veritabanı başarıyla başlatıldı');
+        
         // Discord botu başlat
         await initDiscordBot();
-        console.log('Discord bot başarıyla başlatıldı');
-
-        // Basit uptime servisi başlat
+        log('Discord bot başlatılıyor - Client ID mevcut');
+        
+        // Uptime ve Keepalive servislerini başlat
         startUptimeService();
-        console.log('Uptime servisi başlatıldı');
+        startEnhancedKeepAliveService();
+        startEnhancedUptimeService(); // Süper gelişmiş uptime servisi
+        log('Tüm uptime servisleri başlatıldı - Sistem sürekli çalışmaya hazır (internet bağlantısı kopsa bile)');
       } catch (error) {
-        console.error('Başlatma hatası:', error);
+        console.error('Error in initialization:', error);
       }
     });
-  } catch (error) {
-    console.error('Server başlatma hatası:', error);
+  } catch (err: any) {
+    if (err.code === 'EADDRINUSE') {
+      log(`Port ${currentPort} meşgul, port ${currentPort + 1} deneniyor...`);
+      // Bir sonraki portu dene
+      tryStartServer(currentPort + 1, maxRetries - 1);
+    } else {
+      console.error('Server error:', err);
+    }
   }
+};
+
+    // İlk portu kullanarak sunucuyu başlatmayı dene
+    tryStartServer(port);
+  };
+
+  startServer(); // Sunucuyu başlat
 })();

@@ -69,9 +69,9 @@ export function FixModal({ isOpen: open, onClose, playerStats }: FixModalProps) 
                   <TableRow key={player.user.userId} className="border-b border-gray-700">
                     <TableCell className="p-2 flex items-center space-x-2">
                       <div className="w-6 h-6 rounded-full bg-discord-blue flex items-center justify-center text-white">
-                        {(player.user.displayName || player.user.username).charAt(0).toUpperCase()}
+                        {player.user.username.charAt(0).toUpperCase()}
                       </div>
-                      <span>{player.user.displayName || player.user.username}</span>
+                      <span>{player.user.username}</span>
                     </TableCell>
                     <TableCell>#{player.user.userId.slice(0, 4)}</TableCell>
                     <TableCell>
