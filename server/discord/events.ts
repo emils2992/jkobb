@@ -1,3 +1,4 @@
+
 import { 
   Events, 
   Interaction, 
@@ -1245,5 +1246,4 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       }
     }
   }
-}
 }
