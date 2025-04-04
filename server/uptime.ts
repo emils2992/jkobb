@@ -2,8 +2,8 @@ import fetch from 'node-fetch';
 import { log } from './vite';
 import * as fs from 'fs';
 
-// Replit URL'si
-const REPLIT_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
+// Replit URL'si - Replit otomatik olarak bu değişkeni ayarlar
+const REPLIT_URL = process.env.REPLIT_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
 const KEEPALIVE_FILE = './keepalive.json';
 
 let pingInterval: NodeJS.Timeout | null = null;
