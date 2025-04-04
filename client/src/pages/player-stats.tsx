@@ -29,9 +29,10 @@ export default function PlayerStatsPage() {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  const filteredPlayers = playersStats?.filter(player => 
-    player.user.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPlayers = playersStats?.filter(player => {
+    const displayName = player.user.displayName || player.user.username;
+    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   const columns = [
     {
@@ -39,12 +40,13 @@ export default function PlayerStatsPage() {
       header: "Oyuncu",
       cell: ({ row }: any) => {
         const player = row.original;
+        const displayName = player.user.displayName || player.user.username;
         return (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">
-              {player.user.username.charAt(0).toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </div>
-            <span>{player.user.username}</span>
+            <span>{displayName}</span>
           </div>
         );
       }
