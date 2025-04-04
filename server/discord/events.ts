@@ -487,7 +487,7 @@ export function setupEventHandlers() {
             message.author.id,
             message.author.username,
             message.author.displayAvatarURL(),
-            displayName  // This will store the display name
+            displayName
           );
 
           // Kullanıcının niteliklerini al
