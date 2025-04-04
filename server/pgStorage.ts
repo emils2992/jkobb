@@ -224,7 +224,7 @@ export class PgStorage implements IStorage {
       `, params);
       
       // Paralel sorgular için Promise.all kullanarak verimlilik artışı
-      const playerStats = await Promise.all(result.rows.map(async (row) => {
+      const playerStats = await Promise.all(result.rows.map(async (row: any) => {
         // Her kullanıcı için nitelikleri al
         const attributes = await this.getAttributes(row.user_id);
         
@@ -641,6 +641,7 @@ export class PgStorage implements IStorage {
       id: pgUser.id,
       userId: pgUser.user_id,
       username: pgUser.username,
+      displayName: pgUser.display_name || pgUser.username || null,
       avatarUrl: pgUser.avatar_url,
       createdAt: new Date(pgUser.created_at)
     };
@@ -706,6 +707,12 @@ export class PgStorage implements IStorage {
       guildId: pgConfig.guild_id,
       fixLogChannelId: pgConfig.fix_log_channel_id,
       trainingChannelId: pgConfig.training_channel_id,
+      trainingChannelId1: pgConfig.training_channel_id_1,
+      trainingChannelId2: pgConfig.training_channel_id_2,
+      trainingChannelId3: pgConfig.training_channel_id_3,
+      trainingChannelId4: pgConfig.training_channel_id_4,
+      trainingChannelId5: pgConfig.training_channel_id_5,
+      staffRoleId: pgConfig.staff_role_id,
       lastResetAt: new Date(pgConfig.last_reset_at),
       createdAt: new Date(pgConfig.created_at),
       updatedAt: new Date(pgConfig.updated_at)

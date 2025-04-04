@@ -18,7 +18,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserById(userId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User>;
+  getOrCreateUser(userId: string, username: string, avatarUrl?: string, displayName?: string): Promise<User>;
 
   // Attribute operations
   getAttributes(userId: string): Promise<Attribute[]>;
@@ -125,20 +125,32 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id, 
       createdAt: now,
-      avatarUrl: insertUser.avatarUrl || null 
+      avatarUrl: insertUser.avatarUrl || null,
+      displayName: insertUser.displayName || insertUser.username || null
     };
     this.users.set(id, user);
     this.usersByDiscordId.set(user.userId, user);
     return user;
   }
 
-  async getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User> {
+  async getOrCreateUser(userId: string, username: string, avatarUrl?: string, displayName?: string): Promise<User> {
     const existingUser = await this.getUserById(userId);
-    if (existingUser) return existingUser;
+    if (existingUser) {
+      // Eğer displayName parametresi verilmişse, ve mevcut displayName'den farklı ise, güncelle
+      if (displayName && existingUser.displayName !== displayName) {
+        // Güncelleme yaparken sadece basit bir kopyalama kullanıyoruz
+        const updatedUser = { ...existingUser, displayName };
+        this.users.set(existingUser.id, updatedUser);
+        this.usersByDiscordId.set(userId, updatedUser);
+        return updatedUser;
+      }
+      return existingUser;
+    }
 
     return this.createUser({
       userId,
       username,
+      displayName: displayName || username, // displayName verilmemişse, username kullan
       avatarUrl
     });
   }
@@ -368,7 +380,8 @@ export class MemStorage implements IStorage {
       ticketId: insertTicket.ticketId,
       createdAt: now, 
       updatedAt: now,
-      closedAt: null
+      closedAt: null,
+      closedBy: null // closedBy özelliğini ekledik
     };
 
     this.tickets.set(id, ticket);
@@ -383,7 +396,8 @@ export class MemStorage implements IStorage {
       ...ticket,
       status,
       updatedAt: new Date(),
-      closedAt: status === 'closed' ? new Date() : ticket.closedAt
+      closedAt: status === 'closed' ? new Date() : ticket.closedAt,
+      closedBy: ticket.closedBy // Mevcut closedBy değerini koru
     };
 
     this.tickets.set(ticket.id, updated);
@@ -503,6 +517,12 @@ export class MemStorage implements IStorage {
         guildId: insertConfig.guildId,
         fixLogChannelId: insertConfig.fixLogChannelId !== undefined ? insertConfig.fixLogChannelId : existing.fixLogChannelId,
         trainingChannelId: insertConfig.trainingChannelId !== undefined ? insertConfig.trainingChannelId : existing.trainingChannelId,
+        trainingChannelId1: insertConfig.trainingChannelId1 !== undefined ? insertConfig.trainingChannelId1 : existing.trainingChannelId1,
+        trainingChannelId2: insertConfig.trainingChannelId2 !== undefined ? insertConfig.trainingChannelId2 : existing.trainingChannelId2,
+        trainingChannelId3: insertConfig.trainingChannelId3 !== undefined ? insertConfig.trainingChannelId3 : existing.trainingChannelId3,
+        trainingChannelId4: insertConfig.trainingChannelId4 !== undefined ? insertConfig.trainingChannelId4 : existing.trainingChannelId4,
+        trainingChannelId5: insertConfig.trainingChannelId5 !== undefined ? insertConfig.trainingChannelId5 : existing.trainingChannelId5,
+        staffRoleId: insertConfig.staffRoleId !== undefined ? insertConfig.staffRoleId : existing.staffRoleId,
         lastResetAt: existing.lastResetAt,
         createdAt: existing.createdAt,
         updatedAt: now
@@ -517,6 +537,12 @@ export class MemStorage implements IStorage {
         guildId: insertConfig.guildId,
         fixLogChannelId: insertConfig.fixLogChannelId || null,
         trainingChannelId: insertConfig.trainingChannelId || null,
+        trainingChannelId1: insertConfig.trainingChannelId1 || null,
+        trainingChannelId2: insertConfig.trainingChannelId2 || null,
+        trainingChannelId3: insertConfig.trainingChannelId3 || null,
+        trainingChannelId4: insertConfig.trainingChannelId4 || null,
+        trainingChannelId5: insertConfig.trainingChannelId5 || null,
+        staffRoleId: insertConfig.staffRoleId || null,
         lastResetAt: now,
         createdAt: now,
         updatedAt: now
@@ -574,6 +600,12 @@ export class MemStorage implements IStorage {
       guildId: config.guildId,
       fixLogChannelId: config.fixLogChannelId,
       trainingChannelId: config.trainingChannelId,
+      trainingChannelId1: config.trainingChannelId1,
+      trainingChannelId2: config.trainingChannelId2,
+      trainingChannelId3: config.trainingChannelId3,
+      trainingChannelId4: config.trainingChannelId4,
+      trainingChannelId5: config.trainingChannelId5,
+      staffRoleId: config.staffRoleId,
       lastResetAt: now,
       createdAt: config.createdAt,
       updatedAt: now

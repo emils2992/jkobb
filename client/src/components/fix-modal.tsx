@@ -11,7 +11,7 @@ interface FixModalProps {
   playerStats: PlayerStats[];
 }
 
-export function FixModal({ isOpen, onClose, playerStats }: FixModalProps) {
+export function FixModal({ isOpen: open, onClose, playerStats }: FixModalProps) {
   const { toast } = useToast();
 
   const handleCopy = () => {
@@ -34,7 +34,7 @@ export function FixModal({ isOpen, onClose, playerStats }: FixModalProps) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-discord-dark text-white max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center text-lg">

@@ -319,9 +319,45 @@ export function setupEventHandlers() {
       if (message.guild) {
         const serverConfig = await storage.getServerConfig(message.guild.id);
 
-        // Antrenman kanalındaysa kontrol et
+        // Mesajın hangi antrenman kanalında olduğunu kontrol et
+        // Farklı kanallar için farklı süre değerlerini belirlemek için bu kontrolü yapıyoruz
+        let trainingDuration = 1; // Varsayılan süre 1 saat
+        let isTrainingChannel = false;
+
+        // Ana antrenman kanalı
         if (serverConfig?.trainingChannelId && message.channelId === serverConfig.trainingChannelId) {
-          console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content}`);
+          isTrainingChannel = true;
+          trainingDuration = 1; // Ana kanal 1 saat
+        } 
+        // Kanal 1 - 1 saat
+        else if (serverConfig?.trainingChannelId1 && message.channelId === serverConfig.trainingChannelId1) {
+          isTrainingChannel = true;
+          trainingDuration = 1;
+        }
+        // Kanal 2 - 2 saat
+        else if (serverConfig?.trainingChannelId2 && message.channelId === serverConfig.trainingChannelId2) {
+          isTrainingChannel = true;
+          trainingDuration = 2;
+        }
+        // Kanal 3 - 3 saat
+        else if (serverConfig?.trainingChannelId3 && message.channelId === serverConfig.trainingChannelId3) {
+          isTrainingChannel = true;
+          trainingDuration = 3;
+        }
+        // Kanal 4 - 4 saat
+        else if (serverConfig?.trainingChannelId4 && message.channelId === serverConfig.trainingChannelId4) {
+          isTrainingChannel = true;
+          trainingDuration = 4;
+        }
+        // Kanal 5 - 5 saat
+        else if (serverConfig?.trainingChannelId5 && message.channelId === serverConfig.trainingChannelId5) {
+          isTrainingChannel = true;
+          trainingDuration = 5;
+        }
+
+        // Eğer herhangi bir antrenman kanalıysa işlem yap
+        if (isTrainingChannel) {
+          console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content} (Süre: ${trainingDuration} saat)`);
 
           // İlk önce yeni formatta mesaj olup olmadığını kontrol et (1/1 kısa pas)
           const simpleTrainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
@@ -344,18 +380,27 @@ export function setupEventHandlers() {
             processedMessageIds.add(message.id);
             console.log(`[ANTRENMAN] Yeni mesaj işleniyor, bellekte işaretlendi: ${message.id} (toplam işlenen mesaj: ${processedMessageIds.size})`);
 
-            const duration = parseInt(matches[1], 10);
+            // Format 1/1 şeklinde ancak gerçek süre kanaldan geliyor 
+            // (trainingDuration değişkeni kanal ayarlarına göre belirlendi)
+            const formatDuration = parseInt(matches[1], 10);
             const attributeName = matches[3].trim();
 
             // Yoğunluk değerini kullanmıyoruz artık
-            console.log(`[ANTRENMAN] Basit format algılandı: Süre=${duration}, Nitelik=${attributeName}`);
+            console.log(`[ANTRENMAN] Basit format algılandı: Format=${formatDuration}/1, Gerçek Süre=${trainingDuration}, Nitelik=${attributeName}`);
 
             try {
               // Kullanıcıyı oluştur veya al
+              // Eğer bir sunucu üyesiyse, sunucudaki görünen adını (nickname) al
+              let displayName = message.author.username;
+              if (message.member && message.member.displayName) {
+                displayName = message.member.displayName;
+              }
+              
               const user = await storage.getOrCreateUser(
                 message.author.id,
                 message.author.username,
-                message.author.displayAvatarURL()
+                message.author.displayAvatarURL(),
+                displayName
               );
 
               // Sabit olarak +1 puan ekleyeceğiz
@@ -364,11 +409,12 @@ export function setupEventHandlers() {
               // Veritabanında bu mesaj zaten var mı diye kontrol et
               // Bu kontrol artık sadece günlük bilgi içindir, gerçek kontrol daha yukarıda yapılıyor
               // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
+              // Burada duration yerine trainingDuration kullanarak kanal bazlı süreyi uyguluyoruz
               const session = await storage.createTrainingSession({
                 userId: user.userId,
                 attributeName: attributeName,
                 ticketId: null,
-                duration,
+                duration: trainingDuration, // Kanaldan gelen süre değerini kullanıyoruz
                 intensity: 1, // Sabit değer kullanıyoruz
                 attributesGained: attributeValue,
                 source: 'message',
@@ -395,9 +441,10 @@ export function setupEventHandlers() {
                 .setColor('#43B581')
                 .setDescription(`${message.author} adlı oyuncunun antrenman kaydı başarıyla oluşturuldu.`)
                 .addFields(
-                  { name: 'Süre', value: `${duration} saat`, inline: true },
+                  { name: 'Format', value: `${formatDuration}/1`, inline: true },
                   { name: 'Nitelik', value: attributeName, inline: true },
-                  { name: 'Kazanılan Puan', value: `+${attributeValue}`, inline: true }
+                  { name: 'Kazanılan Puan', value: `+${attributeValue}`, inline: true },
+                  { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true }
                 )
                 .setTimestamp();
 
@@ -430,10 +477,17 @@ export function setupEventHandlers() {
 
           // Eski kompleks antrenman formatı 
           // Kullanıcıyı oluştur veya al
+          // Sunucudaki görünen adını (nickname) kullan
+          let displayName = message.author.username;
+          if (message.member && message.member.displayName) {
+            displayName = message.member.displayName;
+          }
+          
           const user = await storage.getOrCreateUser(
             message.author.id,
             message.author.username,
-            message.author.displayAvatarURL()
+            message.author.displayAvatarURL(),
+            displayName
           );
 
           // Kullanıcının niteliklerini al

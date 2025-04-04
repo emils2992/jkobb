@@ -7,14 +7,16 @@ import { createHash } from "crypto";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull().unique(), // Discord user ID
-  username: text("username").notNull(),
-  avatarUrl: text("avatar_url"),
+  username: text("username").notNull(), // Discord kullanıcı adı
+  displayName: text("display_name"), // Discord sunucusundaki görünen isim (nickname)
+  avatarUrl: text("avatar_url"), // Profil fotoğrafı URL'si
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   userId: true,
   username: true,
+  displayName: true,
   avatarUrl: true,
 });
 
@@ -107,7 +109,12 @@ export const serverConfig = pgTable("server_config", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull().unique(), // Discord guild/server ID
   fixLogChannelId: text("fix_log_channel_id"), // Channel ID for fix logs
-  trainingChannelId: text("training_channel_id"), // Channel ID for training logs
+  trainingChannelId: text("training_channel_id"), // Channel ID for training logs (ana kanal)
+  trainingChannelId1: text("training_channel_id_1"), // Kanal 1 - 1 saat
+  trainingChannelId2: text("training_channel_id_2"), // Kanal 2 - 2 saat
+  trainingChannelId3: text("training_channel_id_3"), // Kanal 3 - 3 saat
+  trainingChannelId4: text("training_channel_id_4"), // Kanal 4 - 4 saat
+  trainingChannelId5: text("training_channel_id_5"), // Kanal 5 - 5 saat
   staffRoleId: text("staff_role_id"), // Staff role ID
   lastResetAt: timestamp("last_reset_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -118,6 +125,11 @@ export const insertServerConfigSchema = createInsertSchema(serverConfig).pick({
   guildId: true,
   fixLogChannelId: true,
   trainingChannelId: true,
+  trainingChannelId1: true,
+  trainingChannelId2: true,
+  trainingChannelId3: true,
+  trainingChannelId4: true,
+  trainingChannelId5: true,
   staffRoleId: true,
 });
 

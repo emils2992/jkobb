@@ -215,7 +215,7 @@ export default function PlayerStatsPage() {
       </div>
 
       <FixModal isOpen={showFixsonModal} onClose={() => setShowFixsonModal(false)} playerStats={filteredPlayers || []} />
-      <FixResetModal isOpen={showFixresetModal} onClose={() => setShowFixresetModal(false)} />
+      <FixResetModal open={showFixresetModal} onClose={() => setShowFixresetModal(false)} />
     </>
   );
 }
