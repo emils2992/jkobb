@@ -442,15 +442,30 @@ export function setupEventHandlers() {
           // Kullanıcının niteliklerini al
           const attributes = await storage.getAttributes(user.userId);
 
-          // Kullanıcının son antrenman kaydını al
+          // Kullanıcının son antrenman kaydını - bu nitelik için - al
           const trainingSessions = await storage.getTrainingSessions(user.userId);
           let lastTrainingTime: Date | null = null;
 
-          if (trainingSessions.length > 0) {
+          // Şimdi bu nitelik için son antrenman zamanını bulalım
+          // Niteliğe özel son antrenman zamanı kontrolü
+          const attributeTrainings = trainingSessions.filter(session => 
+            session.attributeName.toLowerCase() === message.content.split(/\s+/)[1]?.toLowerCase() ||
+            message.content.toLowerCase().includes(session.attributeName.toLowerCase())
+          ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+          if (attributeTrainings.length > 0) {
+            // Bu nitelik için son antrenman zamanını kullan
+            lastTrainingTime = new Date(attributeTrainings[0].createdAt);
+            console.log(`[ANTRENMAN] Bu nitelik için son antrenman: ${lastTrainingTime.toISOString()}`);
+          } else if (trainingSessions.length > 0) {
+            // Eğer bu nitelik için antrenman yoksa, genel olarak son antrenman zamanını kullan
             const lastSession = trainingSessions.sort((a, b) => 
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             )[0];
             lastTrainingTime = new Date(lastSession.createdAt);
+            console.log(`[ANTRENMAN] Herhangi bir nitelik için son antrenman: ${lastTrainingTime.toISOString()}`);
+          } else {
+            console.log(`[ANTRENMAN] Daha önce hiç antrenman yapılmamış`);
           }
 
           // Antrenman mesajını analiz et - kullanıcının rollerini de kontrol et
@@ -463,7 +478,22 @@ export function setupEventHandlers() {
           );
 
           if (trainingInfo) {
-            // Antrenman yapılabilir mi kontrol et
+            // Log tüm bilgileri
+            console.log(`[ANTRENMAN KONTROLÜ] TrainingInfo: `, {
+              attributeName: trainingInfo.attributeName,
+              isAllowed: trainingInfo.isAllowed,
+              hoursRequired: trainingInfo.hoursRequired,
+              timeSinceLastTraining: trainingInfo.timeSinceLastTraining
+            });
+            
+            // ROL BAZLI KONTROL ARTIK TAMAMEN AKTİF
+            // İzin kontrolü tamamen etkinleştirildi
+            
+            // ForceAllow'u kaldırıyoruz, artık doğrudan kontrol ediyoruz
+            // Sadece log amaçlı belirtelim
+            console.log(`[ANTRENMAN KONTROLÜ] SÜRE KISITLAMASI KONTROLÜ AKTİF! (İstek izinli mi: ${trainingInfo.isAllowed ? 'EVET' : 'HAYIR'})`);
+            
+            // İzin verilmiyorsa (süre yeterli değilse) mesaj göster
             if (!trainingInfo.isAllowed) {
               // Daha çok beklenmesi gerekiyorsa bilgilendir
               const hoursLeft = Math.max(0, trainingInfo.hoursRequired - trainingInfo.timeSinceLastTraining).toFixed(1);

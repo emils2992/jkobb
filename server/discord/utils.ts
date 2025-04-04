@@ -259,6 +259,11 @@ export function parseTrainingMessage(
     : 24; // Eğer daha önce antrenman yapılmadıysa 24 saat (varsayılan olarak izin verir)
   
   // Antrenman yapılabilir mi kontrol et
+  // Geçen sürenin saat değerini yazdıralım
+  console.log(`[TRAINING] Son antrenmandan bu yana geçen süre: ${timeSinceLastTraining.toFixed(2)} saat`);
+  console.log(`[TRAINING] Gereken bekleme süresi: ${hoursRequired} saat`);
+  
+  // Yeterli süre geçmiş mi kontrol et
   const isAllowed = timeSinceLastTraining >= hoursRequired;
   
   return {
