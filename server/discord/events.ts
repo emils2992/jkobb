@@ -395,7 +395,7 @@ export function setupEventHandlers() {
               if (message.member && message.member.displayName) {
                 displayName = message.member.displayName;
               }
-              
+
               const user = await storage.getOrCreateUser(
                 message.author.id,
                 message.author.username,
@@ -482,7 +482,7 @@ export function setupEventHandlers() {
           if (message.member && message.member.displayName) {
             displayName = message.member.displayName;
           }
-          
+
           const user = await storage.getOrCreateUser(
             message.author.id,
             message.author.username,
@@ -608,7 +608,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           interaction.user.username,
           interaction.user.displayAvatarURL()
         ),
-        
+
         // Sunucu konfigürasyonunu alma
         storage.getServerConfig(guild.id)
       ]);
@@ -674,7 +674,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Veritabanı işlemlerini ve UI hazırlığını paralel yap
       console.time('parallel_ui_db');
-      
+
       // Ticket DB kayıt işlemi ve oyuncu istatistikleri işlemlerini paralel başlat
       const [ticket, playerStats] = await Promise.all([
         // Ticket oluştur
@@ -684,25 +684,25 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           status: 'open',
           type: 'attribute'
         }),
-        
+
         // Oyuncu istatistiklerini getir
         storage.getPlayerAttributeStats(interaction.user.id)
       ]);
-      
+
       // UI bileşenlerini hızlı bir şekilde hazırla
       const playerStat = playerStats && playerStats.length > 0 ? playerStats[0] : null;
-      
+
       // Oyuncu istatistik metni hazırla - limit ile kısa tut
       let statsText = '';
       if (playerStat) {
         statsText = `\n\n**Mevcut Nitelik Durumu:**\nToplam: **${playerStat.totalValue}** | Bu Hafta: **${playerStat.weeklyValue}**`;
-        
+
         // En önemli 3 niteliği göster (çok uzun olmasın)
         if (playerStat.attributes && playerStat.attributes.length > 0) {
           const topAttributes = playerStat.attributes
             .sort((a: any, b: any) => b.value - a.value)
             .slice(0, 3);
-            
+
           if (topAttributes.length > 0) {
             statsText += '\n\n**En Yüksek Nitelikler:**\n';
             topAttributes.forEach((attr: { name: string, value: number }) => {
@@ -712,7 +712,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           }
         }
       }
-      
+
       // Embed ve butonları hazırla
       const embed = new EmbedBuilder()
         .setTitle('🎫 Yeni Nitelik Talebi')
@@ -732,28 +732,28 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             .setLabel('Nitelik Ekle')
             .setStyle(ButtonStyle.Primary)
         );
-      
+
       console.timeEnd('parallel_ui_db');
-      
+
       // Son mesaj gönderme işlemleri
       console.time('final_messages');
-      
+
       // Eğer varsa staff rol mention'ı
       let mentionText = staffRoleId ? `<@&${staffRoleId}> Yeni bir ticket açıldı!` : '';
-      
+
       // Channel mesajını gönder
       await channel.send({ 
         content: mentionText, 
         embeds: [embed], 
         components: [row] 
       });
-      
+
       // Son kullanıcı mesajını gönder
       await interaction.editReply(`✅ Ticket oluşturuldu: <#${channel.id}>`);
-      
+
       console.timeEnd('final_messages');
       console.timeEnd('ticket_creation_total');
-      
+
     } catch (error) {
       console.error('Error creating ticket:', error);
       await interaction.editReply('Ticket oluşturulurken bir hata oluştu.');
@@ -780,11 +780,11 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     if (ticket.status === 'closed') {
       return interaction.editReply('Bu ticket zaten kapatılmış.');
     }
-    
+
     // Yetki kontrolü - sadece yöneticiler veya ticket sahibi kapatabilir
     const hasAdminPermission = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
     const isTicketOwner = interaction.user.id === ticket.userId;
-    
+
     // Staff rol ID'sini kontrol et
     let hasStaffRole = false;
     if (interaction.guild) {
@@ -794,7 +794,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         hasStaffRole = member.roles.cache.has(serverConfig.staffRoleId);
       }
     }
-    
+
     // Eğer yönetici veya staff rolüne sahip değilse ve ticket sahibi de değilse, erişimi engelle
     if (!hasAdminPermission && !hasStaffRole && !isTicketOwner) {
       return interaction.editReply('Bu ticketı kapatma yetkiniz yok. Sadece yetkililer veya ticket sahibi kapatabilir.');
@@ -1179,7 +1179,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       const attributeName = interaction.fields.getTextInputValue('attribute_name');
       const attributeValueStr = interaction.fields.getTextInputValue('attribute_value');
       const attributeValue = parseInt(attributeValueStr, 10);
-      
+
       // Önce etkileşimi bekletin - "don't response" hatasını önlemek için
       await interaction.deferReply().catch(error => {
         console.error("Modal deferReply hatası:", error);
@@ -1245,4 +1245,5 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       }
     }
   }
+}
 }

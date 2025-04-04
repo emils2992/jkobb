@@ -36,10 +36,11 @@ export default function PlayerStatsPage() {
 
   const columns = [
     {
-      accessorKey: "user.username",
+      accessorKey: "user.displayName",
       header: "Oyuncu",
       cell: ({ row }: any) => {
         const player = row.original;
+        // Sadece displayName kullan, yoksa username
         const displayName = player.user.displayName || player.user.username;
         return (
           <div className="flex items-center space-x-2">
