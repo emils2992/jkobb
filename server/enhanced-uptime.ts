@@ -43,7 +43,7 @@ function logToFile(message: string, source = 'uptime') {
 /**
  * Servis durumunu döndür
  */
-export function getUptimeStatus() {
+export function getEnhancedServiceStatus() {
   return {
     ...serviceStatus,
     uptime: process.uptime(),
@@ -175,7 +175,7 @@ export async function startEnhancedUptimeService() {
           service: 'enhanced-uptime-backup',
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
-          stats: getUptimeStatus()
+          stats: getEnhancedServiceStatus()
         }));
       } else {
         // Diğer istekler için basit yanıt
@@ -229,7 +229,7 @@ async function recoverService() {
   for (const endpoint of endpoints) {
     try {
       const url = `${REPLIT_URL}${endpoint}`;
-      const response = await fetch(url, { timeout: 5000 });
+      const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
 
       if (response.ok) {
         allEndpointsFailing = false;
@@ -277,27 +277,15 @@ export function stopEnhancedUptimeService() {
   return true;
 }
 
-export function getUptimeStatus() {
-  const uptime = Math.floor((Date.now() - serviceStatus.startTime.getTime()) / 1000 / 60);
-  const successRate = serviceStatus.pingCount > 0
-    ? (serviceStatus.successCount / serviceStatus.pingCount) * 100
-    : 100;
-
+// İstatistik bilgilerini döndüren yardımcı fonksiyon
+export function getEnhancedUptimeStatus() {
   return {
-    isRunning: serviceStatus.isRunning,
-    isHealthy: serviceStatus.isHealthy,
-    startTime: serviceStatus.startTime,
-    uptime: `${uptime} dakika`,
-    lastSuccessfulPing: serviceStatus.lastSuccessfulPing,
-    pingCount: serviceStatus.pingCount,
-    successCount: serviceStatus.successCount,
-    failureCount: serviceStatus.failureCount,
-    recoveryAttempts: serviceStatus.recoveryAttempts,
-    successRate: `%${successRate.toFixed(2)}`,
-    memoryUsage: {
-      heapUsed: `${Math.round(serviceStatus.memoryUsage.heapUsed / 1024 / 1024)} MB`,
-      rss: `${Math.round(serviceStatus.memoryUsage.rss / 1024 / 1024)} MB`
-    },
-    lastUpdate: serviceStatus.lastUpdate
+    isRunning: serviceStatus.isRunning || false,
+    uptime: process.uptime(),
+    pingStats: serviceStatus.pingStats || { total: 0, successful: 0, failed: 0 },
+    recoveryAttempts: serviceStatus.recoveryAttempts || 0,
+    lastSuccessfulPing: serviceStatus.lastSuccessfulPing || new Date(),
+    lastUpdate: serviceStatus.lastUpdate || new Date(),
+    memoryUsage: serviceStatus.memoryUsage || process.memoryUsage()
   };
 }

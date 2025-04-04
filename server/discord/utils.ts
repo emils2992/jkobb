@@ -2,6 +2,13 @@ import { EmbedBuilder, GuildMember } from 'discord.js';
 import { User, AttributeRequest, Attribute, ServerConfig } from '@shared/schema';
 import { isValidAttribute, getRequiredHours, getCategoryForAttribute, getTrainingHoursByRoles } from './training-config';
 
+/**
+ * Belirli bir aralıktaki rastgele sayı oluşturur (min ve max dahil)
+ */
+export function getRandomNumber(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 // Format date for display
 export function formatDate(date: Date): string {
   if (!date) return 'Bilinmiyor';
@@ -252,19 +259,35 @@ export function parseTrainingMessage(
     console.log(`[TRAINING] Discord üyesi veya sunucu yapılandırması eksik, varsayılan süre kullanılıyor: ${hoursRequired} saat`);
   }
   
-  // Kullanıcının son antrenmanından bu yana geçen süreyi hesapla
+  // ZAMAN KONTROLÜ BÜYÜK FİX - Artık nitelikten bağımsız olarak, son antrenmandan beri geçen süre kontrol ediliyor
   const now = new Date();
+  
+  // Eğer daha önce hiç antrenman yapılmamışsa izin ver (lastTrainingTime null ise)
+  // Önceki antrenman varsa, geçen süreyi saat cinsinden hesapla
   const timeSinceLastTraining = lastTrainingTime
     ? (now.getTime() - lastTrainingTime.getTime()) / (1000 * 60 * 60) // saat cinsinden
-    : 24; // Eğer daha önce antrenman yapılmadıysa 24 saat (varsayılan olarak izin verir)
+    : 999; // Eğer hiç antrenman yapılmamışsa çok büyük bir değer koy (her zaman izin ver)
   
-  // Antrenman yapılabilir mi kontrol et
-  // Geçen sürenin saat değerini yazdıralım
-  console.log(`[TRAINING] Son antrenmandan bu yana geçen süre: ${timeSinceLastTraining.toFixed(2)} saat`);
-  console.log(`[TRAINING] Gereken bekleme süresi: ${hoursRequired} saat`);
+  // Kullanıcıları bilgilendirmek için loglar
+  if (lastTrainingTime) {
+    console.log(`[TRAINING] Son antrenmandan bu yana geçen süre: ${timeSinceLastTraining.toFixed(2)} saat`);
+    console.log(`[TRAINING] Gereken bekleme süresi: ${hoursRequired} saat`);
+    console.log(`[TRAINING] GLOBAL ZAMAN SINIRI KONTROLÜ: ${timeSinceLastTraining} >= ${hoursRequired} ?`);
+  } else {
+    console.log(`[TRAINING] ⭐ İLK ANTRENMAN YAPILIYOR! Daha önce hiç antrenman yapılmamış.`);
+  }
   
-  // Yeterli süre geçmiş mi kontrol et
+  // Kesin kuraldır - yeterli süre geçmiş mi kontrol et
   const isAllowed = timeSinceLastTraining >= hoursRequired;
+  
+  // Sonuç hakkında bilgilendirme
+  console.log(`[TRAINING] ANTRENMAN İZNİ: ${isAllowed ? 'EVET ✓' : 'HAYIR ✗'}`);
+  
+  // Eğer izin verilmediyse, beklemesi gereken süreyi göster
+  if (!isAllowed) {
+    const hoursLeft = Math.max(0, hoursRequired - timeSinceLastTraining).toFixed(1);
+    console.log(`[TRAINING] BEKLEMESI GEREKEN SÜRE: ${hoursLeft} saat`);
+  }
   
   return {
     attributeName,

@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
 import { client } from "./discord/bot";  // Discord client'ı import ediyoruz
 import { startUptimeService } from "./uptime";
-import { getUptimeStatus } from "./enhanced-uptime";
+import { getEnhancedServiceStatus } from "./enhanced-uptime";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { Admin } from "../shared/schema";
@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       system: "Discord Halısaha Bot",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      uptimeStats: getUptimeStatus()
+      uptimeStats: getEnhancedServiceStatus()
     });
   });
 

@@ -446,26 +446,25 @@ export function setupEventHandlers() {
           const trainingSessions = await storage.getTrainingSessions(user.userId);
           let lastTrainingTime: Date | null = null;
 
-          // TAMAMEN YENİDEN YAZILAN NİTELİK BAZLI ANTRENMAN ZAMANI KONTROLÜ
-          // Mesajdan nitelik adını çıkar
-          const nitelikAdi = message.content.split(/\s+/)[1]?.toLowerCase() || '';
-          console.log(`[ANTRENMAN] Tespit edilen nitelik: ${nitelikAdi}`);
+          // TAMAMEN YENİDEN YAZILAN GLOBAL ANTRENMAN ZAMANI KONTROLÜ
+          // Artık hangi nitelikte olursa olsun, son antrenmandan 2 saat geçmeden (veya rol bazlı süre) yeni antrenman yapılamayacak
           
-          // BÜYÜK FİX: Artık sadece aynı nitelikte yapılan antrenmanların arasında bekleme olacak!
-          // Önce aynı nitelikte yapılan antrenmanları filtreleyelim
-          const ayniNitelikAntrenmanlar = trainingSessions.filter(session => 
-            session.attributeName.toLowerCase() === nitelikAdi
-          ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          console.log(`[ANTRENMAN] YENİ KONTROL: Nitelikten bağımsız, her tür antrenman için süre kısıtlaması aktif!`);
           
-          if (ayniNitelikAntrenmanlar.length > 0) {
-            // Aynı nitelikte son antrenman zamanını kullan
-            lastTrainingTime = new Date(ayniNitelikAntrenmanlar[0].createdAt);
-            console.log(`[ANTRENMAN] "${nitelikAdi}" niteliği için son antrenman: ${lastTrainingTime.toISOString()}`);
-            console.log(`[ANTRENMAN] AYNI NİTELİK ZAMAN KONTROLÜ AKTİF!`);
+          // Tüm antrenmanlar içinde en yeni olanını bul
+          const tumAntrenmanlar = trainingSessions.sort((a, b) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          
+          if (tumAntrenmanlar.length > 0) {
+            // En son yapılan herhangi bir antrenman zamanını kullan
+            lastTrainingTime = new Date(tumAntrenmanlar[0].createdAt);
+            console.log(`[ANTRENMAN] Son yapılan antrenman (herhangi bir nitelikte): ${lastTrainingTime.toISOString()}`);
+            console.log(`[ANTRENMAN] GLOBAL ZAMAN KONTROLÜ AKTİF!`);
           } else {
-            // Eğer bu nitelik için hiç antrenman yapılmamışsa, null bırak (ilk antrenman)
+            // Eğer daha önce hiç antrenman yapılmamışsa, null bırak (ilk antrenman)
             lastTrainingTime = null;
-            console.log(`[ANTRENMAN] "${nitelikAdi}" niteliği için daha önce hiç antrenman yapılmamış - ilk antrenman izni verilecek!`);
+            console.log(`[ANTRENMAN] Daha önce hiç antrenman yapılmamış - ilk antrenman izni verilecek!`);
           }
 
           // Antrenman mesajını analiz et - kullanıcının rollerini de kontrol et
