@@ -89,21 +89,92 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+  // Replit'de her zaman Vite'ı çalıştır
+  // Bu değişiklik Replit'in development modunda düzgün çalışmasını sağlar
+  await setupVite(app, server);
 
   // Replit'in beklediği port olan 5000'i kullan veya env değişkeninden al
   let port = process.env.PORT ? parseInt(process.env.PORT) : 5000; // Replit 5000 portunu bekliyor, ancak env'den de alabiliriz
   
   // Temel uptime/health endpoint'leri için genişletilmiş rotalar
   app.get('/', (req, res) => {
-    res.status(200).send('Discord Bot Server Running');
+    // HTML sayfasına yönlendir, bu sayede server çalışır durumda olsa da
+    // doğrudan Vite'a ulaşamayanlar bu sayfayı görebilir
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="tr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Discord Bot - Epic Lig Yönetim Sistemi</title>
+        <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #36393F;
+                color: #DCDDDE;
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                text-align: center;
+            }
+            .container {
+                max-width: 800px;
+                padding: 2rem;
+                background-color: #2F3136;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+            h1 {
+                color: #5865F2;
+                margin-bottom: 1rem;
+            }
+            p {
+                margin-bottom: 1.5rem;
+                line-height: 1.6;
+            }
+            .status {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                background-color: #43B581;
+                border-radius: 4px;
+                margin-top: 1rem;
+                font-weight: bold;
+            }
+            .links {
+                margin-top: 2rem;
+            }
+            a {
+                color: #00AFF4;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Epic Lig Discord Bot</h1>
+            <p>Discord bot sistemi aktif olarak çalışıyor. Bot, Discord sunucunuzda antrenman kayıtlarını, rating rollerini ve diğer işlevleri yönetmek için kullanılabilir.</p>
+            
+            <div class="status">Bot Aktif ✓</div>
+            
+            <div class="links">
+                <p>
+                    <strong>Yönetim Paneline Git:</strong> <a href="/dashboard">Dashboard</a><br>
+                    <strong>Discord Sunucusuna Git:</strong> <a href="https://discord.gg/epiclig" target="_blank">Epic Lig Discord</a>
+                </p>
+            </div>
+            
+            <p><small>Son Güncelleme: ${new Date().toLocaleString('tr-TR')}</small></p>
+        </div>
+    </body>
+    </html>
+    `;
+    res.status(200).send(htmlContent);
   });
   
   app.get('/ping', (req, res) => {
