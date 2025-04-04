@@ -506,13 +506,20 @@ export function setupEventHandlers() {
 
           // Antrenman mesajını analiz et
           // Artık parseTrainingMessage async olduğu için await kullanıyoruz ve kanal/guild bilgisi gönderiyoruz
-          const trainingInfo = await parseTrainingMessage(
-            message.content, 
-            attributes, 
-            lastTrainingTime,
-            message.channelId,
-            message.guild?.id
-          );
+          console.log(`Antrenman mesajı analiz ediliyor: ${message.content}, kanal: ${message.channelId}, guild: ${message.guild?.id}`);
+          
+          let trainingInfo = null;
+          try {
+            trainingInfo = await parseTrainingMessage(
+              message.content, 
+              attributes, 
+              lastTrainingTime,
+              message.channelId,
+              message.guild?.id // undefined olabilir ama null olmamalı
+            );
+          } catch (error) {
+            console.error("parseTrainingMessage fonksiyonunda hata:", error);
+          }
 
           if (trainingInfo) {
             // Antrenman yapılabilir mi kontrol et
@@ -613,7 +620,8 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         storage.getOrCreateUser(
           interaction.user.id,
           interaction.user.username,
-          interaction.user.displayAvatarURL()
+          interaction.user.displayAvatarURL(),
+          interaction.user.username
         ),
 
         // Sunucu konfigürasyonunu alma

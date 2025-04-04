@@ -206,8 +206,11 @@ export async function parseTrainingMessage(
   
   // Eğer kanal ve guild ID'si belirtilmişse, kanalın süre katsayısını uygula
   let duration = parsedDuration;
+  console.log(`parseTrainingMessage: Alınan parametreler channelId=${channelId}, guildId=${guildId}`);
+  
   if (channelId && guildId) {
     try {
+      console.log(`Kanal katsayısı hesaplanıyor: guildId=${guildId}, channelId=${channelId}`);
       // Kanal tipine göre antrenman süresini async/await ile belirle
       const channelDuration = await storage.getTrainingChannelDuration(guildId, channelId);
       duration = parsedDuration * channelDuration;
@@ -217,6 +220,8 @@ export async function parseTrainingMessage(
       // Hata durumunda varsayılan değeri kullan
       duration = parsedDuration;
     }
+  } else {
+    console.log(`Kanal bilgisi eksik, varsayılan süre kullanılıyor: ${parsedDuration} saat`);
   }
   
   if (duration <= 0 || intensity <= 0) return null;

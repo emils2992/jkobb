@@ -108,7 +108,7 @@ app.use((req, res, next) => {
   }
 
   // Dinamik port kullanımı - hata durumunda yeni port deneyin
-  let port = 3030; // Uptime servisleri için sabit bir port
+  let port = 5000; // Uptime servisleri için Replit workflow uyumlu bir port
   
   // Temel uptime/health endpoint'leri için genişletilmiş rotalar
   app.get('/', (req, res) => {

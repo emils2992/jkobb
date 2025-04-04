@@ -45,21 +45,22 @@ export class PgStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await this.pool.query(
-      'INSERT INTO users(user_id, username, avatar_url) VALUES($1, $2, $3) RETURNING *',
-      [insertUser.userId, insertUser.username, insertUser.avatarUrl || null]
+      'INSERT INTO users(user_id, username, avatar_url, display_name) VALUES($1, $2, $3, $4) RETURNING *',
+      [insertUser.userId, insertUser.username, insertUser.avatarUrl || null, insertUser.displayName || null]
     );
     
     return this.pgUserToUser(result.rows[0]);
   }
 
-  async getOrCreateUser(userId: string, username: string, avatarUrl?: string): Promise<User> {
+  async getOrCreateUser(userId: string, username: string, avatarUrl?: string, displayName?: string): Promise<User> {
     const existingUser = await this.getUserById(userId);
     if (existingUser) return existingUser;
     
     return this.createUser({
       userId,
       username,
-      avatarUrl
+      avatarUrl,
+      displayName
     });
   }
 
@@ -735,18 +736,58 @@ export class PgStorage implements IStorage {
   
   // Belirli bir kanal ID'sine göre kanal tipini ve süresini belirle
   async getTrainingChannelDuration(guildId: string, channelId: string): Promise<number> {
-    const config = await this.getServerConfig(guildId);
-    if (!config) return 1; // Varsayılan süre
+    console.log(`getTrainingChannelDuration çağrıldı: guildId=${guildId}, channelId=${channelId}`);
     
-    // Her bir kanal için süreyi kontrol et
-    if (channelId === config.trainingChannelId1) return 1; // 1 saat
-    if (channelId === config.trainingChannelId2) return 2; // 2 saat
-    if (channelId === config.trainingChannelId3) return 3; // 3 saat
-    if (channelId === config.trainingChannelId4) return 4; // 4 saat
-    if (channelId === config.trainingChannelId5) return 5; // 5 saat
+    // Parametreler null veya undefined ise varsayılan değer döndür
+    if (!guildId || !channelId) {
+      console.log(`getTrainingChannelDuration: Eksik parametreler! guildId=${guildId}, channelId=${channelId}`);
+      return 1; // Varsayılan süre
+    }
     
-    // Eşleşme yoksa varsayılan ana antrenman kanalı olarak kabul et
-    return 1; // Varsayılan süre
+    try {
+      const config = await this.getServerConfig(guildId);
+      console.log(`Sunucu konfigürasyonu alındı:`, config);
+      
+      if (!config) {
+        console.log(`${guildId} için sunucu konfigürasyonu bulunamadı.`);
+        return 1; // Varsayılan süre
+      }
+      
+      // Her bir kanal için süreyi kontrol et
+      if (channelId === config.trainingChannelId1) {
+        console.log(`Kanal ${channelId} kanal1 olarak eşleşti - 1 saat`);
+        return 1; // 1 saat
+      }
+      if (channelId === config.trainingChannelId2) {
+        console.log(`Kanal ${channelId} kanal2 olarak eşleşti - 2 saat`);
+        return 2; // 2 saat
+      }
+      if (channelId === config.trainingChannelId3) {
+        console.log(`Kanal ${channelId} kanal3 olarak eşleşti - 3 saat`);
+        return 3; // 3 saat
+      }
+      if (channelId === config.trainingChannelId4) {
+        console.log(`Kanal ${channelId} kanal4 olarak eşleşti - 4 saat`);
+        return 4; // 4 saat
+      }
+      if (channelId === config.trainingChannelId5) {
+        console.log(`Kanal ${channelId} kanal5 olarak eşleşti - 5 saat`);
+        return 5; // 5 saat
+      }
+      
+      // Ana kanal kontrolü
+      if (channelId === config.trainingChannelId) {
+        console.log(`Kanal ${channelId} ana kanal olarak eşleşti - 1 saat`);
+        return 1; // Ana kanal - 1 saat
+      }
+      
+      // Eşleşme yoksa varsayılan ana antrenman kanalı olarak kabul et
+      console.log(`Kanal ${channelId} için eşleşme bulunamadı, varsayılan 1 saat kullanılıyor`);
+      return 1; // Varsayılan süre
+    } catch (error) {
+      console.error(`getTrainingChannelDuration hata oluştu:`, error);
+      return 1; // Hata durumunda varsayılan süre
+    }
   }
 
   async updateLastReset(guildId: string): Promise<ServerConfig> {
