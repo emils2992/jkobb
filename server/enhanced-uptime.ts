@@ -1,32 +1,16 @@
 import fetch from 'node-fetch';
-import { CronJob } from 'cron';
 import { log } from './vite';
-import * as fs from 'fs';
 import { createServer } from 'http';
-import { URLS } from './external-pings';
+import * as fs from 'fs';
 
-// Replit URL'si - çevre değişkeninden al ya da sabit URL kullan
-const REPLIT_URL = process.env.REPLIT_URL || 'https://discord-halisaha-manager.emilswd.repl.co';
-const KEEPALIVE_FILE = './keepalive.json';
+// Replit URL'si - çevre değişkeninden al ya da sabit değeri kullan
+const REPLIT_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
 const UPTIME_LOG = './uptime.log';
+const BACKUP_SERVER_PORT = 8099; // Yedek sunucu için port
+const CHECK_INTERVAL = 2 * 60 * 1000; // 2 dakika
+const URLS = [REPLIT_URL];
 
-// Interval ve süreler
-const INTERNAL_PING_INTERVAL = 60 * 1000; // 1 dakika
-const FILE_WRITE_INTERVAL = 30 * 1000; // 30 saniye
-const EXTERNAL_PING_CRON = '*/10 * * * *'; // Her 10 dakikada bir
-const HEALTH_CHECK_INTERVAL = 2 * 60 * 1000; // 2 dakika
-const MEMORY_CLEANUP_INTERVAL = 15 * 60 * 1000; // 15 dakika
-const BACKUP_SERVER_PORT = 8066; // Port çakışmasını önlemek için değiştirildi
-
-// Servis referansları
-let internalPingInterval: NodeJS.Timeout | null = null;
-let fileWriteInterval: NodeJS.Timeout | null = null;
-let healthCheckInterval: NodeJS.Timeout | null = null;
-let memoryCleanupInterval: NodeJS.Timeout | null = null;
-let externalPingCron: CronJob | null = null;
-let backupServer: any = null;
-
-// Durum takibi
+// Sunucu durumu izleme
 let serviceStatus = {
   isRunning: false,
   isHealthy: true,
@@ -40,36 +24,21 @@ let serviceStatus = {
   lastUpdate: new Date()
 };
 
-// URL tespit fonksiyonu
-function getReplicUrl() {
-  try {
-    // Ortam değişkenlerinden al
-    if (process.env.REPLIT_URL) return process.env.REPLIT_URL;
-    
-    // Dinamik olarak tespit et
-    const hostname = fs.existsSync('./.hostname') ? 
-      fs.readFileSync('./.hostname', 'utf8').trim() : 
-      'replit-app';
-    
-    return `https://${hostname}`;
-  } catch (error) {
-    log(`URL tespit hatası: ${error}`, 'uptime');
-    return 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev';
-  }
-}
+let pingIntervals: NodeJS.Timeout[] = [];
+let backupServer: any = null;
 
 // Logger fonksiyonu
 function logToFile(message: string, source: string = 'uptime') {
   const timestamp = new Date().toISOString();
   const logMessage = `${timestamp} - [${source}] ${message}\n`;
-  
+
   // Konsola log
   log(message, source);
-  
+
   // Dosyaya log
   try {
     fs.appendFileSync(UPTIME_LOG, logMessage);
-    
+
     // Log dosyası çok büyükse (1MB üzerinde) dosyayı temizle
     const stats = fs.statSync(UPTIME_LOG);
     if (stats.size > 1024 * 1024) {
@@ -110,203 +79,104 @@ export function startEnhancedUptimeService() {
 
   logToFile('🚀 Süper gelişmiş uptime servisi başlatılıyor...', 'enhanced');
 
-  // 1. Dosya sistemi aktivitesi - Düzenli yazma işlemleri
-  fileWriteInterval = setInterval(() => {
-    try {
-      serviceStatus.lastUpdate = new Date();
-      serviceStatus.memoryUsage = process.memoryUsage();
-      
-      const data = {
-        status: serviceStatus.isHealthy ? 'healthy' : 'recovering',
-        lastUpdate: serviceStatus.lastUpdate.toISOString(),
-        uptime: {
-          server: process.uptime(),
-          service: (Date.now() - serviceStatus.startTime.getTime()) / 1000
-        },
-        stats: {
-          pingCount: serviceStatus.pingCount,
-          successRate: serviceStatus.pingCount > 0 ? 
-            (serviceStatus.successCount / serviceStatus.pingCount * 100).toFixed(2) + '%' : 
-            '100%',
-          failureCount: serviceStatus.failureCount,
-          recoveryAttempts: serviceStatus.recoveryAttempts
-        },
-        memory: {
-          rss: Math.round(serviceStatus.memoryUsage.rss / 1024 / 1024) + 'MB',
-          heapTotal: Math.round(serviceStatus.memoryUsage.heapTotal / 1024 / 1024) + 'MB',
-          heapUsed: Math.round(serviceStatus.memoryUsage.heapUsed / 1024 / 1024) + 'MB'
-        },
-        timestamp: Date.now()
-      };
-      
-      fs.writeFileSync(KEEPALIVE_FILE, JSON.stringify(data, null, 2));
-      
-      // Her 10 yazma işleminde bir log (sık log oluşturma)
-      if (serviceStatus.pingCount % 10 === 0) {
-        logToFile(`📝 Durum dosyası güncellendi - Başarı oranı: ${data.stats.successRate}`, 'enhanced');
-      }
-    } catch (error) {
-      logToFile(`❌ Durum dosyası yazma hatası: ${error}`, 'enhanced');
-    }
-  }, FILE_WRITE_INTERVAL);
-
-  // 2. Dahili ping sistemi - Uygulama kendini düzenli olarak kontrol eder
-  internalPingInterval = setInterval(async () => {
-    try {
-      serviceStatus.pingCount++;
-      
-      // Farklı endpoint'leri rastgele tercih et (cache etkisini azaltmak için)
-      const endpoints = ['/ping', '/api/health', '/uptime-check', '/', '/login', '/dashboard'];
-      const randomEndpoint = endpoints[Math.floor(Math.random() * endpoints.length)];
-      const timestamp = Date.now();
-      
-      const response = await fetch(`${REPLIT_URL}${randomEndpoint}?t=${timestamp}`);
-      
-      if (response.ok) {
-        serviceStatus.successCount++;
-        serviceStatus.lastSuccessfulPing = new Date();
-        serviceStatus.isHealthy = true;
-      } else {
-        serviceStatus.failureCount++;
-        logToFile(`⚠️ Ping başarısız (${response.status}) - ${randomEndpoint}`, 'enhanced');
-        await recoverService();
-      }
-    } catch (error) {
-      serviceStatus.failureCount++;
-      logToFile(`❌ Ping hatası: ${error}`, 'enhanced');
-      await recoverService();
-    }
-  }, INTERNAL_PING_INTERVAL);
-
-  // 3. Sağlık kontrol sistemi - Daha kapsamlı sağlık kontrolü
-  healthCheckInterval = setInterval(async () => {
-    try {
-      // Ana sayfa erişilebilirliği
+  // Belirli aralıklarla sistemi ping'leme
+  URLS.forEach(url => {
+    const interval = setInterval(async () => {
       try {
-        const response = await fetch(REPLIT_URL);
-        if (!response.ok) {
-          logToFile(`⚠️ Ana sayfa erişim hatası (${response.status})`, 'enhanced');
-          await recoverService();
-        } else {
+        serviceStatus.pingCount++;
+        const timestamp = Date.now();
+        const response = await fetch(`${url}/ping?t=${timestamp}`, { timeout: 10000 });
+
+        if (response.ok) {
+          serviceStatus.successCount++;
+          serviceStatus.lastSuccessfulPing = new Date();
           if (!serviceStatus.isHealthy) {
-            logToFile('✅ Uygulama düzeldi! Ana sayfa erişilebilir.', 'enhanced');
+            logToFile(`✅ Servis tekrar sağlıklı duruma geldi: ${url}`, 'enhanced');
             serviceStatus.isHealthy = true;
           }
+        } else {
+          serviceStatus.failureCount++;
+          serviceStatus.isHealthy = false;
+          logToFile(`⚠️ Ping başarısız - HTTP ${response.status}: ${url}`, 'enhanced');
+          await recoverService();
         }
       } catch (error) {
-        logToFile(`❌ Ana sayfa kontrol hatası: ${error}`, 'enhanced');
+        serviceStatus.failureCount++;
+        serviceStatus.isHealthy = false;
+        logToFile(`❌ Ping hatası: ${error}`, 'enhanced');
         await recoverService();
-      }
-      
-      // Bellek durumu kontrolü - Bellek fazla yüksekse temizle
-      const memoryUsage = process.memoryUsage();
-      const rssInMB = memoryUsage.rss / 1024 / 1024;
-      
-      if (rssInMB > 500) { // 500 MB üzerinde bellek kullanımı
-        logToFile(`⚠️ Yüksek bellek kullanımı: ${rssInMB.toFixed(2)}MB - Temizleme başlatılıyor`, 'enhanced');
-        try {
-          if (typeof (global as any).gc === 'function') {
-            (global as any).gc();
-            logToFile('🧹 Garbage collector çalıştırıldı', 'enhanced');
-          }
-        } catch (e) {
-          // GC hatası - yoksay
+      } finally {
+        // Her 30 ping'de bir durum güncellemesi logla
+        if (serviceStatus.pingCount % 30 === 0) {
+          const uptime = Math.floor((Date.now() - serviceStatus.startTime.getTime()) / 1000 / 60);
+          const successRate = (serviceStatus.successCount / serviceStatus.pingCount) * 100;
+          logToFile(`📊 Durum: Çalışma süresi ${uptime} dk, Başarı oranı: %${successRate.toFixed(2)}`, 'enhanced');
+
+          // Bellek kullanımını güncelle
+          serviceStatus.memoryUsage = process.memoryUsage();
+          serviceStatus.lastUpdate = new Date();
         }
       }
-    } catch (error) {
-      logToFile(`❌ Sağlık kontrol hatası: ${error}`, 'enhanced');
-    }
-  }, HEALTH_CHECK_INTERVAL);
+    }, CHECK_INTERVAL);
 
-  // 4. Bellek temizleme - Düzenli GC çağrısı
-  memoryCleanupInterval = setInterval(() => {
+    pingIntervals.push(interval);
+  });
+
+  // Bellek yönetimi
+  const memoryInterval = setInterval(() => {
     try {
+      // Garbage collector'ı çalıştırmaya çalış
       if (typeof (global as any).gc === 'function') {
         (global as any).gc();
-        const newMemoryUsage = process.memoryUsage();
-        const rssInMB = Math.round(newMemoryUsage.rss / 1024 / 1024);
-        logToFile(`🧹 Periyodik bellek temizliği gerçekleştirildi - RSS: ${rssInMB}MB`, 'enhanced');
-        serviceStatus.memoryUsage = newMemoryUsage;
+        logToFile('🧹 Bellek temizlendi', 'enhanced');
       }
-    } catch (error) {
-      // GC hatası - yoksay
-    }
-  }, MEMORY_CLEANUP_INTERVAL);
 
-  // 5. Dış ping servisleri - Cron job ile düzenli olarak ping at
-  externalPingCron = new CronJob(EXTERNAL_PING_CRON, async () => {
-    try {
-      logToFile('🔄 Harici ping servisleri çalıştırılıyor...', 'enhanced');
-      
-      // Tüm harici ping servislerine istek gönder
-      let successCount = 0;
-      for (const url of URLS) {
-        try {
-          const response = await fetch(url);
-          if (response.ok) {
-            successCount++;
-          }
-        } catch (error) {
-          // Harici servis hatası - yoksay
-        }
+      // Bellek kullanımını logla
+      const memoryUsage = process.memoryUsage();
+      const heapUsed = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+      const rss = Math.round(memoryUsage.rss / 1024 / 1024);
+
+      // Sadece yüksek bellek kullanımında log at
+      if (heapUsed > 200 || rss > 300) {
+        logToFile(`⚠️ Yüksek bellek kullanımı: Heap ${heapUsed}MB, RSS ${rss}MB`, 'enhanced');
       }
-      
-      logToFile(`✅ Harici ping tamamlandı - ${successCount}/${URLS.length} başarılı`, 'enhanced');
-    } catch (error) {
-      logToFile(`❌ Harici ping hatası: ${error}`, 'enhanced');
-    }
-  });
-  
-  externalPingCron.start();
 
-  // 6. Yedek HTTP sunucusu - İkinci bir port üzerinden aktif
+      serviceStatus.memoryUsage = memoryUsage;
+    } catch (error) {
+      // Hata durumunda sessizce devam et
+    }
+  }, 10 * 60 * 1000); // 10 dakikada bir
+
+  pingIntervals.push(memoryInterval);
+
+  // Yedek HTTP sunucusu - ikinci bir port üzerinden yedek hizmet ver
   try {
     backupServer = createServer((req, res) => {
-      const path = req.url?.split('?')[0] || '/';
-      
-      // API benzeri yanıtlar ver
-      if (path === '/status') {
+      const url = req.url || '/';
+
+      // Sağlık kontrolü URL'leri için JSON yanıt ver
+      if (url.includes('/ping') || 
+          url.includes('/health') || 
+          url.includes('/uptime') || 
+          url.includes('/status')) {
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
-          status: 'online',
+          status: 'active',
           service: 'enhanced-uptime-backup',
           timestamp: new Date().toISOString(),
-          stats: {
-            uptime: process.uptime(),
-            memory: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
-            success_rate: serviceStatus.pingCount > 0 ? 
-              (serviceStatus.successCount / serviceStatus.pingCount * 100).toFixed(2) + '%' : 
-              '100%'
-          }
+          uptime: process.uptime(),
+          stats: getUptimeStatus()
         }));
       } else {
-        // Basit bir HTML sayfası gönder
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`<!DOCTYPE html>
-<html>
-<head>
-  <title>Enhanced Uptime Service</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-    h1 { color: #0066cc; }
-    .status { padding: 20px; background: #f0f8ff; border-radius: 8px; }
-    .online { color: green; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <h1>Enhanced Uptime Service</h1>
-  <div class="status">
-    <p>Status: <span class="online">ONLINE</span></p>
-    <p>Service uptime: ${Math.floor(process.uptime() / 3600)} hours, ${Math.floor((process.uptime() % 3600) / 60)} minutes</p>
-    <p>Timestamp: ${new Date().toISOString()}</p>
-  </div>
-</body>
-</html>`);
+        // Diğer istekler için basit yanıt
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Discord Bot - Enhanced Uptime Backup Service');
       }
     });
-    
+
     backupServer.listen(BACKUP_SERVER_PORT, '0.0.0.0', () => {
-      logToFile(`🔄 Yedek HTTP sunucusu başlatıldı - Port: ${BACKUP_SERVER_PORT}`, 'enhanced');
+      logToFile(`✅ Yedek HTTP sunucusu başlatıldı - Port: ${BACKUP_SERVER_PORT}`, 'enhanced');
     });
   } catch (error) {
     logToFile(`❌ Yedek sunucu başlatma hatası: ${error}`, 'enhanced');
@@ -329,10 +199,10 @@ async function recoverService() {
     '/dashboard',
     '/status'
   ];
-  
+
   serviceStatus.recoveryAttempts++;
   logToFile('🔄 Kurtarma prosedürü başlatılıyor...', 'enhanced');
-  
+
   // Bellek temizliği
   try {
     if (typeof (global as any).gc === 'function') {
@@ -342,30 +212,29 @@ async function recoverService() {
   } catch (error) {
     // GC hatası - yoksay
   }
-  
+
   // Her endpoint için 3 deneme yap, 3 saniye aralıklarla
   for (let attempt = 0; attempt < 3; attempt++) {
     for (const endpoint of endpoints) {
       try {
         await new Promise(resolve => setTimeout(resolve, 3000));
-        
+
         // Cache busting için zaman damgası ekle
         const timestamp = Date.now();
         const response = await fetch(`${REPLIT_URL}${endpoint}?recovery=true&attempt=${attempt}&t=${timestamp}`);
-        
+
         if (response.ok) {
           logToFile(`✅ Kurtarma başarılı - Endpoint: ${endpoint}, Deneme: ${attempt + 1}`, 'enhanced');
           serviceStatus.isHealthy = true;
-          serviceStatus.lastSuccessfulPing = new Date();
           return true;
         }
       } catch (error) {
-        logToFile(`❌ Kurtarma hatası - Endpoint: ${endpoint}, Deneme: ${attempt + 1}`, 'enhanced');
+        logToFile(`❌ Kurtarma hatası - Endpoint: ${endpoint}, Deneme: ${attempt + 1}, Hata: ${error}`, 'enhanced');
       }
     }
   }
-  
-  logToFile('⚠️ Kurtarma denemeleri başarısız - Servisi yeniden başlatmadan devam ediliyor', 'enhanced');
+
+  logToFile('⚠️ Tüm kurtarma denemeleri başarısız oldu', 'enhanced');
   return false;
 }
 
@@ -373,59 +242,49 @@ async function recoverService() {
  * Uptime servisini durdur
  */
 export function stopEnhancedUptimeService() {
-  logToFile('🛑 Uptime servisi durduruluyor...', 'enhanced');
-  
-  // İnterval'ları temizle
-  if (internalPingInterval) {
-    clearInterval(internalPingInterval);
-    internalPingInterval = null;
-  }
-  
-  if (fileWriteInterval) {
-    clearInterval(fileWriteInterval);
-    fileWriteInterval = null;
-  }
-  
-  if (healthCheckInterval) {
-    clearInterval(healthCheckInterval);
-    healthCheckInterval = null;
-  }
-  
-  if (memoryCleanupInterval) {
-    clearInterval(memoryCleanupInterval);
-    memoryCleanupInterval = null;
-  }
-  
-  // Cron job'u durdur
-  if (externalPingCron) {
-    externalPingCron.stop();
-    externalPingCron = null;
-  }
-  
+  // Tüm interval'ları temizle
+  pingIntervals.forEach(interval => clearInterval(interval));
+  pingIntervals = [];
+
   // Yedek sunucuyu kapat
   if (backupServer) {
     try {
       backupServer.close();
       backupServer = null;
     } catch (error) {
-      logToFile(`❌ Yedek sunucu kapatma hatası: ${error}`, 'enhanced');
+      console.error('Yedek sunucu kapatma hatası:', error);
     }
   }
-  
+
   serviceStatus.isRunning = false;
-  logToFile('✅ Uptime servisi durduruldu', 'enhanced');
+  logToFile('🛑 Süper gelişmiş uptime servisi durduruldu', 'enhanced');
   return true;
 }
 
-// Durum bilgisini al
+/**
+ * Uptime durumunu döndür
+ */
 export function getUptimeStatus() {
+  const uptime = Math.floor((Date.now() - serviceStatus.startTime.getTime()) / 1000 / 60);
+  const successRate = serviceStatus.pingCount > 0 
+    ? (serviceStatus.successCount / serviceStatus.pingCount) * 100 
+    : 100;
+
   return {
-    ...serviceStatus,
-    uptime: process.uptime(),
-    memoryUsageMB: {
-      rss: Math.round(serviceStatus.memoryUsage.rss / 1024 / 1024),
-      heapTotal: Math.round(serviceStatus.memoryUsage.heapTotal / 1024 / 1024),
-      heapUsed: Math.round(serviceStatus.memoryUsage.heapUsed / 1024 / 1024)
-    }
+    isRunning: serviceStatus.isRunning,
+    isHealthy: serviceStatus.isHealthy,
+    startTime: serviceStatus.startTime,
+    uptime: `${uptime} dakika`,
+    lastSuccessfulPing: serviceStatus.lastSuccessfulPing,
+    pingCount: serviceStatus.pingCount,
+    successCount: serviceStatus.successCount,
+    failureCount: serviceStatus.failureCount,
+    recoveryAttempts: serviceStatus.recoveryAttempts,
+    successRate: `%${successRate.toFixed(2)}`,
+    memoryUsage: {
+      heapUsed: `${Math.round(serviceStatus.memoryUsage.heapUsed / 1024 / 1024)} MB`,
+      rss: `${Math.round(serviceStatus.memoryUsage.rss / 1024 / 1024)} MB`
+    },
+    lastUpdate: serviceStatus.lastUpdate
   };
 }
