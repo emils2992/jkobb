@@ -98,8 +98,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Replit'in beklediği port olan 5000'i kullan
-  let port = 5000; // Replit 5000 portunu bekliyor
+  // Replit'in beklediği port olan 5000'i kullan veya env değişkeninden al
+  let port = process.env.PORT ? parseInt(process.env.PORT) : 5000; // Replit 5000 portunu bekliyor, ancak env'den de alabiliriz
   
   // Temel uptime/health endpoint'leri için genişletilmiş rotalar
   app.get('/', (req, res) => {
@@ -128,7 +128,8 @@ app.use((req, res, next) => {
           log(`✅ Server çalışıyor: port ${currentPort} (http://0.0.0.0:${currentPort})`);
           
           // Replit URL'sini al ve UptimeRobot için ping endpoint'lerini logla
-          const baseUrl = process.env.REPL_URL || process.env.REPLIT_URL || `http://0.0.0.0:${currentPort}`;
+          const replHost = process.env.REPL_SLUG ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : null;
+          const baseUrl = replHost ? `https://${replHost}` : (process.env.REPL_URL || process.env.REPLIT_URL || `http://0.0.0.0:${currentPort}`);
           log(`🌐 Dış erişim URL'si: ${baseUrl}`);
           
           // UptimeRobot için URL'leri logla
