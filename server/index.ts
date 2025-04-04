@@ -5,6 +5,15 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 // Eğer doğru CLIENT_ID sağlanırsa, bu satırın yorumunu kaldırın
 import { initDiscordBot } from "./discord";
+
+// Hata yakalama için global handler
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 import { initDatabase } from "./db";
 import { pool } from "./db";
 import { startUptimeService } from "./uptime";

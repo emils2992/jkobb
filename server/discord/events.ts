@@ -505,7 +505,14 @@ export function setupEventHandlers() {
           }
 
           // Antrenman mesajını analiz et
-          const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
+          // Artık parseTrainingMessage async olduğu için await kullanıyoruz ve kanal/guild bilgisi gönderiyoruz
+          const trainingInfo = await parseTrainingMessage(
+            message.content, 
+            attributes, 
+            lastTrainingTime,
+            message.channelId,
+            message.guild?.id
+          );
 
           if (trainingInfo) {
             // Antrenman yapılabilir mi kontrol et

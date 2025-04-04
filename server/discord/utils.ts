@@ -1,6 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { User, AttributeRequest, Attribute } from '@shared/schema';
 import { isValidAttribute, getRequiredHours, getCategoryForAttribute } from './training-config';
+import { storage } from '../storage';
 
 // Format date for display
 export function formatDate(date: Date): string {
@@ -177,11 +178,13 @@ export function createAttributeEmbed(
  * @param lastTrainingTime Kullanıcının son antrenman zamanı (her nitelik için)
  * @returns Eğer mesaj geçerli bir antrenman mesajıysa antrenman detayları, değilse null
  */
-export function parseTrainingMessage(
+export async function parseTrainingMessage(
   content: string,
   attributes: Attribute[],
-  lastTrainingTime: Date | null
-): { 
+  lastTrainingTime: Date | null,
+  channelId?: string,
+  guildId?: string
+): Promise<{ 
   attributeName: string; 
   duration: number; 
   intensity: number;
@@ -190,16 +193,31 @@ export function parseTrainingMessage(
   hoursRequired: number;
   isAllowed: boolean;
   timeSinceLastTraining: number;
-} | null {
+} | null> {
   // Antrenman formatını kontrol et (örn: "1/1 kısa pas")
   const trainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
   const matches = content.match(trainingPattern);
   
   if (!matches || matches.length < 4) return null;
   
-  const duration = parseInt(matches[1], 10) || 0;
+  let parsedDuration = parseInt(matches[1], 10) || 0;
   const intensity = parseInt(matches[2], 10) || 0;
   const attributeRaw = matches[3].trim();
+  
+  // Eğer kanal ve guild ID'si belirtilmişse, kanalın süre katsayısını uygula
+  let duration = parsedDuration;
+  if (channelId && guildId) {
+    try {
+      // Kanal tipine göre antrenman süresini async/await ile belirle
+      const channelDuration = await storage.getTrainingChannelDuration(guildId, channelId);
+      duration = parsedDuration * channelDuration;
+      console.log(`Kanal ${channelId} için süre çarpanı: ${channelDuration}, hesaplanan süre: ${duration} saat`);
+    } catch (error) {
+      console.error("Kanal süresi kontrolünde hata:", error);
+      // Hata durumunda varsayılan değeri kullan
+      duration = parsedDuration;
+    }
+  }
   
   if (duration <= 0 || intensity <= 0) return null;
   
@@ -243,6 +261,10 @@ export function parseTrainingMessage(
   
   // Antrenman yapılabilir mi kontrol et
   const isAllowed = timeSinceLastTraining >= hoursRequired;
+  
+  console.log(`[parseTrainingMessage] Antrenman hesaplaması tamamlandı: ${attributeName}, süre=${duration}, yoğunluk=${intensity}, puan=${points}`);
+  console.log(`[parseTrainingMessage] Kanal ID: ${channelId || 'yok'}, Guild ID: ${guildId || 'yok'}`);
+  
   
   return {
     attributeName,
