@@ -164,19 +164,14 @@ export function EditTicketModal({ isOpen, onClose, ticket }: EditTicketModalProp
                 <div key={index} className="flex items-end space-x-2 bg-discord-darker p-2 rounded-md">
                   <div className="flex-1">
                     <Label htmlFor={`attribute-${index}`} className="text-xs">Nitelik</Label>
-                    <Select 
-                      value={request.attributeName} 
-                      onValueChange={(value) => updateRequestField(index, "attributeName", value)}
-                    >
-                      <SelectTrigger id={`attribute-${index}`} className="bg-discord-dark border-discord-light">
-                        <SelectValue placeholder="Nitelik Seçin" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-discord-darker text-white">
-                        {attributes.map(attr => (
-                          <SelectItem key={attr} value={attr}>{attr}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id={`attribute-${index}`}
+                      type="text"
+                      value={request.attributeName}
+                      onChange={(e) => updateRequestField(index, "attributeName", e.target.value)}
+                      className="bg-discord-dark border-discord-light"
+                      placeholder="Nitelik adını yazın"
+                    />
                   </div>
                   
                   <div className="w-24">
