@@ -27,7 +27,7 @@ const processedMessageIds = new Set<string>();
 
 // Rate limiting için basit bir Map
 const commandCooldowns = new Map<string, number>();
-const COOLDOWN_PERIOD = 60 * 1000; // 1 dakika (milisaniye cinsinden)
+const COOLDOWN_PERIOD = 5 * 1000; // 5 saniye (milisaniye cinsinden)
 
 // Levenshtein mesafesi hesaplama - benzer nitelik adı önerirken kullanılır
 function levenshteinDistance(a: string, b: string): number {
