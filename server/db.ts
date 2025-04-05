@@ -86,8 +86,13 @@ async function createTables() {
         id SERIAL PRIMARY KEY,
         user_id TEXT NOT NULL,
         ticket_id TEXT,
+        attribute_name TEXT NOT NULL,
         duration INTEGER NOT NULL,
+        intensity INTEGER NOT NULL DEFAULT 1,
         attributes_gained INTEGER NOT NULL,
+        source TEXT NOT NULL DEFAULT 'training',
+        message_id TEXT,
+        channel_id TEXT,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       )`,
       
