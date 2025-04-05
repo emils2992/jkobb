@@ -66,6 +66,25 @@ export function setupEventHandlers() {
   // Handle command interactions
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
     try {
+      // Handle autocomplete interactions
+      if (interaction.isAutocomplete()) {
+        const commandName = interaction.commandName;
+
+        if (commandName === 'antren') {
+          const focusedValue = interaction.options.getFocused();
+          const { allAttributes } = await import('./training-config');
+
+          const filtered = allAttributes.filter(name => 
+            name.toLowerCase().includes(focusedValue.toLowerCase())
+          );
+
+          await interaction.respond(
+            filtered.slice(0, 25).map(name => ({ name, value: name }))
+          );
+        }
+        return;
+      }
+
       // Handle slash commands
       if (interaction.isChatInputCommand()) {
         // Rate limiting kontrolü
@@ -358,7 +377,7 @@ export function setupEventHandlers() {
       try {
         // Önce mesajın bir sunucudan geldiğinden emin olalım
         if (!message.guild || !message.channel) return;
-        
+
         // Sunucu yapılandırmasını al
         const serverConfig = await storage.getServerConfig(message.guild.id);
         if (!serverConfig) return;
@@ -449,7 +468,7 @@ export function setupEventHandlers() {
         }
 
         console.log(`[DEBUG] İşlem sonucu: isTrainingChannel=${isTrainingChannel}, trainingDuration=${trainingDuration}`);
-        
+
         // Eğer herhangi bir antrenman kanalıysa işlem yap
         if (isTrainingChannel) {
           console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content} (Süre: ${trainingDuration} saat)`);
@@ -482,13 +501,13 @@ export function setupEventHandlers() {
             const attributeName = matches[3].trim().toLowerCase();
 
             console.log(`[ANTRENMAN] Basit format algılandı: Format=${formatDuration}/${intensity}, Gerçek Süre=${trainingDuration}, Nitelik=${attributeName}`);
-            
+
             // Değerler 1-5 aralığında mı kontrol et
             if (formatDuration < 1 || formatDuration > 5 || intensity < 1 || intensity > 5) {
               await message.reply('Antrenman formatı doğru ancak değerler 1-5 arasında olmalı.');
               return;
             }
-            
+
             // Geçerli bir nitelik adı mı kontrol et
             const validAttributes = getValidAttributes();
             if (!validAttributes.includes(attributeName)) {
@@ -498,7 +517,7 @@ export function setupEventHandlers() {
                 const closestDistance = levenshteinDistance(attributeName, closest);
                 return currentDistance < closestDistance ? current : closest;
               }, validAttributes[0]);
-              
+
               await message.reply(`"${attributeName}" geçerli bir nitelik değil. Belki "${closestAttribute}" demek istediniz? Geçerli nitelikler: ${validAttributes.join(', ')}`);
               return;
             }
@@ -510,7 +529,7 @@ export function setupEventHandlers() {
               if (message.member && message.member.displayName) {
                 displayName = message.member.displayName;
               }
-              
+
               const user = await storage.getOrCreateUser(
                 message.author.id,
                 message.author.username,
@@ -629,7 +648,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           interaction.user.username,
           interaction.user.displayAvatarURL()
         ),
-        
+
         // Sunucu konfigürasyonunu alma
         storage.getServerConfig(guild.id)
       ]);
@@ -695,7 +714,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Veritabanı işlemlerini ve UI hazırlığını paralel yap
       console.time('parallel_ui_db');
-      
+
       // Ticket DB kayıt işlemi ve oyuncu istatistikleri işlemlerini paralel başlat
       const [ticket, playerStats] = await Promise.all([
         // Ticket oluştur
@@ -705,25 +724,25 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           status: 'open',
           type: 'attribute'
         }),
-        
+
         // Oyuncu istatistiklerini getir
         storage.getPlayerAttributeStats(interaction.user.id)
       ]);
-      
+
       // UI bileşenlerini hızlı bir şekilde hazırla
       const playerStat = playerStats && playerStats.length > 0 ? playerStats[0] : null;
-      
+
       // Oyuncu istatistik metni hazırla - limit ile kısa tut
       let statsText = '';
       if (playerStat) {
         statsText = `\n\n**Mevcut Nitelik Durumu:**\nToplam: **${playerStat.totalValue}** | Bu Hafta: **${playerStat.weeklyValue}**`;
-        
+
         // En önemli 3 niteliği göster (çok uzun olmasın)
         if (playerStat.attributes && playerStat.attributes.length > 0) {
           const topAttributes = playerStat.attributes
             .sort((a: any, b: any) => b.value - a.value)
             .slice(0, 3);
-            
+
           if (topAttributes.length > 0) {
             statsText += '\n\n**En Yüksek Nitelikler:**\n';
             topAttributes.forEach((attr: { name: string, value: number }) => {
@@ -733,7 +752,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           }
         }
       }
-      
+
       // Embed ve butonları hazırla
       const embed = new EmbedBuilder()
         .setTitle('🎫 Yeni Nitelik Talebi')
@@ -753,28 +772,28 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             .setLabel('Nitelik Ekle')
             .setStyle(ButtonStyle.Primary)
         );
-      
+
       console.timeEnd('parallel_ui_db');
-      
+
       // Son mesaj gönderme işlemleri
       console.time('final_messages');
-      
+
       // Eğer varsa staff rol mention'ı
       let mentionText = staffRoleId ? `<@&${staffRoleId}> Yeni bir ticket açıldı!` : '';
-      
+
       // Channel mesajını gönder
       await channel.send({ 
         content: mentionText, 
         embeds: [embed], 
         components: [row] 
       });
-      
+
       // Son kullanıcı mesajını gönder
       await interaction.editReply(`✅ Ticket oluşturuldu: <#${channel.id}>`);
-      
+
       console.timeEnd('final_messages');
       console.timeEnd('ticket_creation_total');
-      
+
     } catch (error) {
       console.error('Error creating ticket:', error);
       await interaction.editReply('Ticket oluşturulurken bir hata oluştu.');
@@ -801,11 +820,11 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     if (ticket.status === 'closed') {
       return interaction.editReply('Bu ticket zaten kapatılmış.');
     }
-    
+
     // Yetki kontrolü - sadece yöneticiler veya ticket sahibi kapatabilir
     const hasAdminPermission = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
     const isTicketOwner = interaction.user.id === ticket.userId;
-    
+
     // Staff rol ID'sini kontrol et
     let hasStaffRole = false;
     if (interaction.guild) {
@@ -815,7 +834,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         hasStaffRole = member.roles.cache.has(serverConfig.staffRoleId);
       }
     }
-    
+
     // Eğer yönetici veya staff rolüne sahip değilse ve ticket sahibi de değilse, erişimi engelle
     if (!hasAdminPermission && !hasStaffRole && !isTicketOwner) {
       return interaction.editReply('Bu ticketı kapatma yetkiniz yok. Sadece yetkililer veya ticket sahibi kapatabilir.');
@@ -942,7 +961,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 
       // Farewell message and close
       await interaction.editReply('✅ Ticket kapatıldı ve işlendi.');
-      
+
       // Add confirmation message about deleting the channel
       if (interaction.channel?.type === ChannelType.GuildText) {
         await interaction.channel.send('Bu kanal 5 saniye içinde silinecek...');
@@ -971,7 +990,7 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
     try {
       // Kanal ID'sini ticketId olarak kullan
       const ticketId = interaction.channelId;
-      
+
       // Ticket'ı kontrol et
       const ticket = await storage.getTicket(ticketId);
       if (!ticket) {
@@ -980,19 +999,19 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           ephemeral: true 
         });
       }
-      
+
       if (ticket.status === 'closed') {
         return interaction.reply({ 
           content: 'Bu ticket kapatılmış durumda, nitelik eklenemez.', 
           ephemeral: true 
         });
       }
-      
+
       // Modal oluştur
       const modal = new ModalBuilder()
         .setCustomId('attribute_modal')
         .setTitle('Nitelik Talebi Ekle');
-      
+
       // Modal ekranı için inputlar
       const attributeNameInput = new TextInputBuilder()
         .setCustomId('attributeName')
@@ -1000,34 +1019,34 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         .setPlaceholder('Örnek: şut, pas, hız, dayanıklılık...')
         .setStyle(TextInputStyle.Short)
         .setRequired(true);
-      
+
       const attributeValueInput = new TextInputBuilder()
         .setCustomId('attributeValue')
         .setLabel('Eklenecek Değer')
         .setPlaceholder('Sadece sayı girin: 1, 2, 3...')
         .setStyle(TextInputStyle.Short)
         .setRequired(true);
-      
+
       const attributeReasonInput = new TextInputBuilder()
         .setCustomId('attributeReason')
         .setLabel('Gerekçe (Opsiyonel)')
         .setPlaceholder('Neden bu niteliği ekliyorsunuz?')
         .setStyle(TextInputStyle.Paragraph)
         .setRequired(false);
-      
+
       // Input alanlarını action row'a ekle
       const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(attributeNameInput);
       const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(attributeValueInput);
       const thirdActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(attributeReasonInput);
-      
+
       // Modal'a action row'ları ekle
       modal.addComponents(firstActionRow, secondActionRow, thirdActionRow);
-      
+
       // Modal'ı göster
       await interaction.showModal(modal);
     } catch (error) {
       console.error('Error showing attribute modal:', error);
-      
+
       if (!interaction.replied && !interaction.deferred) {
         await interaction.reply({ 
           content: 'Nitelik ekleme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.', 
@@ -1040,17 +1059,17 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
   // Handle approve attribute request button
   if (customId.startsWith('approve_attribute_')) {
     await interaction.deferReply();
-    
+
     try {
       // Get the request ID from the button's custom ID
       const requestId = parseInt(customId.replace('approve_attribute_', ''), 10);
       if (isNaN(requestId)) {
         return interaction.editReply('Geçersiz talep ID\'si.');
       }
-      
+
       // Check if the user has permission to approve (admin or has staff role)
       const hasAdminPermission = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
-      
+
       // Staff rol ID'sini kontrol et
       let hasStaffRole = false;
       if (interaction.guild) {
@@ -1060,26 +1079,26 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           hasStaffRole = member.roles.cache.has(serverConfig.staffRoleId);
         }
       }
-      
+
       if (!hasAdminPermission && !hasStaffRole) {
         return interaction.editReply('Bu talebi onaylamak için yetkiniz yok. Sadece yetkililer onaylayabilir.');
       }
-      
+
       // Get the attribute request
       const requests = await storage.getAttributeRequests(interaction.channelId);
       const request = requests.find(r => r.id === requestId);
-      
+
       if (!request) {
         return interaction.editReply('Talep bulunamadı.');
       }
-      
+
       if (request.approved) {
         return interaction.editReply('Bu talep zaten onaylanmış.');
       }
-      
+
       // Approve the request
       const approvedRequest = await storage.approveAttributeRequest(requestId);
-      
+
       // Create embed for response
       const embed = new EmbedBuilder()
         .setTitle('✅ Nitelik Talebi Onaylandı')
@@ -1090,9 +1109,9 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
           { name: 'Eklenecek Değer', value: `+${approvedRequest.valueRequested}`, inline: true }
         )
         .setTimestamp();
-      
+
       await interaction.editReply({ embeds: [embed] });
-      
+
       // Update the original message to disabled the button
       try {
         const message = await interaction.channel?.messages.fetch(request.messageId);
@@ -1103,9 +1122,9 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             .setLabel('Onaylandı ✅')
             .setStyle(ButtonStyle.Success)
             .setDisabled(true);
-          
+
           const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
-          
+
           // Update the original message with the disabled button
           await message.edit({ components: [disabledRow] });
         }
@@ -1123,20 +1142,20 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
 async function handleModalSubmit(interaction: ModalSubmitInteraction) {
   if (interaction.customId === 'attribute_modal') {
     await interaction.deferReply();
-    
+
     try {
       // Girilen değerleri al
       const attributeName = interaction.fields.getTextInputValue('attributeName').toLowerCase().trim();
       const attributeValueRaw = interaction.fields.getTextInputValue('attributeValue').trim();
       let attributeReason = '';
-      
+
       try {
         attributeReason = interaction.fields.getTextInputValue('attributeReason');
       } catch (e) {
         // Gerekçe opsiyonel, eksikse hata vermeden devam et
         attributeReason = '';
       }
-      
+
       // Geçerli bir nitelik adı mı kontrol et
       const validAttributes = getValidAttributes();
       if (!validAttributes.includes(attributeName)) {
@@ -1146,45 +1165,45 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           const closestDistance = levenshteinDistance(attributeName, closest);
           return currentDistance < closestDistance ? current : closest;
         }, validAttributes[0]);
-        
+
         return interaction.editReply(`"${attributeName}" geçerli bir nitelik değil. Belki "${closestAttribute}" demek istediniz? Geçerli nitelikler: ${validAttributes.join(', ')}`);
       }
-      
+
       // Değer bir sayı mı kontrol et
       const attributeValue = parseInt(attributeValueRaw, 10);
       if (isNaN(attributeValue) || attributeValue <= 0) {
         return interaction.editReply('Eklenecek değer pozitif bir sayı olmalıdır.');
       }
-      
+
       if (attributeValue > 10) {
         return interaction.editReply('Eklenecek değer en fazla 10 olabilir.');
       }
-      
+
       // Ticket ID'sini al (kanal ID'si)
       const ticketId = interaction.channelId;
-      
+
       // Ticket'ı kontrol et
       const ticket = await storage.getTicket(ticketId);
       if (!ticket) {
         return interaction.editReply('Bu kanal bir ticket değil.');
       }
-      
+
       if (ticket.status === 'closed') {
         return interaction.editReply('Bu ticket kapatılmış durumda, nitelik eklenemez.');
       }
-      
+
       // Kullanıcıyı kontrol et
       const user = await storage.getUserById(ticket.userId);
       if (!user) {
         return interaction.editReply('Ticket sahibi bulunamadı.');
       }
-      
+
       // Toplam talep edilen nitelik miktarını kontrol et
       const currentTotal = await storage.getTotalAttributesForTicket(ticketId);
       if (currentTotal + attributeValue > 20) {
         return interaction.editReply(`Bu ticket için maksimum 20 nitelik puanı talep edilebilir. Şu anki toplam: ${currentTotal}, eklemek istediğiniz: ${attributeValue}`);
       }
-      
+
       // Attribute request oluştur
       const attributeRequest = await storage.createAttributeRequest({
         ticketId,
@@ -1195,7 +1214,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         messageId: '',
         requestedBy: interaction.user.id
       });
-      
+
       // Yanıt için bir embed oluştur
       const embed = new EmbedBuilder()
         .setTitle('📝 Yeni Nitelik Talebi')
@@ -1207,26 +1226,26 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
           { name: 'Oyuncu', value: `<@${user.userId}>`, inline: true }
         )
         .setTimestamp();
-      
+
       if (attributeReason) {
         embed.addFields({ name: 'Gerekçe', value: attributeReason, inline: false });
       }
-      
+
       // Onay butonu oluştur
       const approveButton = new ButtonBuilder()
         .setCustomId(`approve_attribute_${attributeRequest.id}`)
         .setLabel('Onayla')
         .setStyle(ButtonStyle.Success);
-      
+
       const row = new ActionRowBuilder<ButtonBuilder>()
         .addComponents(approveButton);
-      
+
       // Embed ve buton ile yanıt gönder
       const reply = await interaction.editReply({ 
         embeds: [embed],
         components: [row]
       });
-      
+
       // Mesaj ID'sini attribute request'e kaydet
       // Bu, onay butonuna basıldığında orijinal mesajı güncellemek için kullanılacak
       if (reply) {
@@ -1247,4 +1266,5 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
       await interaction.editReply('Nitelik talebi oluşturulurken bir hata oluştu.');
     }
   }
+}
 }
