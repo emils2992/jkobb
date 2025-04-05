@@ -441,6 +441,8 @@ export function setupEventHandlers() {
           console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content} (Süre: ${trainingDuration} saat)`);
 
           // İlk önce yeni formatta mesaj olup olmadığını kontrol et (1/1 kısa pas)
+          // 1/1 formatını tüm antrenman kanallarında aynı şekilde işle, ama trainingDuration değişkeni
+          // her kanalın kendi süresi olacak (kanal ayarlarından gelir)
           const simpleTrainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
           const matches = message.content.match(simpleTrainingPattern);
 
