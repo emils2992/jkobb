@@ -10,18 +10,30 @@ export async function initDiscordBot() {
       return; // Gracefully exit if no tokens
     }
     
-    // Properly handle the Discord bot initialization flow to avoid circular dependencies
-    const botClient = await initBot();
+    console.log('Discord tokens found, bot will initialize in the background');
     
-    // Only setup event handlers and register commands if bot login was successful
-    if (botClient) {
-      console.log('Bot logged in successfully, setting up handlers and commands...');
-      setupEventHandlers();
-      // Don't register commands again, it's already done in initBot
-      console.log('Discord bot initialized successfully');
-    } else {
-      console.log('Bot client not initialized properly');
-    }
+    // Start bot initialization in the background without waiting
+    setTimeout(async () => {
+      try {
+        // Properly handle the Discord bot initialization flow to avoid circular dependencies
+        const botClient = await initBot();
+        
+        // Only setup event handlers and register commands if bot login was successful
+        if (botClient) {
+          console.log('Bot logged in successfully, setting up handlers and commands...');
+          setupEventHandlers();
+          // Don't register commands again, it's already done in initBot
+          console.log('Discord bot initialized successfully');
+        } else {
+          console.log('Bot client not initialized properly');
+        }
+      } catch (error) {
+        console.error('Failed to initialize Discord bot:', error);
+      }
+    }, 5000);
+    
+    // Return immediately to not block server startup
+    return;
   } catch (error) {
     console.error('Failed to initialize Discord bot:', error);
     // Don't prevent server from running if bot fails
