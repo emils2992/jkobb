@@ -47,6 +47,7 @@ export const trainingCategories: TrainingCategory[] = [
       { name: 'Falso', limits: trainingLimits },
       { name: 'Serbest Vuruş İsabeti', limits: trainingLimits },
       { name: 'Uzun Pas', limits: trainingLimits },
+      { name: 'Kısa Pas', limits: trainingLimits },
       { name: 'Top Kontrolü', limits: trainingLimits }
     ]
   },
@@ -98,15 +99,18 @@ export const allAttributes = trainingCategories.flatMap(category =>
 );
 
 // Verilen nitelik adının geçerli olup olmadığını kontrol eder
+// Artık tüm nitelik isimleri geçerli kabul edilecek
 export function isValidAttribute(name: string): boolean {
-  return allAttributes.includes(name);
+  return true; // Tüm nitelik isimlerini kabul et
 }
 
 // Verilen nitelik değeri ve nitelik adı için gerekli antrenman saati sayısını hesaplar
 export function getRequiredHours(attributeName: string, currentValue: number): number {
-  // Niteliği bul
+  // Niteliği bul (büyük/küçük harfe duyarsız)
   for (const category of trainingCategories) {
-    const attribute = category.attributes.find(attr => attr.name === attributeName);
+    const attribute = category.attributes.find(attr => 
+      attr.name.toLowerCase() === attributeName.toLowerCase()
+    );
     if (attribute) {
       // Değere göre limit bul
       for (const limit of attribute.limits) {
@@ -124,9 +128,10 @@ export function getRequiredHours(attributeName: string, currentValue: number): n
 // Niteliğin ait olduğu kategoriyi döndürür
 export function getCategoryForAttribute(attributeName: string): string | null {
   for (const category of trainingCategories) {
-    if (category.attributes.some(attr => attr.name === attributeName)) {
+    if (category.attributes.some(attr => attr.name.toLowerCase() === attributeName.toLowerCase())) {
       return category.name;
     }
   }
-  return null;
+  // Tanımlı olmayan nitelikler için "Diğer" kategorisini döndür
+  return "Diğer";
 }

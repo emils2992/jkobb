@@ -74,8 +74,9 @@ export class PgStorage implements IStorage {
   }
 
   async getAttribute(userId: string, attributeName: string): Promise<Attribute | undefined> {
+    // Büyük/küçük harfe duyarsız arama yapıyoruz
     const result = await this.pool.query(
-      'SELECT * FROM attributes WHERE user_id = $1 AND name = $2',
+      'SELECT * FROM attributes WHERE user_id = $1 AND LOWER(name) = LOWER($2)',
       [userId, attributeName]
     );
     
@@ -135,7 +136,7 @@ export class PgStorage implements IStorage {
       console.log(`[SUPER-FIX] SONUÇ: ${attributeName} => value=${newValue}, weeklyValue=${newWeeklyValue}`);
       
       const result = await this.pool.query(
-        'UPDATE attributes SET value = $1, weekly_value = $2, updated_at = NOW() WHERE user_id = $3 AND name = $4 RETURNING *',
+        'UPDATE attributes SET value = $1, weekly_value = $2, updated_at = NOW() WHERE user_id = $3 AND LOWER(name) = LOWER($4) RETURNING *',
         [newValue, newWeeklyValue, userId, attributeName]
       );
       
@@ -557,11 +558,11 @@ export class PgStorage implements IStorage {
         `UPDATE server_config SET 
           fix_log_channel_id = $1, 
           training_channel_id = $2,
-          training_channel_id_1 = $3,
-          training_channel_id_2 = $4, 
-          training_channel_id_3 = $5,
-          training_channel_id_4 = $6,
-          training_channel_id_5 = $7,
+          training_channel_id1 = $3,
+          training_channel_id2 = $4, 
+          training_channel_id3 = $5,
+          training_channel_id4 = $6,
+          training_channel_id5 = $7,
           staff_role_id = $8,
           updated_at = NOW() 
         WHERE guild_id = $9 RETURNING *`,
@@ -587,11 +588,11 @@ export class PgStorage implements IStorage {
           guild_id, 
           fix_log_channel_id, 
           training_channel_id,
-          training_channel_id_1,
-          training_channel_id_2,
-          training_channel_id_3,
-          training_channel_id_4,
-          training_channel_id_5,
+          training_channel_id1,
+          training_channel_id2,
+          training_channel_id3,
+          training_channel_id4,
+          training_channel_id5,
           staff_role_id
         ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
         [
@@ -826,11 +827,11 @@ export class PgStorage implements IStorage {
       guildId: pgConfig.guild_id,
       fixLogChannelId: pgConfig.fix_log_channel_id,
       trainingChannelId: pgConfig.training_channel_id,
-      trainingChannelId1: pgConfig.training_channel_id_1,
-      trainingChannelId2: pgConfig.training_channel_id_2,
-      trainingChannelId3: pgConfig.training_channel_id_3,
-      trainingChannelId4: pgConfig.training_channel_id_4,
-      trainingChannelId5: pgConfig.training_channel_id_5,
+      trainingChannelId1: pgConfig.training_channel_id1,
+      trainingChannelId2: pgConfig.training_channel_id2,
+      trainingChannelId3: pgConfig.training_channel_id3,
+      trainingChannelId4: pgConfig.training_channel_id4,
+      trainingChannelId5: pgConfig.training_channel_id5,
       staffRoleId: pgConfig.staff_role_id,
       lastResetAt: new Date(pgConfig.last_reset_at),
       createdAt: new Date(pgConfig.created_at),

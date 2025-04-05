@@ -110,11 +110,11 @@ export const serverConfig = pgTable("server_config", {
   guildId: text("guild_id").notNull().unique(), // Discord guild/server ID
   fixLogChannelId: text("fix_log_channel_id"), // Channel ID for fix logs
   trainingChannelId: text("training_channel_id"), // Channel ID for training logs (ana kanal)
-  trainingChannelId1: text("training_channel_id_1"), // Kanal 1 - 1 saat
-  trainingChannelId2: text("training_channel_id_2"), // Kanal 2 - 2 saat
-  trainingChannelId3: text("training_channel_id_3"), // Kanal 3 - 3 saat
-  trainingChannelId4: text("training_channel_id_4"), // Kanal 4 - 4 saat
-  trainingChannelId5: text("training_channel_id_5"), // Kanal 5 - 5 saat
+  trainingChannelId1: text("training_channel_id1"), // Kanal 1 - 1 saat
+  trainingChannelId2: text("training_channel_id2"), // Kanal 2 - 2 saat
+  trainingChannelId3: text("training_channel_id3"), // Kanal 3 - 3 saat
+  trainingChannelId4: text("training_channel_id4"), // Kanal 4 - 4 saat
+  trainingChannelId5: text("training_channel_id5"), // Kanal 5 - 5 saat
   staffRoleId: text("staff_role_id"), // Staff role ID
   lastResetAt: timestamp("last_reset_at").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

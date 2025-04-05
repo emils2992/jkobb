@@ -206,10 +206,8 @@ export function parseTrainingMessage(
   const intensity = parseInt(matches[2], 10) || 0;
   const attributeRaw = matches[3].trim();
   
-  // Nitelik ismini düzelt - ilk harfleri büyük yap
-  const attributeName = attributeRaw.split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+  // Nitelik ismini olduğu gibi kullan, herhangi bir dönüşüm yapma
+  const attributeName = attributeRaw.trim();
   
   console.log(`[DEBUG] Algılanan değerler: Süre=${duration}, Yoğunluk=${intensity}, Ham nitelik=${attributeRaw}, Düzeltilmiş=${attributeName}`);
   
@@ -223,31 +221,21 @@ export function parseTrainingMessage(
   console.log(`[DEBUG] İstek yapılan nitelik: "${attributeName}"`);
   console.log(`[DEBUG] Geçerli nitelikler: ${validAttributes.join(', ')}`);
   
-  // Eğer bu adla bir nitelik yoksa, en yakın eşleşeni bulmaya çalış
-  if (!validAttributes.includes(attributeName)) {
-    console.log(`[DEBUG] Tam eşleşme bulunamadı, benzer eşleşmeler aranıyor`);
-    
-    // Kısa pas -> Uzun Pas, Sprint -> Sprint Hızı gibi kısmi eşleşmeleri kontrol et
-    for (const validAttr of validAttributes) {
-      if (validAttr.toLowerCase().includes(attributeName.toLowerCase()) || 
-          attributeName.toLowerCase().includes(validAttr.toLowerCase())) {
-        console.log(`[DEBUG] Benzer eşleşme bulundu: "${attributeName}" -> "${validAttr}"`);
-        attributeName = validAttr;
-        break;
-      }
-    }
-  }
+  // Büyük/küçük harfe duyarsız olarak nitelik kontrolü
+  const matchingAttribute = validAttributes.find(
+    attr => attr.toLowerCase() === attributeName.toLowerCase()
+  );
   
-  // Hala geçerli değilse varsayılan bir nitelik kullan
-  if (!validAttributes.includes(attributeName)) {
-    console.log(`[DEBUG] Hala geçerli bir nitelik bulunamadı, varsayılan kullanılıyor: "Genel Antrenman"`);
-    attributeName = 'Genel Antrenman';
+  if (matchingAttribute) {
+    // Eşleşen nitelik adını kullan, böylece veritabanında tutarlı bir şekilde saklanır
+    console.log(`[DEBUG] Eşleşen tanımlı nitelik bulundu: "${matchingAttribute}"`);
+    // attributeName = matchingAttribute; // Bu satırı kaldırdık - kullanıcının girdiği şekilde kullanılacak
   } else {
-    console.log(`[DEBUG] Kullanılacak nitelik: "${attributeName}"`);
+    console.log(`[DEBUG] Tanımlı bir nitelik bulunamadı, kullanıcının girdiği nitelik ismi kullanılıyor: "${attributeName}"`);
   }
   
-  // Kullanıcının bu nitelikteki mevcut değerini al
-  const attribute = attributes.find(attr => attr.name === attributeName);
+  // Kullanıcının bu nitelikteki mevcut değerini al (büyük/küçük harfe duyarsız arama)
+  const attribute = attributes.find(attr => attr.name.toLowerCase() === attributeName.toLowerCase());
   const attributeValue = attribute ? attribute.value : 50; // Varsayılan başlangıç değeri
   
   console.log(`[DEBUG] Mevcut nitelik değeri: ${attributeValue}`);
@@ -296,7 +284,7 @@ export function getValidAttributes(): string[] {
     // Savunma
     'Ayakta Müdahale', 'Kayarak Müdahale',
     // Beceri
-    'Dribbling', 'Falso', 'Serbest Vuruş İsabeti', 'Uzun Pas', 'Top Kontrolü',
+    'Dribbling', 'Falso', 'Serbest Vuruş İsabeti', 'Uzun Pas', 'Kısa Pas', 'Top Kontrolü',
     // Güç
     'Şut Gücü', 'Zıplama', 'Dayanıklılık', 'Güç', 'Uzaktan Şut',
     // Hareket
