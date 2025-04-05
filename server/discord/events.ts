@@ -119,25 +119,28 @@ export function setupEventHandlers() {
                              message.content.includes('✅') || 
                              message.content.includes('❌');
 
-      // Önce ticket channel kontrolü yap
-      const ticketId = message.channelId;
-      const ticket = await storage.getTicket(ticketId);
+      try {
+        // Önce ticket channel kontrolü yap
+        const ticketId = message.channelId;
+        const ticket = await storage.getTicket(ticketId);
 
-      if (ticket && ticket.status !== 'closed' && !isReactionMessage) {
-        // Ticket kanalında mesaj kontrolü - sadece "nitelik ekle" butonundan ekleme yapılabilir
-        // Oyuncuların direkt mesajla nitelik eklemesini engelliyoruz
-        if (message.content.toLowerCase().includes('nitelik:')) {
-          await message.reply(
-            '⚠️ Nitelik taleplerini direkt mesaj olarak gönderemezsiniz. Lütfen "Nitelik Ekle" butonunu kullanın.'
-          );
-          return;
+        if (ticket && ticket.status !== 'closed' && !isReactionMessage) {
+          // Ticket kanalında mesaj kontrolü - sadece "nitelik ekle" butonundan ekleme yapılabilir
+          // Oyuncuların direkt mesajla nitelik eklemesini engelliyoruz
+          if (message.content.toLowerCase().includes('nitelik:')) {
+            await message.reply(
+              '⚠️ Nitelik taleplerini direkt mesaj olarak gönderemezsiniz. Lütfen "Nitelik Ekle" butonunu kullanın.'
+            );
+            return;
+          }
         }
-
-        // Artık nitelik taleplerini mesajdan işlemiyoruz, sadece buton üzerinden yapılabilir
+      } catch (ticketError) {
+        console.error('Error checking ticket:', ticketError);
       }
 
       // Emoji reaksiyonlarını işle - ticket kapatma
-      if (message.reference && message.reference.messageId) {
+      try {
+        if (message.reference && message.reference.messageId) {
         // Mesaj bir yanıt ise
         try {
           const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
@@ -316,7 +319,8 @@ export function setupEventHandlers() {
       }
 
       // Antrenman mesajlarını kontrol et
-      if (message.guild) {
+      try {
+        if (message.guild) {
         const serverConfig = await storage.getServerConfig(message.guild.id);
 
         // Mesajın hangi antrenman kanalında olduğunu kontrol et
@@ -422,34 +426,37 @@ export function setupEventHandlers() {
                 displayName
               );
 
-              // Sabit olarak +1 puan ekleyeceğiz
-              const attributeValue = 1;
+              // Sabit olarak +1 puan ekleyeceğiz, ancak kanal süresini hesaba katarak
+              const intensity = 1; // Sabit yoğunluk
+              const attributeGain = Math.min(trainingDuration, 5); // Süre arttıkça, kazanılacak nitelik de artar (en fazla 5)
 
-              // Veritabanında bu mesaj zaten var mı diye kontrol et
-              // Bu kontrol artık sadece günlük bilgi içindir, gerçek kontrol daha yukarıda yapılıyor
-              // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
-              // Burada duration yerine trainingDuration kullanarak kanal bazlı süreyi uyguluyoruz
-              const session = await storage.createTrainingSession({
-                userId: user.userId,
-                attributeName: attributeName,
-                ticketId: "", // Boş string kullan, null yerine
-                duration: trainingDuration, // Kanaldan gelen süre değerini kullanıyoruz
-                intensity: 1, // Sabit değer kullanıyoruz
-                attributesGained: attributeValue,
-                source: 'message',
-                messageId: message.id,
-                channelId: message.channelId
-              });
+              console.log(`[ANTRENMAN] Kanal süresi: ${trainingDuration} saat, Kazanılacak puan: ${attributeGain}`);
 
-              // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
-              // source parametresi olarak 'message' ekleyerek bu değişikliğin antrenman kaynağını belirt
-              // Sadece +1 puan eklemek için attributeValue direkt olarak kullanılıyor
-              await storage.updateAttribute(
-                user.userId, 
-                attributeName, 
-                1, // Toplam değeri sadece 1 artır
-                1, // Haftalık değeri de 1 artır
-                false, // absoluteValue
+              try {
+                // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
+                // Burada duration yerine trainingDuration kullanarak kanal bazlı süreyi uyguluyoruz
+                const session = await storage.createTrainingSession({
+                  userId: user.userId,
+                  attributeName: attributeName,
+                  ticketId: "", // Boş string kullan, null yerine
+                  duration: trainingDuration, // Kanaldan gelen süre değerini kullanıyoruz
+                  intensity: intensity, // Sabit değer kullanıyoruz
+                  attributesGained: attributeGain, // Kanal süresine göre kazanılacak miktar
+                  source: 'message',
+                  messageId: message.id,
+                  channelId: message.channelId
+                });
+
+                console.log(`[ANTRENMAN] Oturum başarıyla oluşturuldu: ${JSON.stringify(session)}`);
+
+                // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
+                // source parametresi olarak 'message' ekleyerek bu değişikliğin antrenman kaynağını belirt
+                await storage.updateAttribute(
+                  user.userId, 
+                  attributeName, 
+                  attributeGain, // Toplam değere süreye bağlı puan ekle
+                  attributeGain, // Haftalık değere aynı puanı ekle
+                  false, // absoluteValue
                 false, // onlyUpdateWeekly
                 'message' // source - antrenman kaynaklı olduğunu belirt
               );
@@ -462,7 +469,7 @@ export function setupEventHandlers() {
                 .addFields(
                   { name: 'Format', value: `${formatDuration}/1`, inline: true },
                   { name: 'Nitelik', value: attributeName, inline: true },
-                  { name: 'Kazanılan Puan', value: `+${attributeValue}`, inline: true },
+                  { name: 'Kazanılan Puan', value: `+${attributeGain}`, inline: true },
                   { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true }
                 )
                 .setTimestamp();
@@ -494,7 +501,6 @@ export function setupEventHandlers() {
             }
           }
 
-          // Eski kompleks antrenman formatı 
           // Kullanıcıyı oluştur veya al
           // Sunucudaki görünen adını (nickname) kullan
           let displayName = message.author.username;
@@ -503,100 +509,106 @@ export function setupEventHandlers() {
           }
           
           const user = await storage.getOrCreateUser(
-            message.author.id,
-            message.author.username,
-            message.author.displayAvatarURL(),
-            displayName
-          );
+              message.author.id,
+              message.author.username,
+              message.author.displayAvatarURL(),
+              displayName
+            );
 
-          // Kullanıcının niteliklerini al
-          const attributes = await storage.getAttributes(user.userId);
+            // Kullanıcının niteliklerini al
+            const attributes = await storage.getAttributes(user.userId);
 
-          // Kullanıcının son antrenman kaydını al
-          const trainingSessions = await storage.getTrainingSessions(user.userId);
-          let lastTrainingTime: Date | null = null;
+            // Kullanıcının son antrenman kaydını al
+            const trainingSessions = await storage.getTrainingSessions(user.userId);
+            let lastTrainingTime: Date | null = null;
 
-          if (trainingSessions.length > 0) {
-            const lastSession = trainingSessions.sort((a, b) => 
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-            )[0];
-            lastTrainingTime = new Date(lastSession.createdAt);
-          }
+            if (trainingSessions.length > 0) {
+              const lastSession = trainingSessions.sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              )[0];
+              lastTrainingTime = new Date(lastSession.createdAt);
+            }
 
-          // Antrenman mesajını analiz et
-          const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
+            // Antrenman mesajını analiz et
+            const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
 
-          if (trainingInfo) {
-            // Antrenman yapılabilir mi kontrol et
-            if (!trainingInfo.isAllowed) {
-              // Daha çok beklenmesi gerekiyorsa bilgilendir
-              const hoursLeft = Math.max(0, trainingInfo.hoursRequired - trainingInfo.timeSinceLastTraining).toFixed(1);
+            if (trainingInfo && trainingInfo.attributeName) {
+              // Antrenman yapılabilir mi kontrol et
+              if (!trainingInfo.isAllowed) {
+                // Daha çok beklenmesi gerekiyorsa bilgilendir
+                const hoursLeft = Math.max(0, trainingInfo.hoursRequired - trainingInfo.timeSinceLastTraining).toFixed(1);
 
+                const embed = new EmbedBuilder()
+                  .setTitle('⏱️ Antrenman Limiti')
+                  .setColor('#e74c3c')
+                  .setDescription(`${message.author} henüz bu nitelikte antrenman yapamazsın!`)
+                  .addFields(
+                    { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
+                    { name: 'Mevcut Değer', value: `${trainingInfo.attributeValue}`, inline: true },
+                    { name: 'Gereken Bekleme', value: `${trainingInfo.hoursRequired} saat`, inline: true },
+                    { name: 'Kalan Süre', value: `${hoursLeft} saat`, inline: true }
+                  )
+                  .setTimestamp();
+
+                await message.reply({ embeds: [embed] });
+                await message.react('⏱️');
+                return;
+              }
+
+              // Antrenman oturumu oluştur
+              const session = await storage.createTrainingSession({
+                userId: user.userId,
+                ticketId: "", // Boş string kullanıyoruz, null yerine
+                attributeName: trainingInfo.attributeName,
+                duration: trainingInfo.duration,
+                intensity: trainingInfo.intensity,
+                attributesGained: trainingInfo.points,
+                source: 'training',
+                messageId: message.id,
+                channelId: message.channelId
+              });
+
+              // Kullanıcının niteliklerini güncelle (sadece haftalık değeri artırıyoruz)
+              // SADECE haftalık değeri artır, toplam değeri değiştirme
+              await storage.updateAttribute(
+                user.userId, 
+                trainingInfo.attributeName, 
+                0, // Toplam değeri artırmıyoruz
+                trainingInfo.points, // Haftalık değeri artırıyoruz
+                false, // absoluteValue parametresi artık önemsiz, bu değer dikkate alınmıyor
+                true, // onlyUpdateWeekly - sadece haftalık değeri güncelle
+                'training' // source - bu değişiklik antrenman kaynaklı olduğunu belirt
+              );
+
+              // Onaylamak için emoji ekle
+              await message.react('🏋️');
+
+              // Antrenmanı kaydet
               const embed = new EmbedBuilder()
-                .setTitle('⏱️ Antrenman Limiti')
-                .setColor('#e74c3c')
-                .setDescription(`${message.author} henüz bu nitelikte antrenman yapamazsın!`)
+                .setTitle('🏋️ Antrenman Kaydı')
+                .setColor('#43B581')
+                .setDescription(`${message.author} adlı oyuncunun antrenman kaydı oluşturuldu.`)
                 .addFields(
                   { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
-                  { name: 'Mevcut Değer', value: `${trainingInfo.attributeValue}`, inline: true },
-                  { name: 'Gereken Bekleme', value: `${trainingInfo.hoursRequired} saat`, inline: true },
-                  { name: 'Kalan Süre', value: `${hoursLeft} saat`, inline: true }
+                  { name: 'Süre/Yoğunluk', value: `${trainingInfo.duration}/${trainingInfo.intensity}`, inline: true },
+                  { name: 'Kazanılan Puan', value: `+${trainingInfo.points}`, inline: true },
+                  { name: 'Haftalık İlerleme', value: `+${trainingInfo.points}`, inline: true },
+                  { name: 'Sonraki Antrenman', value: `${trainingInfo.hoursRequired} saat sonra yapılabilir`, inline: false }
                 )
                 .setTimestamp();
 
               await message.reply({ embeds: [embed] });
-              await message.react('⏱️');
-              return;
             }
-
-            // Antrenman oturumu oluştur
-            const session = await storage.createTrainingSession({
-              userId: user.userId,
-              ticketId: "", // Boş string kullanıyoruz, null yerine
-              attributeName: trainingInfo.attributeName,
-              duration: trainingInfo.duration,
-              intensity: trainingInfo.intensity,
-              attributesGained: trainingInfo.points,
-              source: 'training',
-              messageId: message.id,
-              channelId: message.channelId
-            });
-
-            // Kullanıcının niteliklerini güncelle (sadece haftalık değeri artırıyoruz)
-            // SADECE haftalık değeri artır, toplam değeri değiştirme
-            await storage.updateAttribute(
-              user.userId, 
-              trainingInfo.attributeName, 
-              0, // Toplam değeri artırmıyoruz
-              trainingInfo.points, // Haftalık değeri artırıyoruz
-              false, // absoluteValue parametresi artık önemsiz, bu değer dikkate alınmıyor
-              true, // onlyUpdateWeekly - sadece haftalık değeri güncelle
-              'training' // source - bu değişiklik antrenman kaynaklı olduğunu belirt
-            );
-
-            // Onaylamak için emoji ekle
-            await message.react('🏋️');
-
-            // Antrenmanı kaydet
-            const embed = new EmbedBuilder()
-              .setTitle('🏋️ Antrenman Kaydı')
-              .setColor('#43B581')
-              .setDescription(`${message.author} adlı oyuncunun antrenman kaydı oluşturuldu.`)
-              .addFields(
-                { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
-                { name: 'Süre/Yoğunluk', value: `${trainingInfo.duration}/${trainingInfo.intensity}`, inline: true },
-                { name: 'Kazanılan Puan', value: `+${trainingInfo.points}`, inline: true },
-                { name: 'Haftalık İlerleme', value: `+${trainingInfo.points}`, inline: true },
-                { name: 'Sonraki Antrenman', value: `${trainingInfo.hoursRequired} saat sonra yapılabilir`, inline: false }
-              )
-              .setTimestamp();
-
-            await message.reply({ embeds: [embed] });
+          } catch (complexTrainingError) {
+            console.error('Error processing complex training:', complexTrainingError);
+            await message.reply('Antrenman işlenirken bir hata oluştu.');
           }
         }
+      } catch (error) {
+        console.error('Error processing antrenman message:', error);
       }
-    } catch (error) {
-      console.error('Error processing message:', error);
+    } catch (messageError) {
+      console.error('Error processing message:', messageError);
     }
   });
 }

@@ -195,24 +195,40 @@ export function parseTrainingMessage(
   const trainingPattern = /(\d+)\/(\d+)\s+(.+)/i;
   const matches = content.match(trainingPattern);
   
-  if (!matches || matches.length < 4) return null;
+  console.log(`[DEBUG] Antrenman mesajı analizi: "${content}"`);
+  
+  if (!matches || matches.length < 4) {
+    console.log('[DEBUG] Geçerli bir antrenman formatı bulunamadı');
+    return null;
+  }
   
   const duration = parseInt(matches[1], 10) || 0;
   const intensity = parseInt(matches[2], 10) || 0;
   const attributeRaw = matches[3].trim();
   
-  if (duration <= 0 || intensity <= 0) return null;
+  console.log(`[DEBUG] Algılanan değerler: Süre=${duration}, Yoğunluk=${intensity}, Ham nitelik=${attributeRaw}`);
+  
+  if (duration <= 0 || intensity <= 0) {
+    console.log('[DEBUG] Geçersiz süre veya yoğunluk değeri');
+    return null;
+  }
   
   // Nitelik adını normalleştir
   let attributeName = attributeRaw;
   const validAttributes = getValidAttributes();
   
+  console.log(`[DEBUG] İstek yapılan nitelik: "${attributeName}"`);
+  console.log(`[DEBUG] Geçerli nitelikler: ${validAttributes.join(', ')}`);
+  
   // Eğer bu adla bir nitelik yoksa, en yakın eşleşeni bulmaya çalış
   if (!validAttributes.includes(attributeName)) {
+    console.log(`[DEBUG] Tam eşleşme bulunamadı, benzer eşleşmeler aranıyor`);
+    
     // Kısa pas -> Uzun Pas, Sprint -> Sprint Hızı gibi kısmi eşleşmeleri kontrol et
     for (const validAttr of validAttributes) {
       if (validAttr.toLowerCase().includes(attributeName.toLowerCase()) || 
           attributeName.toLowerCase().includes(validAttr.toLowerCase())) {
+        console.log(`[DEBUG] Benzer eşleşme bulundu: "${attributeName}" -> "${validAttr}"`);
         attributeName = validAttr;
         break;
       }
@@ -221,19 +237,28 @@ export function parseTrainingMessage(
   
   // Hala geçerli değilse varsayılan bir nitelik kullan
   if (!validAttributes.includes(attributeName)) {
+    console.log(`[DEBUG] Hala geçerli bir nitelik bulunamadı, varsayılan kullanılıyor: "Genel Antrenman"`);
     attributeName = 'Genel Antrenman';
+  } else {
+    console.log(`[DEBUG] Kullanılacak nitelik: "${attributeName}"`);
   }
   
   // Kullanıcının bu nitelikteki mevcut değerini al
   const attribute = attributes.find(attr => attr.name === attributeName);
   const attributeValue = attribute ? attribute.value : 50; // Varsayılan başlangıç değeri
   
+  console.log(`[DEBUG] Mevcut nitelik değeri: ${attributeValue}`);
+  
   // Kazanılan nitelik puanı hesapla (süre * yoğunluk)
   // Basit formül: süre * yoğunluk / 10, minimum 1, maksimum 5 puan
   const points = Math.min(5, Math.max(1, Math.floor(duration * intensity / 10)));
   
+  console.log(`[DEBUG] Kazanılan puan: ${points}`);
+  
   // Bu nitelik için gereken bekleme süresini al
   const hoursRequired = getRequiredHours(attributeName, attributeValue);
+  
+  console.log(`[DEBUG] Gereken bekleme süresi: ${hoursRequired} saat`);
   
   // Kullanıcının son antrenmanından bu yana geçen süreyi hesapla
   const now = new Date();
@@ -241,8 +266,12 @@ export function parseTrainingMessage(
     ? (now.getTime() - lastTrainingTime.getTime()) / (1000 * 60 * 60) // saat cinsinden
     : 24; // Eğer daha önce antrenman yapılmadıysa 24 saat (varsayılan olarak izin verir)
   
+  console.log(`[DEBUG] Son antrenman: ${lastTrainingTime}, Geçen süre: ${timeSinceLastTraining.toFixed(1)} saat`);
+  
   // Antrenman yapılabilir mi kontrol et
   const isAllowed = timeSinceLastTraining >= hoursRequired;
+  
+  console.log(`[DEBUG] Antrenman izni: ${isAllowed ? 'EVET' : 'HAYIR'}`);
   
   return {
     attributeName,
