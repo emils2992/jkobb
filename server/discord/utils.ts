@@ -206,7 +206,12 @@ export function parseTrainingMessage(
   const intensity = parseInt(matches[2], 10) || 0;
   const attributeRaw = matches[3].trim();
   
-  console.log(`[DEBUG] Algılanan değerler: Süre=${duration}, Yoğunluk=${intensity}, Ham nitelik=${attributeRaw}`);
+  // Nitelik ismini düzelt - ilk harfleri büyük yap
+  const attributeName = attributeRaw.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  
+  console.log(`[DEBUG] Algılanan değerler: Süre=${duration}, Yoğunluk=${intensity}, Ham nitelik=${attributeRaw}, Düzeltilmiş=${attributeName}`);
   
   if (duration <= 0 || intensity <= 0) {
     console.log('[DEBUG] Geçersiz süre veya yoğunluk değeri');
