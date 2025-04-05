@@ -96,6 +96,12 @@ async function createTables() {
         guild_id TEXT NOT NULL UNIQUE,
         fix_log_channel_id TEXT,
         training_channel_id TEXT,
+        training_channel_id_1 TEXT,
+        training_channel_id_2 TEXT,
+        training_channel_id_3 TEXT,
+        training_channel_id_4 TEXT,
+        training_channel_id_5 TEXT,
+        staff_role_id TEXT,
         last_reset_at TIMESTAMP NOT NULL DEFAULT NOW(),
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
