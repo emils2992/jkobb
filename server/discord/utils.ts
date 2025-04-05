@@ -218,8 +218,6 @@ export function parseTrainingMessage(
     return null;
   }
   
-  // Nitelik adını normalleştir
-  let attributeName = attributeRaw;
   const validAttributes = getValidAttributes();
   
   console.log(`[DEBUG] İstek yapılan nitelik: "${attributeName}"`);
