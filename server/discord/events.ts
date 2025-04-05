@@ -518,13 +518,9 @@ export function setupEventHandlers() {
                 displayName
               );
 
-              // Sabit olarak +1 puan ekleyeceğiz, ancak kanal süresini hesaba katarak
-              // Süreye göre puanı hesapla (1 saat = 1 puan, maksimum 5)
-              const basePoint = 1; // Temel puan
-              const attributeGain = Math.min(basePoint * trainingDuration, 5); // Süre ile çarpıp maksimum 5 ile sınırla
-              console.log(`[ANTRENMAN] Kanal süresi ${trainingDuration} saat, kazanılacak puan: ${attributeGain}`);
-
-              console.log(`[ANTRENMAN] Kanal süresi: ${trainingDuration} saat, Kazanılacak puan: ${attributeGain}`);
+              // Artık puan eklenmeyecek, sadece süre kaydedilecek
+              const attributeGain = 0; // Puan eklemeyi kaldır
+              console.log(`[ANTRENMAN] Kanal süresi ${trainingDuration} saat kaydedildi`);
 
               try {
                 // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
@@ -563,7 +559,6 @@ export function setupEventHandlers() {
                   .addFields(
                     { name: 'Format', value: `${formatDuration}/${intensity}`, inline: true },
                     { name: 'Nitelik', value: attributeName, inline: true },
-                    { name: 'Kazanılan Puan', value: `+${attributeGain}`, inline: true },
                     { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true }
                   )
                   .setTimestamp();
