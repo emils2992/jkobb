@@ -47,7 +47,7 @@ localPort = 8099
 externalPort = 8099
 
 [workflows]
-runButton = "UptimeBot"
+runButton = "Restart Bot"
 
 [[workflows.workflow]]
 name = "Project"

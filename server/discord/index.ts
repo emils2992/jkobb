@@ -18,12 +18,9 @@ export async function initDiscordBot() {
         // Properly handle the Discord bot initialization flow to avoid circular dependencies
         const botClient = await initBot();
         
-        // Only setup event handlers and register commands if bot login was successful
+        // Check if bot initialized correctly
         if (botClient) {
           console.log('Bot logged in successfully, setup already completed in initBot...');
-          // Event handlers are already set up in initBot(), no need to do it again
-          // setupEventHandlers();
-          // Don't register commands again, it's already done in initBot
           console.log('Discord bot initialized successfully');
         } else {
           console.log('Bot client not initialized properly');
