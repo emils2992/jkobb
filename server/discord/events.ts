@@ -1267,4 +1267,3 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
     }
   }
 }
-}
