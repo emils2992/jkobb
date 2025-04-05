@@ -375,6 +375,40 @@ export function setupEventHandlers() {
         console.log(`[DEBUG] Kanal 3 (3 saat): ${serverConfig?.trainingChannelId3}`);
         console.log(`[DEBUG] Kanal 4 (4 saat): ${serverConfig?.trainingChannelId4}`);
         console.log(`[DEBUG] Kanal 5 (5 saat): ${serverConfig?.trainingChannelId5}`);
+
+        // Önce tüm kanalları kontrol et
+        if (serverConfig?.trainingChannelId && message.channelId === serverConfig.trainingChannelId) {
+          console.log('[DEBUG] Ana antrenman kanalında mesaj tespit edildi!');
+          isTrainingChannel = true;
+          trainingDuration = 1;
+        } 
+        else if (serverConfig?.trainingChannelId1 && message.channelId === serverConfig.trainingChannelId1) {
+          console.log('[DEBUG] Kanal 1 (1 saat) antrenman kanalında mesaj tespit edildi!');
+          isTrainingChannel = true;
+          trainingDuration = 1;
+        }
+        else if (serverConfig?.trainingChannelId2 && message.channelId === serverConfig.trainingChannelId2) {
+          console.log('[DEBUG] Kanal 2 (2 saat) antrenman kanalında mesaj tespit edildi!');
+          isTrainingChannel = true;
+          trainingDuration = 2;
+        }
+        else if (serverConfig?.trainingChannelId3 && message.channelId === serverConfig.trainingChannelId3) {
+          console.log('[DEBUG] Kanal 3 (3 saat) antrenman kanalında mesaj tespit edildi!');
+          isTrainingChannel = true;
+          trainingDuration = 3;
+        }
+        else if (serverConfig?.trainingChannelId4 && message.channelId === serverConfig.trainingChannelId4) {
+          console.log('[DEBUG] Kanal 4 (4 saat) antrenman kanalında mesaj tespit edildi!');
+          isTrainingChannel = true;
+          trainingDuration = 4;
+        }
+        else if (serverConfig?.trainingChannelId5 && message.channelId === serverConfig.trainingChannelId5) {
+          console.log('[DEBUG] Kanal 5 (5 saat) antrenman kanalında mesaj tespit edildi!');
+          isTrainingChannel = true;
+          trainingDuration = 5;
+        }
+        console.log(`[DEBUG] Kanal 4 (4 saat): ${serverConfig?.trainingChannelId4}`);
+        console.log(`[DEBUG] Kanal 5 (5 saat): ${serverConfig?.trainingChannelId5}`);
         console.log(`[DEBUG] Mevcut mesaj kanalı ID: ${message.channelId}`);
 
         // Ana antrenman kanalı kontrolü
@@ -485,7 +519,10 @@ export function setupEventHandlers() {
               );
 
               // Sabit olarak +1 puan ekleyeceğiz, ancak kanal süresini hesaba katarak
-              const attributeGain = Math.min(trainingDuration, 5); // Süre arttıkça, kazanılacak nitelik de artar (en fazla 5)
+              // Süreye göre puanı hesapla (1 saat = 1 puan, maksimum 5)
+              const basePoint = 1; // Temel puan
+              const attributeGain = Math.min(basePoint * trainingDuration, 5); // Süre ile çarpıp maksimum 5 ile sınırla
+              console.log(`[ANTRENMAN] Kanal süresi ${trainingDuration} saat, kazanılacak puan: ${attributeGain}`);
 
               console.log(`[ANTRENMAN] Kanal süresi: ${trainingDuration} saat, Kazanılacak puan: ${attributeGain}`);
 
