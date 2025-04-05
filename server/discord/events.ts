@@ -19,7 +19,7 @@ import {
 import { client } from './bot';
 import { commands } from './commands';
 import { storage } from '../storage';
-import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed } from './utils';
+import { parseAttributeRequest, parseTrainingMessage, createAttributeEmbed, getValidAttributes } from './utils';
 import { pool } from '../db';
 
 // İşlenmiş mesaj ID'lerini global olarak saklayacak bir set
@@ -28,6 +28,39 @@ const processedMessageIds = new Set<string>();
 // Rate limiting için basit bir Map
 const commandCooldowns = new Map<string, number>();
 const COOLDOWN_PERIOD = 60 * 1000; // 1 dakika (milisaniye cinsinden)
+
+// Levenshtein mesafesi hesaplama - benzer nitelik adı önerirken kullanılır
+function levenshteinDistance(a: string, b: string): number {
+  const matrix = [];
+
+  // Matrisi başlangıç değerleriyle oluştur
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  // Mesafeyi hesapla
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // değiştirme
+          Math.min(
+            matrix[i][j - 1] + 1, // ekleme
+            matrix[i - 1][j] + 1  // silme
+          )
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
 
 export function setupEventHandlers() {
   // Handle command interactions
@@ -141,190 +174,196 @@ export function setupEventHandlers() {
       // Emoji reaksiyonlarını işle - ticket kapatma
       try {
         if (message.reference && message.reference.messageId) {
-        // Mesaj bir yanıt ise
-        try {
-          const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
+          // Mesaj bir yanıt ise
+          try {
+            const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
 
-          // Reaksiyonları ve ticket kapatma mesajını kontrol et
-          if (referencedMessage.embeds.length > 0 && 
-              referencedMessage.embeds[0].title === '❓ Ticket Kapatma Onayı') {
+            // Reaksiyonları ve ticket kapatma mesajını kontrol et
+            if (referencedMessage.embeds.length > 0 && 
+                referencedMessage.embeds[0].title === '❓ Ticket Kapatma Onayı') {
 
-            // Evet (✅) reaksiyonu varsa, ya da mesaj içeriğinde "evet" veya ✅ emojisi varsa
-            if (message.content.includes('✅') || message.content.toLowerCase().includes('evet')) {
-              // Ticket kapatma işlemini burada ele alıyoruz
-              const ticketId = message.channel.id;
-              const ticket = await storage.getTicket(ticketId);
+              // Evet (✅) reaksiyonu varsa, ya da mesaj içeriğinde "evet" veya ✅ emojisi varsa
+              if (message.content.includes('✅') || message.content.toLowerCase().includes('evet')) {
+                // Ticket kapatma işlemini burada ele alıyoruz
+                const ticketId = message.channel.id;
+                const ticket = await storage.getTicket(ticketId);
 
-              if (!ticket) {
-                return message.reply('Bu bir ticket kanalı değil.');
-              }
-
-              if (ticket.status === 'closed') {
-                return message.reply('Bu ticket zaten kapatılmış.');
-              }
-
-              try {
-                // Get attribute requests for this ticket
-                const attributeRequests = await storage.getAttributeRequests(ticketId);
-                const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-
-                // Update user's attributes
-                const user = await storage.getUserById(ticket.userId);
-                if (!user) {
-                  return message.reply('Bu ticketin sahibi bulunamadı.');
+                if (!ticket) {
+                  return message.reply('Bu bir ticket kanalı değil.');
                 }
 
-                // İlk olarak tüm nitelik taleplerini onaylayalım
-                // Eğer yönetici tarafından onaylanmadıysa bile, ticket kapanırken onaylansın
-                for (const request of attributeRequests) {
-                  if (!request.approved) {
-                    await storage.approveAttributeRequest(request.id);
+                if (ticket.status === 'closed') {
+                  return message.reply('Bu ticket zaten kapatılmış.');
+                }
+
+                try {
+                  // Get attribute requests for this ticket
+                  const attributeRequests = await storage.getAttributeRequests(ticketId);
+                  const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+
+                  // Update user's attributes
+                  const user = await storage.getUserById(ticket.userId);
+                  if (!user) {
+                    return message.reply('Bu ticketin sahibi bulunamadı.');
                   }
-                }
 
-                // Onaylanan talepleri tekrar alalım
-                const approvedRequests = await storage.getAttributeRequests(ticketId);
-
-                // Process all attribute requests (auto-approved on close)
-                // TAMAMEN YENİDEN YAZDIM - TEMEL SORUN BURASIYDI
-
-                console.log(`[YENİ METOT - MESAJLA KAPATMA] Ticket kapatılıyor: ${ticketId}`);
-                console.log(`[YENİ METOT - MESAJLA KAPATMA] Toplam nitelik talepleri: ${approvedRequests.length}`);
-
-                // Tüm talepleri logla - hata ayıklama için
-                for (const req of approvedRequests) {
-                  console.log(`[YENİ METOT - MESAJLA KAPATMA] Talep: ${req.attributeName} için ${req.valueRequested} puan`);
-                }
-
-                // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
-                const attributeMap = new Map<string, number>();
-
-                // Önce talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
-                const sortedRequests = [...approvedRequests]
-                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-                // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
-                for (const request of sortedRequests) {
-                  // Nitelik adını ve tam olarak istenen değeri kullan
-                  attributeMap.set(request.attributeName, request.valueRequested);
-                  console.log(`[TAMAMEN YENİ METOT] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested}`);
-                }
-
-                // Her nitelik için sadece bir kez güncelleme yapacağız
-                for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
-                  console.log(`[TAMAMEN YENİ METOT] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
-
-                  try {
-                    // Önce mevcut değeri alıp loglayalım
-                    const beforeAttr = await storage.getAttribute(user.userId, attributeName);
-                    if (beforeAttr) {
-                      console.log(`[TAMAMEN YENİ METOT] ÖNCEKİ DEĞER: ${attributeName} = ${beforeAttr.value}`);
-                    } else {
-                      console.log(`[TAMAMEN YENİ METOT] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
+                  // İlk olarak tüm nitelik taleplerini onaylayalım
+                  // Eğer yönetici tarafından onaylanmadıysa bile, ticket kapanırken onaylansın
+                  for (const request of attributeRequests) {
+                    if (!request.approved) {
+                      await storage.approveAttributeRequest(request.id);
                     }
+                  }
 
-                    // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
-                    await storage.updateAttribute(
-                      user.userId,
-                      attributeName,
-                      valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
-                      undefined, // Haftalık değeri otomatik olarak güncellenir
-                      false, // absoluteValue=false: değeri ekle, değiştirme
-                      false, // onlyUpdateWeekly=false
-                      'ticket' // source=ticket: bu değişiklik ticket kaynaklı
-                    );
+                  // Onaylanan talepleri tekrar alalım
+                  const approvedRequests = await storage.getAttributeRequests(ticketId);
 
-                    // Sonraki değeri alıp loglayalım
-                    const afterAttr = await storage.getAttribute(user.userId, attributeName);
-                    if (afterAttr) {
-                      console.log(`[TAMAMEN YENİ METOT] YENİ DEĞER: ${attributeName} = ${afterAttr.value}`);
+                  // Process all attribute requests (auto-approved on close)
+                  // TAMAMEN YENİDEN YAZDIM - TEMEL SORUN BURASIYDI
+
+                  console.log(`[YENİ METOT - MESAJLA KAPATMA] Ticket kapatılıyor: ${ticketId}`);
+                  console.log(`[YENİ METOT - MESAJLA KAPATMA] Toplam nitelik talepleri: ${approvedRequests.length}`);
+
+                  // Tüm talepleri logla - hata ayıklama için
+                  for (const req of approvedRequests) {
+                    console.log(`[YENİ METOT - MESAJLA KAPATMA] Talep: ${req.attributeName} için ${req.valueRequested} puan`);
+                  }
+
+                  // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
+                  const attributeMap = new Map<string, number>();
+
+                  // Önce talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
+                  const sortedRequests = [...approvedRequests]
+                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+                  // Her nitelik için sadece bir kez ekleme yapacağız - en son talep kazanır
+                  for (const request of sortedRequests) {
+                    // Nitelik adını ve tam olarak istenen değeri kullan
+                    attributeMap.set(request.attributeName, request.valueRequested);
+                    console.log(`[TAMAMEN YENİ METOT] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested}`);
+                  }
+
+                  // Her nitelik için sadece bir kez güncelleme yapacağız
+                  for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
+                    console.log(`[TAMAMEN YENİ METOT] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
+
+                    try {
+                      // Önce mevcut değeri alıp loglayalım
+                      const beforeAttr = await storage.getAttribute(user.userId, attributeName);
                       if (beforeAttr) {
-                        const diff = afterAttr.value - beforeAttr.value;
-                        console.log(`[TAMAMEN YENİ METOT] FARK: +${diff} (Beklenen: +${valueToAdd})`);
-                        if (diff !== valueToAdd) {
-                          console.log(`[TAMAMEN YENİ METOT] UYARI! Beklenen fark (${valueToAdd}) ile gerçek fark (${diff}) eşleşmiyor!`);
+                        console.log(`[TAMAMEN YENİ METOT] ÖNCEKİ DEĞER: ${attributeName} = ${beforeAttr.value}`);
+                      } else {
+                        console.log(`[TAMAMEN YENİ METOT] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
+                      }
+
+                      // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
+                      await storage.updateAttribute(
+                        user.userId,
+                        attributeName,
+                        valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
+                        undefined, // Haftalık değeri otomatik olarak güncellenir
+                        false, // absoluteValue=false: değeri ekle, değiştirme
+                        false, // onlyUpdateWeekly=false
+                        'ticket' // source=ticket: bu değişiklik ticket kaynaklı
+                      );
+
+                      // Sonraki değeri alıp loglayalım
+                      const afterAttr = await storage.getAttribute(user.userId, attributeName);
+                      if (afterAttr) {
+                        console.log(`[TAMAMEN YENİ METOT] YENİ DEĞER: ${attributeName} = ${afterAttr.value}`);
+                        if (beforeAttr) {
+                          const diff = afterAttr.value - beforeAttr.value;
+                          console.log(`[TAMAMEN YENİ METOT] FARK: +${diff} (Beklenen: +${valueToAdd})`);
+                          if (diff !== valueToAdd) {
+                            console.log(`[TAMAMEN YENİ METOT] UYARI! Beklenen fark (${valueToAdd}) ile gerçek fark (${diff}) eşleşmiyor!`);
+                          }
                         }
                       }
+                    } catch (error) {
+                      console.error(`[TAMAMEN YENİ METOT] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
                     }
-                  } catch (error) {
-                    console.error(`[TAMAMEN YENİ METOT] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
                   }
-                }
 
-                // Close the ticket
-                await storage.closeTicket(ticketId, message.author.id); // Added author ID
+                  // Close the ticket
+                  await storage.closeTicket(ticketId, message.author.id); // Added author ID
 
-                // Güncel toplam nitelik değerini alalım
-                const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
+                  // Güncel toplam nitelik değerini alalım
+                  const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
 
-                // Create embed for the response
-                const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
-                await message.reply({ embeds: [embed] });
+                  // Create embed for the response
+                  const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
+                  await message.reply({ embeds: [embed] });
 
-                // Post to fix log channel if configured
-                if (message.guild?.id) {
-                  const serverConfig = await storage.getServerConfig(message.guild.id);
-                  if (serverConfig?.fixLogChannelId) {
+                  // Post to fix log channel if configured
+                  if (message.guild?.id) {
+                    const serverConfig = await storage.getServerConfig(message.guild.id);
+                    if (serverConfig?.fixLogChannelId) {
+                      try {
+                        const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
+                        if (logChannel) {
+                          await logChannel.send({ 
+                            content: `${user.username} için ticket kapatıldı:`,
+                            embeds: [embed] 
+                          });
+                          console.log(`Fix log mesajı #${logChannel.name} kanalına gönderildi.`);
+                        }
+                      } catch (error) {
+                        console.error('Fix log kanalına mesaj gönderilirken hata:', error);
+                      }
+                    }
+                  }
+
+                  // Kanalı 5 saniye sonra silelim
+                  setTimeout(async () => {
                     try {
-                      const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
-                      if (logChannel) {
-                        await logChannel.send({ 
-                          content: `${user.username} için ticket kapatıldı:`,
-                          embeds: [embed] 
-                        });
-                        console.log(`Fix log mesajı #${logChannel.name} kanalına gönderildi.`);
+                      const channel = message.channel;
+
+                      // TextChannel olduğundan emin olalım
+                      if (channel.type === ChannelType.GuildText) {
+                        const textChannel = channel as TextChannel;
+                        if (textChannel.deletable) {
+                          await textChannel.send('Bu kanal 5 saniye içinde silinecek...');
+                          await new Promise(resolve => setTimeout(resolve, 5000));
+                          await textChannel.delete('Ticket kapatıldı');
+                          console.log(`Ticket kanalı silindi: ${textChannel.name}`);
+                        }
                       }
                     } catch (error) {
-                      console.error('Fix log kanalına mesaj gönderilirken hata:', error);
+                      console.error('Kanal silinirken hata:', error);
                     }
-                  }
+                  }, 1000);
+
+                  // Burada mesaj gönder yanıtla
+                  await message.reply('Bu ticket kapatıldı ve işlendi. ✅');
+                } catch (error) {
+                  console.error('Error closing ticket:', error);
+                  await message.reply('Ticket kapatılırken bir hata oluştu.');
                 }
+              }
 
-                // Kanalı 5 saniye sonra silelim
-                setTimeout(async () => {
-                  try {
-                    const channel = message.channel;
-
-                    // TextChannel olduğundan emin olalım
-                    if (channel.type === ChannelType.GuildText) {
-                      const textChannel = channel as TextChannel;
-                      if (textChannel.deletable) {
-                        await textChannel.send('Bu kanal 5 saniye içinde silinecek...');
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        await textChannel.delete('Ticket kapatıldı');
-                        console.log(`Ticket kanalı silindi: ${textChannel.name}`);
-                      }
-                    }
-                  } catch (error) {
-                    console.error('Kanal silinirken hata:', error);
-                  }
-                }, 1000);
-
-                // Burada mesaj gönder yanıtla
-                await message.reply('Bu ticket kapatıldı ve işlendi. ✅');
-              } catch (error) {
-                console.error('Error closing ticket:', error);
-                await message.reply('Ticket kapatılırken bir hata oluştu.');
+              // Hayır (❌) reaksiyonu varsa
+              if (message.content.includes('❌') || message.content.toLowerCase().includes('hayır')) {
+                await message.reply('Ticket kapatma işlemi iptal edildi.');
               }
             }
-
-            // Hayır (❌) reaksiyonu varsa
-            if (message.content.includes('❌') || message.content.toLowerCase().includes('hayır')) {
-              await message.reply('Ticket kapatma işlemi iptal edildi.');
-            }
+          } catch (error) {
+            console.error('Error processing reaction message:', error);
           }
-        } catch (error) {
-          console.error('Error processing reaction message:', error);
         }
+      } catch (reactionError) {
+        console.error('Error processing reaction:', reactionError);
       }
 
-      // Antrenman mesajlarını kontrol et
+      // Antrenman mesajlarını kontrol et - tamamen yeniden yazıldı
       try {
-        if (message.guild) {
+        // Önce mesajın bir sunucudan geldiğinden emin olalım
+        if (!message.guild || !message.channel) return;
+        
+        // Sunucu yapılandırmasını al
         const serverConfig = await storage.getServerConfig(message.guild.id);
+        if (!serverConfig) return;
 
         // Mesajın hangi antrenman kanalında olduğunu kontrol et
-        // Farklı kanallar için farklı süre değerlerini belirlemek için bu kontrolü yapıyoruz
         let trainingDuration = 1; // Varsayılan süre 1 saat
         let isTrainingChannel = false;
 
@@ -338,7 +377,7 @@ export function setupEventHandlers() {
         console.log(`[DEBUG] Kanal 5 (5 saat): ${serverConfig?.trainingChannelId5}`);
         console.log(`[DEBUG] Mevcut mesaj kanalı ID: ${message.channelId}`);
 
-        // Ana antrenman kanalı
+        // Ana antrenman kanalı kontrolü
         if (serverConfig?.trainingChannelId && message.channelId === serverConfig.trainingChannelId) {
           console.log('[DEBUG] Ana antrenman kanalında mesaj tespit edildi!');
           isTrainingChannel = true;
@@ -374,10 +413,9 @@ export function setupEventHandlers() {
           isTrainingChannel = true;
           trainingDuration = 5;
         }
-        
+
         console.log(`[DEBUG] İşlem sonucu: isTrainingChannel=${isTrainingChannel}, trainingDuration=${trainingDuration}`);
         
-
         // Eğer herhangi bir antrenman kanalıysa işlem yap
         if (isTrainingChannel) {
           console.log(`[ANTRENMAN] Antrenman kanalında mesaj alındı: ${message.content} (Süre: ${trainingDuration} saat)`);
@@ -406,10 +444,30 @@ export function setupEventHandlers() {
             // Format 1/1 şeklinde ancak gerçek süre kanaldan geliyor 
             // (trainingDuration değişkeni kanal ayarlarına göre belirlendi)
             const formatDuration = parseInt(matches[1], 10);
-            const attributeName = matches[3].trim();
+            const intensity = parseInt(matches[2], 10);
+            const attributeName = matches[3].trim().toLowerCase();
 
-            // Yoğunluk değerini kullanmıyoruz artık
-            console.log(`[ANTRENMAN] Basit format algılandı: Format=${formatDuration}/1, Gerçek Süre=${trainingDuration}, Nitelik=${attributeName}`);
+            console.log(`[ANTRENMAN] Basit format algılandı: Format=${formatDuration}/${intensity}, Gerçek Süre=${trainingDuration}, Nitelik=${attributeName}`);
+            
+            // Değerler 1-5 aralığında mı kontrol et
+            if (formatDuration < 1 || formatDuration > 5 || intensity < 1 || intensity > 5) {
+              await message.reply('Antrenman formatı doğru ancak değerler 1-5 arasında olmalı.');
+              return;
+            }
+            
+            // Geçerli bir nitelik adı mı kontrol et
+            const validAttributes = getValidAttributes();
+            if (!validAttributes.includes(attributeName)) {
+              // En yakın nitelik adını bul
+              const closestAttribute = validAttributes.reduce((closest, current) => {
+                const currentDistance = levenshteinDistance(attributeName, current);
+                const closestDistance = levenshteinDistance(attributeName, closest);
+                return currentDistance < closestDistance ? current : closest;
+              }, validAttributes[0]);
+              
+              await message.reply(`"${attributeName}" geçerli bir nitelik değil. Belki "${closestAttribute}" demek istediniz? Geçerli nitelikler: ${validAttributes.join(', ')}`);
+              return;
+            }
 
             try {
               // Kullanıcıyı oluştur veya al
@@ -427,7 +485,6 @@ export function setupEventHandlers() {
               );
 
               // Sabit olarak +1 puan ekleyeceğiz, ancak kanal süresini hesaba katarak
-              const intensity = 1; // Sabit yoğunluk
               const attributeGain = Math.min(trainingDuration, 5); // Süre arttıkça, kazanılacak nitelik de artar (en fazla 5)
 
               console.log(`[ANTRENMAN] Kanal süresi: ${trainingDuration} saat, Kazanılacak puan: ${attributeGain}`);
@@ -440,7 +497,7 @@ export function setupEventHandlers() {
                   attributeName: attributeName,
                   ticketId: "", // Boş string kullan, null yerine
                   duration: trainingDuration, // Kanaldan gelen süre değerini kullanıyoruz
-                  intensity: intensity, // Sabit değer kullanıyoruz
+                  intensity: intensity, // Girilen yoğunluk değerini kullanıyoruz
                   attributesGained: attributeGain, // Kanal süresine göre kazanılacak miktar
                   source: 'message',
                   messageId: message.id,
@@ -457,155 +514,56 @@ export function setupEventHandlers() {
                   attributeGain, // Toplam değere süreye bağlı puan ekle
                   attributeGain, // Haftalık değere aynı puanı ekle
                   false, // absoluteValue
-                false, // onlyUpdateWeekly
-                'message' // source - antrenman kaynaklı olduğunu belirt
-              );
+                  false, // onlyUpdateWeekly
+                  'message' // source - antrenman kaynaklı olduğunu belirt
+                );
 
-              // Yanıt olarak oturumu doğrula
-              const embed = new EmbedBuilder()
-                .setTitle('🏋️ Antrenman Kaydı')
-                .setColor('#43B581')
-                .setDescription(`${message.author} adlı oyuncunun antrenman kaydı başarıyla oluşturuldu.`)
-                .addFields(
-                  { name: 'Format', value: `${formatDuration}/1`, inline: true },
-                  { name: 'Nitelik', value: attributeName, inline: true },
-                  { name: 'Kazanılan Puan', value: `+${attributeGain}`, inline: true },
-                  { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true }
-                )
-                .setTimestamp();
-
-              // Onaylamak için emoji ekle
-              await message.react('🏋️');
-              await message.reply({ embeds: [embed] });
-
-              // Log kanalına da gönder
-              if (serverConfig?.fixLogChannelId) {
-                try {
-                  const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
-                  if (logChannel) {
-                    await logChannel.send({ 
-                      content: `${user.username} antrenman yaptı:`,
-                      embeds: [embed] 
-                    });
-                  }
-                } catch (error) {
-                  console.error('Antrenman log kanalına mesaj gönderilirken hata:', error);
-                }
-              }
-
-              return; // Mesajı işledik, diğer işlemlere geçme
-            } catch (error) {
-              console.error('Error processing simple training message:', error);
-              await message.reply('Antrenman kaydı oluşturulurken bir hata oluştu.');
-              return;
-            }
-          }
-
-          // Kullanıcıyı oluştur veya al
-          // Sunucudaki görünen adını (nickname) kullan
-          let displayName = message.author.username;
-          if (message.member && message.member.displayName) {
-            displayName = message.member.displayName;
-          }
-          
-          const user = await storage.getOrCreateUser(
-              message.author.id,
-              message.author.username,
-              message.author.displayAvatarURL(),
-              displayName
-            );
-
-            // Kullanıcının niteliklerini al
-            const attributes = await storage.getAttributes(user.userId);
-
-            // Kullanıcının son antrenman kaydını al
-            const trainingSessions = await storage.getTrainingSessions(user.userId);
-            let lastTrainingTime: Date | null = null;
-
-            if (trainingSessions.length > 0) {
-              const lastSession = trainingSessions.sort((a, b) => 
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-              )[0];
-              lastTrainingTime = new Date(lastSession.createdAt);
-            }
-
-            // Antrenman mesajını analiz et
-            const trainingInfo = parseTrainingMessage(message.content, attributes, lastTrainingTime);
-
-            if (trainingInfo && trainingInfo.attributeName) {
-              // Antrenman yapılabilir mi kontrol et
-              if (!trainingInfo.isAllowed) {
-                // Daha çok beklenmesi gerekiyorsa bilgilendir
-                const hoursLeft = Math.max(0, trainingInfo.hoursRequired - trainingInfo.timeSinceLastTraining).toFixed(1);
-
+                // Yanıt olarak oturumu doğrula
                 const embed = new EmbedBuilder()
-                  .setTitle('⏱️ Antrenman Limiti')
-                  .setColor('#e74c3c')
-                  .setDescription(`${message.author} henüz bu nitelikte antrenman yapamazsın!`)
+                  .setTitle('🏋️ Antrenman Kaydı')
+                  .setColor('#43B581')
+                  .setDescription(`${message.author} adlı oyuncunun antrenman kaydı başarıyla oluşturuldu.`)
                   .addFields(
-                    { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
-                    { name: 'Mevcut Değer', value: `${trainingInfo.attributeValue}`, inline: true },
-                    { name: 'Gereken Bekleme', value: `${trainingInfo.hoursRequired} saat`, inline: true },
-                    { name: 'Kalan Süre', value: `${hoursLeft} saat`, inline: true }
+                    { name: 'Format', value: `${formatDuration}/${intensity}`, inline: true },
+                    { name: 'Nitelik', value: attributeName, inline: true },
+                    { name: 'Kazanılan Puan', value: `+${attributeGain}`, inline: true },
+                    { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true }
                   )
                   .setTimestamp();
 
+                // Onaylamak için emoji ekle
+                await message.react('🏋️');
                 await message.reply({ embeds: [embed] });
-                await message.react('⏱️');
-                return;
+
+                // Log kanalına da gönder
+                if (serverConfig?.fixLogChannelId) {
+                  try {
+                    const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
+                    if (logChannel) {
+                      await logChannel.send({ 
+                        content: `${user.username} antrenman yaptı:`,
+                        embeds: [embed] 
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Antrenman log kanalına mesaj gönderilirken hata:', error);
+                  }
+                }
+              } catch (error) {
+                console.error('Error processing training session:', error);
+                await message.reply('Antrenman oturumu oluşturulurken bir hata oluştu.');
               }
-
-              // Antrenman oturumu oluştur
-              const session = await storage.createTrainingSession({
-                userId: user.userId,
-                ticketId: "", // Boş string kullanıyoruz, null yerine
-                attributeName: trainingInfo.attributeName,
-                duration: trainingInfo.duration,
-                intensity: trainingInfo.intensity,
-                attributesGained: trainingInfo.points,
-                source: 'training',
-                messageId: message.id,
-                channelId: message.channelId
-              });
-
-              // Kullanıcının niteliklerini güncelle (sadece haftalık değeri artırıyoruz)
-              // SADECE haftalık değeri artır, toplam değeri değiştirme
-              await storage.updateAttribute(
-                user.userId, 
-                trainingInfo.attributeName, 
-                0, // Toplam değeri artırmıyoruz
-                trainingInfo.points, // Haftalık değeri artırıyoruz
-                false, // absoluteValue parametresi artık önemsiz, bu değer dikkate alınmıyor
-                true, // onlyUpdateWeekly - sadece haftalık değeri güncelle
-                'training' // source - bu değişiklik antrenman kaynaklı olduğunu belirt
-              );
-
-              // Onaylamak için emoji ekle
-              await message.react('🏋️');
-
-              // Antrenmanı kaydet
-              const embed = new EmbedBuilder()
-                .setTitle('🏋️ Antrenman Kaydı')
-                .setColor('#43B581')
-                .setDescription(`${message.author} adlı oyuncunun antrenman kaydı oluşturuldu.`)
-                .addFields(
-                  { name: 'Nitelik', value: trainingInfo.attributeName, inline: true },
-                  { name: 'Süre/Yoğunluk', value: `${trainingInfo.duration}/${trainingInfo.intensity}`, inline: true },
-                  { name: 'Kazanılan Puan', value: `+${trainingInfo.points}`, inline: true },
-                  { name: 'Haftalık İlerleme', value: `+${trainingInfo.points}`, inline: true },
-                  { name: 'Sonraki Antrenman', value: `${trainingInfo.hoursRequired} saat sonra yapılabilir`, inline: false }
-                )
-                .setTimestamp();
-
-              await message.reply({ embeds: [embed] });
+            } catch (error) {
+              console.error('Error creating user for training:', error);
+              await message.reply('Antrenman için kullanıcı bilgileri alınırken bir hata oluştu.');
             }
-          } catch (complexTrainingError) {
-            console.error('Error processing complex training:', complexTrainingError);
-            await message.reply('Antrenman işlenirken bir hata oluştu.');
+          } else {
+            // Yeni format değilse, eski antrenman formatı kontrolü - artık kullanılmıyor
+            console.log('[ANTRENMAN] Bu mesaj 1/1 formatında değil, işlenmeyecek.');
           }
         }
-      } catch (error) {
-        console.error('Error processing antrenman message:', error);
+      } catch (trainingError) {
+        console.error('Error processing training message:', trainingError);
       }
     } catch (messageError) {
       console.error('Error processing message:', messageError);
@@ -893,15 +851,16 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             console.log(`[YENİ METOT - BUTON] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
           }
 
-          // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
+          // Niteliği güncelle - değeri direkt olarak ekleyerek
+          // NOT: Bu yeni kodda ticket ile artan değer kullanıcıya doğrudan ekleniyor (çarpma işlemi yok)
           await storage.updateAttribute(
             user.userId,
             attributeName,
-            valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
+            valueToAdd, // Talep edilen değeri direkt kullan (çarpma işlemi yok)
             undefined, // Haftalık değeri otomatik olarak güncellenir
             false, // absoluteValue=false: değeri ekle, değiştirme
-            false, // onlyUpdateWeekly=false
-            'ticket' // source=ticket: bu değişiklik ticket kaynaklı
+            false, // onlyUpdateWeekly=false: hem toplam hem haftalık değeri güncelle
+            'ticket_button' // source=ticket_button: bu değişiklik ticket butonundan kapanmayla oldu
           );
 
           // Sonraki değeri alıp loglayalım
@@ -917,32 +876,23 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
             }
           }
         } catch (error) {
-          console.error(`[YENİ METOT - BUTON] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
+          console.error(`[YENİ METOT - BUTON] HATA: Nitelik ${attributeName} güncellenirken hata oluştu:`, error);
         }
       }
 
-      // Close the ticket and record who closed it
+      // Now close the ticket
       await storage.closeTicket(ticketId, interaction.user.id);
 
-      // Toplam nitelik sayısını hesapla - attributeMap'teki değerleri topla
-      const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
-      console.log(`[YENİ METOT - BUTON] Toplam nitelik puanı: ${updatedTotalAttributes}`);
+      // Get final stats
+      const updatedTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
 
-      // Veritabanından toplam puanı kontrol etmek için - debug
-      const dbTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-      console.log(`[YENİ METOT - BUTON] Veritabanına göre toplam: ${dbTotalAttributes}`);
-
-      if (updatedTotalAttributes !== dbTotalAttributes) {
-        console.log(`[YENİ METOT - BUTON] UYARI! Hesaplanan toplam (${updatedTotalAttributes}) ile veritabanı toplamı (${dbTotalAttributes}) eşleşmiyor!`);
-      }
-
-      // Create embed for response
+      // Create embed for the response
       const embed = createAttributeEmbed(user, approvedRequests, updatedTotalAttributes);
-      await interaction.editReply({ embeds: [embed] });
+      await interaction.channel?.send({ embeds: [embed] });
 
       // Post to fix log channel if configured
       if (interaction.guild?.id) {
-        const serverConfig = await storage.getServerConfig(interaction.guild?.id);
+        const serverConfig = await storage.getServerConfig(interaction.guild.id);
         if (serverConfig?.fixLogChannelId) {
           try {
             const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
@@ -951,7 +901,6 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
                 content: `${user.username} için ticket kapatıldı:`,
                 embeds: [embed] 
               });
-              console.log(`Fix log mesajı #${logChannel.name} kanalına gönderildi.`);
             }
           } catch (error) {
             console.error('Fix log kanalına mesaj gönderilirken hata:', error);
@@ -959,321 +908,311 @@ async function handleButtonInteraction(interaction: ButtonInteraction) {
         }
       }
 
-      // Delete the channel after a delay
+      // Farewell message and close
+      await interaction.editReply('✅ Ticket kapatıldı ve işlendi.');
+      
+      // Add confirmation message about deleting the channel
+      if (interaction.channel?.type === ChannelType.GuildText) {
+        await interaction.channel.send('Bu kanal 5 saniye içinde silinecek...');
+      }
+
+      // Wait and delete the channel
       setTimeout(async () => {
         try {
-          if (interaction.channel?.type === ChannelType.GuildText) {
-            const textChannel = interaction.channel as TextChannel;
-            if (textChannel.deletable) {
-              await textChannel.send('Ticket kanalı siliniyor...');
-              await new Promise(resolve => setTimeout(resolve, 5000));
-              await textChannel.delete('Ticket kapatıldı');
-              console.log(`Ticket kanalı silindi: ${textChannel.name}`);
-            }
+          const channel = interaction.channel;
+          if (channel?.type === ChannelType.GuildText) {
+            await channel.delete('Ticket kapatıldı');
           }
         } catch (error) {
-          console.error('Kanal silinirken hata:', error);
+          console.error('Error deleting channel:', error);
         }
-      }, 3000);
+      }, 5000);
 
     } catch (error) {
-      console.error('Error closing ticket with button:', error);
+      console.error('Error handling close ticket:', error);
       await interaction.editReply('Ticket kapatılırken bir hata oluştu.');
     }
   }
 
   // Handle add attribute button
   if (customId === 'add_attribute') {
-    // Check if this is a ticket channel
-    const ticketId = interaction.channelId;
-    if (!ticketId) {
-      return interaction.reply({
-        content: 'Kanal bilgisi alınamadı.',
-        ephemeral: true
-      });
+    try {
+      // Kanal ID'sini ticketId olarak kullan
+      const ticketId = interaction.channelId;
+      
+      // Ticket'ı kontrol et
+      const ticket = await storage.getTicket(ticketId);
+      if (!ticket) {
+        return interaction.reply({ 
+          content: 'Bu kanal bir ticket değil.', 
+          ephemeral: true 
+        });
+      }
+      
+      if (ticket.status === 'closed') {
+        return interaction.reply({ 
+          content: 'Bu ticket kapatılmış durumda, nitelik eklenemez.', 
+          ephemeral: true 
+        });
+      }
+      
+      // Modal oluştur
+      const modal = new ModalBuilder()
+        .setCustomId('attribute_modal')
+        .setTitle('Nitelik Talebi Ekle');
+      
+      // Modal ekranı için inputlar
+      const attributeNameInput = new TextInputBuilder()
+        .setCustomId('attributeName')
+        .setLabel('Nitelik Adı')
+        .setPlaceholder('Örnek: şut, pas, hız, dayanıklılık...')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+      
+      const attributeValueInput = new TextInputBuilder()
+        .setCustomId('attributeValue')
+        .setLabel('Eklenecek Değer')
+        .setPlaceholder('Sadece sayı girin: 1, 2, 3...')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true);
+      
+      const attributeReasonInput = new TextInputBuilder()
+        .setCustomId('attributeReason')
+        .setLabel('Gerekçe (Opsiyonel)')
+        .setPlaceholder('Neden bu niteliği ekliyorsunuz?')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false);
+      
+      // Input alanlarını action row'a ekle
+      const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(attributeNameInput);
+      const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(attributeValueInput);
+      const thirdActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(attributeReasonInput);
+      
+      // Modal'a action row'ları ekle
+      modal.addComponents(firstActionRow, secondActionRow, thirdActionRow);
+      
+      // Modal'ı göster
+      await interaction.showModal(modal);
+    } catch (error) {
+      console.error('Error showing attribute modal:', error);
+      
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ 
+          content: 'Nitelik ekleme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.', 
+          ephemeral: true 
+        });
+      }
     }
+  }
 
-    // Yalnızca yönetici yetkisine sahip kullanıcıların nitelik eklemesine izin ver
-    if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-      return interaction.reply({
-        content: 'Bu işlemi yapmak için yönetici yetkisine sahip olmanız gerekiyor.',
-        ephemeral: true
-      });
+  // Handle approve attribute request button
+  if (customId.startsWith('approve_attribute_')) {
+    await interaction.deferReply();
+    
+    try {
+      // Get the request ID from the button's custom ID
+      const requestId = parseInt(customId.replace('approve_attribute_', ''), 10);
+      if (isNaN(requestId)) {
+        return interaction.editReply('Geçersiz talep ID\'si.');
+      }
+      
+      // Check if the user has permission to approve (admin or has staff role)
+      const hasAdminPermission = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+      
+      // Staff rol ID'sini kontrol et
+      let hasStaffRole = false;
+      if (interaction.guild) {
+        const serverConfig = await storage.getServerConfig(interaction.guild.id);
+        if (serverConfig?.staffRoleId) {
+          const member = await interaction.guild.members.fetch(interaction.user.id);
+          hasStaffRole = member.roles.cache.has(serverConfig.staffRoleId);
+        }
+      }
+      
+      if (!hasAdminPermission && !hasStaffRole) {
+        return interaction.editReply('Bu talebi onaylamak için yetkiniz yok. Sadece yetkililer onaylayabilir.');
+      }
+      
+      // Get the attribute request
+      const requests = await storage.getAttributeRequests(interaction.channelId);
+      const request = requests.find(r => r.id === requestId);
+      
+      if (!request) {
+        return interaction.editReply('Talep bulunamadı.');
+      }
+      
+      if (request.approved) {
+        return interaction.editReply('Bu talep zaten onaylanmış.');
+      }
+      
+      // Approve the request
+      const approvedRequest = await storage.approveAttributeRequest(requestId);
+      
+      // Create embed for response
+      const embed = new EmbedBuilder()
+        .setTitle('✅ Nitelik Talebi Onaylandı')
+        .setColor('#43B581')
+        .setDescription(`${interaction.user} tarafından onaylandı.`)
+        .addFields(
+          { name: 'Nitelik', value: approvedRequest.attributeName, inline: true },
+          { name: 'Eklenecek Değer', value: `+${approvedRequest.valueRequested}`, inline: true }
+        )
+        .setTimestamp();
+      
+      await interaction.editReply({ embeds: [embed] });
+      
+      // Update the original message to disabled the button
+      try {
+        const message = await interaction.channel?.messages.fetch(request.messageId);
+        if (message && message.editable) {
+          // Create a new button with the same ID but disabled
+          const disabledButton = new ButtonBuilder()
+            .setCustomId(`approve_attribute_${requestId}`)
+            .setLabel('Onaylandı ✅')
+            .setStyle(ButtonStyle.Success)
+            .setDisabled(true);
+          
+          const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(disabledButton);
+          
+          // Update the original message with the disabled button
+          await message.edit({ components: [disabledRow] });
+        }
+      } catch (error) {
+        console.error('Error updating original message:', error);
+      }
+    } catch (error) {
+      console.error('Error approving attribute request:', error);
+      await interaction.editReply('Nitelik talebi onaylanırken bir hata oluştu.');
     }
-
-    const ticket = await storage.getTicket(ticketId);
-
-    if (!ticket) {
-      return interaction.reply({
-        content: 'Bu bir ticket kanalı değil.',
-        ephemeral: true
-      });
-    }
-
-    if (ticket.status === 'closed') {
-      return interaction.reply({
-        content: 'Bu ticket kapatılmış, nitelik eklenemez.',
-        ephemeral: true
-      });
-    }
-
-    // Create attribute modal
-    const modal = new ModalBuilder()
-      .setCustomId('add_attribute_modal')
-      .setTitle('Nitelik Ekle');
-
-    const nameInput = new TextInputBuilder()
-      .setCustomId('attribute_name')
-      .setLabel('Nitelik Adı')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('Örn: Hız, Şut, Pas')
-      .setRequired(true);
-
-    const valueInput = new TextInputBuilder()
-      .setCustomId('attribute_value')
-      .setLabel('Nitelik Değeri')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('Pozitif bir sayı girin (1-10)')
-      .setRequired(true);
-
-    const nameRow = new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput);
-    const valueRow = new ActionRowBuilder<TextInputBuilder>().addComponents(valueInput);
-
-    modal.addComponents(nameRow, valueRow);
-
-    await interaction.showModal(modal);
   }
 }
 
 // Handle modal submissions
 async function handleModalSubmit(interaction: ModalSubmitInteraction) {
-  const { customId } = interaction;
-
-  // Tüm modaller için genel işlemler
-  console.log(`[MODAL] "${customId}" ID'li modal işleniyor...`);
-
-  // Handle ticket close confirmation
-  if (customId === 'close_ticket_confirm') {
+  if (interaction.customId === 'attribute_modal') {
+    await interaction.deferReply();
+    
     try {
-      const confirmation = interaction.fields.getTextInputValue('confirmation');
-
-      if (confirmation !== 'KAPAT') {
-        return await interaction.reply({
-          content: 'Ticket kapatma işlemi iptal edildi.',
-          ephemeral: true
-        });
+      // Girilen değerleri al
+      const attributeName = interaction.fields.getTextInputValue('attributeName').toLowerCase().trim();
+      const attributeValueRaw = interaction.fields.getTextInputValue('attributeValue').trim();
+      let attributeReason = '';
+      
+      try {
+        attributeReason = interaction.fields.getTextInputValue('attributeReason');
+      } catch (e) {
+        // Gerekçe opsiyonel, eksikse hata vermeden devam et
+        attributeReason = '';
       }
-
-      // Direkt işlemi burada yapıyoruz, command kullanmak yerine
+      
+      // Geçerli bir nitelik adı mı kontrol et
+      const validAttributes = getValidAttributes();
+      if (!validAttributes.includes(attributeName)) {
+        // En yakın nitelik adını bul
+        const closestAttribute = validAttributes.reduce((closest, current) => {
+          const currentDistance = levenshteinDistance(attributeName, current);
+          const closestDistance = levenshteinDistance(attributeName, closest);
+          return currentDistance < closestDistance ? current : closest;
+        }, validAttributes[0]);
+        
+        return interaction.editReply(`"${attributeName}" geçerli bir nitelik değil. Belki "${closestAttribute}" demek istediniz? Geçerli nitelikler: ${validAttributes.join(', ')}`);
+      }
+      
+      // Değer bir sayı mı kontrol et
+      const attributeValue = parseInt(attributeValueRaw, 10);
+      if (isNaN(attributeValue) || attributeValue <= 0) {
+        return interaction.editReply('Eklenecek değer pozitif bir sayı olmalıdır.');
+      }
+      
+      if (attributeValue > 10) {
+        return interaction.editReply('Eklenecek değer en fazla 10 olabilir.');
+      }
+      
+      // Ticket ID'sini al (kanal ID'si)
       const ticketId = interaction.channelId;
-      if (!ticketId) {
-        return await interaction.reply({
-          content: 'Kanal bilgisi alınamadı.',
-          ephemeral: true
-        });
-      }
-
+      
+      // Ticket'ı kontrol et
       const ticket = await storage.getTicket(ticketId);
-
-      // Hemen tepki ver - etkileşim zaman aşımını önle
-      await interaction.deferReply(); // En başta cevap ver
-
       if (!ticket) {
-        return await interaction.editReply('Bu bir ticket kanalı değil.');
+        return interaction.editReply('Bu kanal bir ticket değil.');
       }
-
+      
       if (ticket.status === 'closed') {
-        return await interaction.editReply('Bu ticket zaten kapatılmış.');
+        return interaction.editReply('Bu ticket kapatılmış durumda, nitelik eklenemez.');
       }
-
-      // İlk mesajı gönder (hızlı yanıt için)
-      await interaction.editReply('Ticket kapatılıyor...');
-
-      // Ticket kapatma işlemleri
-      const attributeRequests = await storage.getAttributeRequests(ticketId);
-      const totalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-
-      // Update user's attributes
+      
+      // Kullanıcıyı kontrol et
       const user = await storage.getUserById(ticket.userId);
       if (!user) {
-        return await interaction.editReply('Bu ticketin sahibi bulunamadı.');
+        return interaction.editReply('Ticket sahibi bulunamadı.');
       }
-
-      // Process approved attribute requests
-      // Nitelik başına sadece en son talebi kullanacak şekilde harita oluşturalım
-      const attributeMap = new Map<string, number>();
-
-      // Önce onaylanmış talepleri zaman damgasına göre sıralayalım (en yenisi en sonda)
-      const approvedSortedRequests = attributeRequests
-        .filter(req => req.approved)
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-      // Her nitelik için sadece en son talebi haritaya ekleyelim
-      for (const request of approvedSortedRequests) {
-        // KESIN FIX: Değerleri direkt olarak kullanıyoruz, hiçbir çarpma işlemi yok
-        // Kullanıcının talep ettiği değer (örn: +3) direkt olarak ekleniyor
-        attributeMap.set(request.attributeName, request.valueRequested);
-        console.log(`[YENİ METOT - MODAL] Nitelik talebi: ${request.attributeName} için SADECE +${request.valueRequested}`);
-      }
-
-      // Her nitelik için sadece bir kez güncelleme yapacağız
-      for (const [attributeName, valueToAdd] of Array.from(attributeMap.entries())) {
-        console.log(`[YENİ METOT - MODAL] GÜNCELLEME BAŞLIYOR: User ${user.userId} için ${attributeName} niteliğine TAM OLARAK +${valueToAdd} ekleniyor`);
-
-        try {
-          // Önce mevcut değeri alıp loglayalım
-          const beforeAttr = await storage.getAttribute(user.userId, attributeName);
-          if (beforeAttr) {
-            console.log(`[YENİ METOT - MODAL] ÖNCEKİ DEĞER: ${attributeName} = ${beforeAttr.value}`);
-          } else {
-            console.log(`[YENİ METOT - MODAL] YENİ NİTELİK OLUŞTURULACAK: ${attributeName}`);
-          }
-
-          // Niteliği güncelle - değeri direkt olarak ekle (çarpma YOK!)
-          await storage.updateAttribute(
-            user.userId,
-            attributeName,
-            valueToAdd, // Kullanıcının talep ettiği değeri direkt kullan
-            undefined, // Haftalık değeri otomatik olarak güncellenir
-            false, // absoluteValue=false: değeri ekle, değiştirme
-            false, // onlyUpdateWeekly=false
-            'ticket' // source=ticket: bu değişiklik ticket kaynaklı
-          );
-
-          // Sonraki değeri alıp loglayalım
-          const afterAttr = await storage.getAttribute(user.userId, attributeName);
-          if (afterAttr) {
-            console.log(`[YENİ METOT - MODAL] YENİ DEĞER: ${attributeName} = ${afterAttr.value}`);
-            if (beforeAttr) {
-              const diff = afterAttr.value - beforeAttr.value;
-              console.log(`[YENİ METOT - MODAL] FARK: +${diff} (Beklenen: +${valueToAdd})`);
-              if (diff !== valueToAdd) {
-                console.log(`[YENİ METOT - MODAL] UYARI! Beklenen fark (${valueToAdd}) ile gerçek fark (${diff}) eşleşmiyor!`);
-              }
-            }
-          }
-        } catch (error) {
-          console.error(`[YENİ METOT - MODAL] HATA: ${attributeName} güncellenirken hata oluştu:`, error);
-        }
-      }
-
-      // Close the ticket and record who closed it
-      await storage.closeTicket(ticketId, interaction.user.id);
-
-      // Toplam nitelik sayısını hesapla - attributeMap'teki değerleri topla
-      const updatedTotalAttributes = Array.from(attributeMap.values()).reduce((sum, value) => sum + value, 0);
-      console.log(`[YENİ METOT - MODAL] Toplam nitelik puanı: ${updatedTotalAttributes}`);
-
-      // Veritabanından toplam puanı kontrol etmek için - debug
-      const dbTotalAttributes = await storage.getTotalAttributesForTicket(ticketId);
-      console.log(`[YENİ METOT - MODAL] Veritabanına göre toplam: ${dbTotalAttributes}`);
-
-      if (updatedTotalAttributes !== dbTotalAttributes) {
-        console.log(`[YENİ METOT - MODAL] UYARI! Hesaplanan toplam (${updatedTotalAttributes}) ile veritabanı toplamı (${dbTotalAttributes}) eşleşmiyor!`);
-      }
-
-      // Create embed for the response - onay durumu değişebileceği için tüm talepleri kullan
-      const embed = createAttributeEmbed(user, attributeRequests, updatedTotalAttributes);
-      await interaction.editReply({ embeds: [embed] });
-
-      // Post to fix log channel if configured
-      if (interaction.guildId) {
-        const serverConfig = await storage.getServerConfig(interaction.guildId);
-        if (serverConfig?.fixLogChannelId) {
-          const logChannel = await client.channels.fetch(serverConfig.fixLogChannelId) as TextChannel;
-          if (logChannel) {
-            await logChannel.send({ 
-              content: `${user.username} için ticket kapatıldı:`,
-              embeds: [embed] 
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error closing ticket:', error);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: 'Ticket kapatılırken bir hata oluştu.',
-          ephemeral: true
-        }).catch(console.error);
-      } else if (interaction.deferred) {
-        await interaction.editReply('Ticket kapatılırken bir hata oluştu.')
-          .catch(console.error);
-      }
-    }
-  }
-
-  // Handle add attribute modal
-  if (customId === 'add_attribute_modal') {
-    try {
-      // Önce değişkenleri alalım - deferReply'dan önce almalıyız
-      const attributeName = interaction.fields.getTextInputValue('attribute_name');
-      const attributeValueStr = interaction.fields.getTextInputValue('attribute_value');
-      const attributeValue = parseInt(attributeValueStr, 10);
       
-      // Önce etkileşimi bekletin - "don't response" hatasını önlemek için
-      await interaction.deferReply().catch(error => {
-        console.error("Modal deferReply hatası:", error);
-      });
-
-      if (isNaN(attributeValue) || attributeValue < 1 || attributeValue > 10) {
-        return interaction.editReply({
-          content: 'Geçersiz nitelik değeri. 1 ile 10 arasında bir sayı girin.'
-        }).catch(error => {
-          console.error("Modal yanıt hatası:", error);
-        });
+      // Toplam talep edilen nitelik miktarını kontrol et
+      const currentTotal = await storage.getTotalAttributesForTicket(ticketId);
+      if (currentTotal + attributeValue > 20) {
+        return interaction.editReply(`Bu ticket için maksimum 20 nitelik puanı talep edilebilir. Şu anki toplam: ${currentTotal}, eklemek istediğiniz: ${attributeValue}`);
       }
-
-      // Save attribute request
-      const ticketId = interaction.channelId;
-      if (!ticketId) {
-        return interaction.editReply({
-          content: 'Kanal bilgisi alınamadı.'
-        }).catch(error => {
-          console.error("Modal yanıt hatası:", error);
-        });
-      }
-
-      console.log(`Nitelik talebi oluşturuluyor: ${attributeName} +${attributeValue} (Ticket: ${ticketId})`);
-
-      // Şimdi yeni talebi ekleyelim
-      const request = await storage.createAttributeRequest({
-        ticketId: ticketId.toString(),  // Açıkça string'e dönüştür
+      
+      // Attribute request oluştur
+      const attributeRequest = await storage.createAttributeRequest({
+        ticketId,
         attributeName,
         valueRequested: attributeValue,
-        approved: false
+        reason: attributeReason,
+        approved: false,
+        messageId: '',
+        requestedBy: interaction.user.id
       });
-
-      console.log(`Nitelik talebi başarıyla oluşturuldu: ID=${request.id}`);
-
-      // Create response embed
+      
+      // Yanıt için bir embed oluştur
       const embed = new EmbedBuilder()
-        .setTitle('📝 Nitelik Talebi Eklendi')
+        .setTitle('📝 Yeni Nitelik Talebi')
         .setColor('#5865F2')
+        .setDescription(`${interaction.user} tarafından talep edildi.`)
         .addFields(
           { name: 'Nitelik', value: attributeName, inline: true },
-          { name: 'Değer', value: `+${attributeValue}`, inline: true }
+          { name: 'Eklenecek Değer', value: `+${attributeValue}`, inline: true },
+          { name: 'Oyuncu', value: `<@${user.userId}>`, inline: true }
         )
-        .setFooter({ text: `Talep ID: ${request.id}` })
         .setTimestamp();
-
-      await interaction.editReply({ embeds: [embed] }).catch(error => {
-        console.error("Modal yanıt gönderirken hata:", error);
-      });
-    } catch (error) {
-      console.error('Error adding attribute request:', error);
-      // Eğer etkileşim henüz yanıtlanmamışsa
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: 'Nitelik talebi eklenirken bir hata oluştu.',
-          ephemeral: true
-        }).catch(err => console.error('Modal yanıtlanırken hata:', err));
-      } else {
-        // Eğer zaten bir yanıt bekleniyorsa
-        await interaction.editReply({
-          content: 'Nitelik talebi eklenirken bir hata oluştu.'
-        }).catch(err => console.error('Modal yanıtı düzenlenirken hata:', err));
+      
+      if (attributeReason) {
+        embed.addFields({ name: 'Gerekçe', value: attributeReason, inline: false });
       }
+      
+      // Onay butonu oluştur
+      const approveButton = new ButtonBuilder()
+        .setCustomId(`approve_attribute_${attributeRequest.id}`)
+        .setLabel('Onayla')
+        .setStyle(ButtonStyle.Success);
+      
+      const row = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(approveButton);
+      
+      // Embed ve buton ile yanıt gönder
+      const reply = await interaction.editReply({ 
+        embeds: [embed],
+        components: [row]
+      });
+      
+      // Mesaj ID'sini attribute request'e kaydet
+      // Bu, onay butonuna basıldığında orijinal mesajı güncellemek için kullanılacak
+      if (reply) {
+        try {
+          // messageId'yi güncelle
+          const message = await interaction.channel?.messages.fetch(reply.id);
+          if (message) {
+            // messageId'yi veritabanında güncelle - SQL kullan
+            const query = 'UPDATE attribute_request SET message_id = $1 WHERE id = $2';
+            await pool.query(query, [message.id, attributeRequest.id]);
+          }
+        } catch (error) {
+          console.error('Error updating message ID in attribute request:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling attribute modal submit:', error);
+      await interaction.editReply('Nitelik talebi oluşturulurken bir hata oluştu.');
     }
   }
 }
