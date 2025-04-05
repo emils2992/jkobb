@@ -52,7 +52,7 @@ export default function TicketCard({ ticket }: TicketCardProps) {
   };
 
   const handleEdit = () => {
-    setShowEditModal(true);
+    setShowEditModal(truee);
   };
 
   const getStatusColor = (status: string) => {
