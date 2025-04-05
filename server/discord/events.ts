@@ -476,19 +476,9 @@ export function setupEventHandlers() {
               return;
             }
 
-            // Geçerli bir nitelik adı mı kontrol et
-            const validAttributes = getValidAttributes();
-            if (!validAttributes.includes(attributeName)) {
-              // En yakın nitelik adını bul
-              const closestAttribute = validAttributes.reduce((closest, current) => {
-                const currentDistance = levenshteinDistance(attributeName, current);
-                const closestDistance = levenshteinDistance(attributeName, closest);
-                return currentDistance < closestDistance ? current : closest;
-              }, validAttributes[0]);
-
-              await message.reply(`"${attributeName}" geçerli bir nitelik değil. Belki "${closestAttribute}" demek istediniz? Geçerli nitelikler: ${validAttributes.join(', ')}`);
-              return;
-            }
+            // Geçerli bir nitelik kontrolünü kaldırıyoruz - herhangi bir nitelik adını kabul ediyoruz
+            // Kullanıcının girdiği nitelik adını olduğu gibi kullanacağız
+            // Bu kısmı tamamen kaldırdık, artık uyarı vermiyor ve tüm nitelik adlarını kabul ediyor
 
             try {
               // Kullanıcıyı oluştur veya al
@@ -505,9 +495,9 @@ export function setupEventHandlers() {
                 displayName
               );
 
-              // Artık puan eklenmeyecek, sadece süre kaydedilecek
-              const attributeGain = 0; // Puan eklemeyi kaldır
-              console.log(`[ANTRENMAN] Kanal süresi ${trainingDuration} saat kaydedildi`);
+              // Puan ekleme hesaplaması - her antrenmana sabit +1 puan verelim
+              const attributeGain = 1; // Sabit olarak +1 puan verilecek
+              console.log(`[ANTRENMAN] Kanal süresi ${trainingDuration} saat, kazanılan puan: +${attributeGain} kaydedildi`);
 
               try {
                 // Antrenman oturumu oluştur - yoğunluğu 1 olarak sabitledik
@@ -546,7 +536,8 @@ export function setupEventHandlers() {
                   .addFields(
                     { name: 'Format', value: `${formatDuration}/${intensity}`, inline: true },
                     { name: 'Nitelik', value: attributeName, inline: true },
-                    { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true }
+                    { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true },
+                    { name: 'Kazanılan Puan', value: `+${attributeGain}`, inline: true }
                   )
                   .setTimestamp();
 
@@ -1113,7 +1104,7 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
 
     try {
       // Girilen değerleri al
-      const attributeName = interaction.fields.getTextInputValue('attributeName').toLowerCase().trim();
+      const attributeName = interaction.fields.getTextInputValue('attributeName').trim();
       const attributeValueRaw = interaction.fields.getTextInputValue('attributeValue').trim();
       let attributeReason = '';
 
@@ -1124,18 +1115,8 @@ async function handleModalSubmit(interaction: ModalSubmitInteraction) {
         attributeReason = '';
       }
 
-      // Geçerli bir nitelik adı mı kontrol et
-      const validAttributes = getValidAttributes();
-      if (!validAttributes.includes(attributeName)) {
-        // En yakın nitelik adını bul
-        const closestAttribute = validAttributes.reduce((closest, current) => {
-          const currentDistance = levenshteinDistance(attributeName, current);
-          const closestDistance = levenshteinDistance(attributeName, closest);
-          return currentDistance < closestDistance ? current : closest;
-        }, validAttributes[0]);
-
-        return interaction.editReply(`"${attributeName}" geçerli bir nitelik değil. Belki "${closestAttribute}" demek istediniz? Geçerli nitelikler: ${validAttributes.join(', ')}`);
-      }
+      // Not: Artık istenilen herhangi bir nitelik adı kabul edilebilir
+      // Nitelik adı doğrulama kontrolünü kaldırdık
 
       // Değer bir sayı mı kontrol et
       const attributeValue = parseInt(attributeValueRaw, 10);
