@@ -530,6 +530,13 @@ export function setupEventHandlers() {
                   'message' // source - antrenman kaynaklı olduğunu belirt
                 );
 
+                // Oyuncunun antrenman sayısını almak için bu nitelikte kaç antrenman yapmış sorgula
+                const trainingSessions = await storage.getTrainingSessions(user.userId);
+                // Bu nitelikte yapılan antrenman sayısını hesapla
+                const sessionCount = trainingSessions.filter(session => 
+                  session.attributeName.toLowerCase() === attributeName.toLowerCase()
+                ).length;
+                
                 // Yanıt olarak oturumu doğrula
                 const embed = new EmbedBuilder()
                   .setTitle('🏋️ Antrenman Kaydı')
@@ -538,7 +545,7 @@ export function setupEventHandlers() {
                   .addFields(
                     { name: 'Format', value: `${formatDuration}/${intensity}`, inline: true },
                     { name: 'Nitelik', value: attributeName, inline: true },
-                    { name: 'Kanal Süresi', value: `${trainingDuration} saat`, inline: true },
+                    { name: 'Antrenman Sayısı', value: `${sessionCount}`, inline: true },
                     { name: 'Kazanılan Puan', value: `+${attributeGain}`, inline: true }
                   )
                   .setTimestamp();
