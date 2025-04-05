@@ -413,13 +413,12 @@ export function setupEventHandlers() {
               const session = await storage.createTrainingSession({
                 userId: user.userId,
                 attributeName: attributeName,
-                ticketId: null,
+                ticketId: "", // Boş string kullan, null yerine
                 duration: trainingDuration, // Kanaldan gelen süre değerini kullanıyoruz
                 intensity: 1, // Sabit değer kullanıyoruz
                 attributesGained: attributeValue,
-                source: 'message',
-                messageId: message.id,
-                channelId: message.channelId
+                source: 'message'
+                // messageId ve channelId alanları schema'da tanımlı değilse kaldırıyoruz
               });
 
               // Kullanıcının niteliklerini güncelle - hem toplam hem haftalık değerini artır
@@ -538,9 +537,8 @@ export function setupEventHandlers() {
               duration: trainingInfo.duration,
               intensity: trainingInfo.intensity,
               attributesGained: trainingInfo.points,
-              source: 'training',
-              messageId: message.id,
-              channelId: message.channelId
+              source: 'training'
+              // messageId ve channelId alanları schema'da tanımlı değilse kaldırıyoruz
             });
 
             // Kullanıcının niteliklerini güncelle (sadece haftalık değeri artırıyoruz)

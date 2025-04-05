@@ -1,7 +1,6 @@
 import { initBot } from './bot';
 import { setupEventHandlers } from './events';
-// Removed the import since it's not needed anymore
-// import { registerCommands } from './commands';
+// Commands are now imported directly in initBot(), so no additional import needed here
 
 export async function initDiscordBot() {
   try {
