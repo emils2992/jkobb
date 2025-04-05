@@ -54,6 +54,12 @@ export interface IStorage {
   setServerConfig(config: InsertServerConfig): Promise<ServerConfig>;
   updateFixLogChannel(guildId: string, channelId: string): Promise<ServerConfig>;
   updateTrainingChannel(guildId: string, channelId: string): Promise<ServerConfig>;
+  // Antrenman kanalları için ek metotlar
+  updateTrainingChannel1(guildId: string, channelId: string): Promise<ServerConfig>;
+  updateTrainingChannel2(guildId: string, channelId: string): Promise<ServerConfig>;
+  updateTrainingChannel3(guildId: string, channelId: string): Promise<ServerConfig>;
+  updateTrainingChannel4(guildId: string, channelId: string): Promise<ServerConfig>;
+  updateTrainingChannel5(guildId: string, channelId: string): Promise<ServerConfig>;
   updateLastReset(guildId: string): Promise<ServerConfig>;
 
   // Admin operations
@@ -582,6 +588,91 @@ export class MemStorage implements IStorage {
         guildId,
         fixLogChannelId: null,
         trainingChannelId: channelId
+      });
+    }
+  }
+  
+  // Antrenman kanalı 1 (1 saat)
+  async updateTrainingChannel1(guildId: string, channelId: string): Promise<ServerConfig> {
+    const config = await this.getServerConfig(guildId);
+    if (config) {
+      return this.setServerConfig({
+        ...config,
+        guildId,
+        trainingChannelId1: channelId
+      });
+    } else {
+      return this.setServerConfig({
+        guildId,
+        trainingChannelId1: channelId
+      });
+    }
+  }
+  
+  // Antrenman kanalı 2 (2 saat)
+  async updateTrainingChannel2(guildId: string, channelId: string): Promise<ServerConfig> {
+    const config = await this.getServerConfig(guildId);
+    if (config) {
+      return this.setServerConfig({
+        ...config,
+        guildId,
+        trainingChannelId2: channelId
+      });
+    } else {
+      return this.setServerConfig({
+        guildId,
+        trainingChannelId2: channelId
+      });
+    }
+  }
+  
+  // Antrenman kanalı 3 (3 saat)  
+  async updateTrainingChannel3(guildId: string, channelId: string): Promise<ServerConfig> {
+    const config = await this.getServerConfig(guildId);
+    if (config) {
+      return this.setServerConfig({
+        ...config,
+        guildId,
+        trainingChannelId3: channelId
+      });
+    } else {
+      return this.setServerConfig({
+        guildId,
+        trainingChannelId3: channelId
+      });
+    }
+  }
+  
+  // Antrenman kanalı 4 (4 saat)
+  async updateTrainingChannel4(guildId: string, channelId: string): Promise<ServerConfig> {
+    const config = await this.getServerConfig(guildId);
+    if (config) {
+      return this.setServerConfig({
+        ...config,
+        guildId,
+        trainingChannelId4: channelId
+      });
+    } else {
+      return this.setServerConfig({
+        guildId,
+        trainingChannelId4: channelId
+      });
+    }
+  }
+  
+  // Antrenman kanalı 5 (5 saat)
+  async updateTrainingChannel5(guildId: string, channelId: string): Promise<ServerConfig> {
+    const config = await this.getServerConfig(guildId);
+    if (config) {
+      return this.setServerConfig({
+        ...config,
+        guildId,
+        trainingChannelId5: channelId
+      });
+    } else {
+      return this.setServerConfig({
+        guildId,
+        trainingChannelId5: channelId
       });
     }
   }

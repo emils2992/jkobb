@@ -1,6 +1,7 @@
 import { initBot } from './bot';
 import { setupEventHandlers } from './events';
-import { registerCommands } from './commands';
+// Removed the import since it's not needed anymore
+// import { registerCommands } from './commands';
 
 export async function initDiscordBot() {
   try {
@@ -20,8 +21,9 @@ export async function initDiscordBot() {
         
         // Only setup event handlers and register commands if bot login was successful
         if (botClient) {
-          console.log('Bot logged in successfully, setting up handlers and commands...');
-          setupEventHandlers();
+          console.log('Bot logged in successfully, setup already completed in initBot...');
+          // Event handlers are already set up in initBot(), no need to do it again
+          // setupEventHandlers();
           // Don't register commands again, it's already done in initBot
           console.log('Discord bot initialized successfully');
         } else {
