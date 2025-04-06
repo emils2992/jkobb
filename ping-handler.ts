@@ -63,13 +63,60 @@ function createPingServer() {
     
     // Farklı ping endpoint'leri için yanıt ver
     if (url.includes('/ping') || url.includes('/uptime-check') || url.includes('/health') || url === '/') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'online',
-        uptime: process.uptime(),
-        timestamp: new Date().toISOString(),
-        message: 'Discord Bot 7/24 aktif'
-      }));
+      // UptimeRobot'un "pause" sorununu çözmek için
+      // UptimeRobot bazen cevapları cache'leyip, "paused" durumuna geçebiliyor
+      // Cache'lemeyi engellemek için rastgele içerik ve HTML formatı kullanıyoruz
+      
+      // Rastgele ID ve timestamp oluştur (her cevap benzersiz olsun)
+      const randomId = Math.random().toString(36).substring(2, 15);
+      const timestamp = Date.now();
+      
+      // HTML formatında yanıt ver (UptimeRobot'un "paused" olmasını engeller)
+      if (url.includes('/ping-html') || url.includes('/html')) {
+        res.writeHead(200, { 
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
+        });
+        res.end(`<!DOCTYPE html>
+<html>
+<head>
+  <title>Discord Bot Uptime</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="cache-control" content="max-age=0, no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+</head>
+<body>
+  <h2>Discord Bot: ONLINE</h2>
+  <p>Status: <span style="color:green;font-weight:bold">ACTIVE</span></p>
+  <p>Uptime: ${Math.floor(process.uptime() / 3600)} hours, ${Math.floor((process.uptime() % 3600) / 60)} minutes</p>
+  <p>Random ID: ${randomId}</p>
+  <p>Timestamp: ${timestamp}</p>
+  <p style="display:none">${new Date().toISOString()}</p>
+</body>
+</html>`);
+      } 
+      // JSON formatında yanıt ver (normal durum)
+      else {
+        res.writeHead(200, { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Surrogate-Control': 'no-store'
+        });
+        res.end(JSON.stringify({
+          status: 'online',
+          uptime: process.uptime(),
+          timestamp: new Date().toISOString(),
+          message: 'Discord Bot 7/24 aktif',
+          random_id: randomId,
+          ts: timestamp
+        }));
+      }
       
       // Her 50 istekte bir log (sık log oluşturmamak için)
       if (Math.random() < 0.02) {
