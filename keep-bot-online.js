@@ -1,12 +1,12 @@
 // Bu script, Discord botunuzu 7/24 aktif tutmak için tasarlanmıştır
 // Belirtilen URL'ye düzenli ping atarak botun kapanmasını engeller
 
-const https = require('https');
-const http = require('http');
-const fs = require('fs');
+import https from 'https';
+import http from 'http';
+import fs from 'fs';
 
 // Ping atılacak URL
-const TARGET_URL = "https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping";
+const TARGET_URL = "https://discord-halisaha-manager.emilswd.repl.co/ping";
 
 // Log dosyası
 const LOG_FILE = './bot-uptime.log';

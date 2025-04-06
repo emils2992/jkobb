@@ -1,0 +1,17 @@
+{
+  "botName": "Discord Halisaha Bot",
+  "uptime": 0.063760179,
+  "totalPings": 1,
+  "successPings": 0,
+  "failPings": 1,
+  "successRate": "0.00%",
+  "lastPing": {
+    "lastPing": "2025-04-06T17:38:32.502Z",
+    "status": "error",
+    "error": "getaddrinfo ENOTFOUND discord-halisaha-manager.emilswd.repl.co"
+  },
+  "nextPingTime": "2025-04-06T17:43:32.527Z",
+  "targetUrl": "https://discord-halisaha-manager.emilswd.repl.co/ping",
+  "pingInterval": "5 dakika",
+  "serverTime": "2025-04-06T17:38:32.527Z"
+}

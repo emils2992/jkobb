@@ -1,9 +1,9 @@
 // Bu script, belirtilen URL'ye düzenli ping atarak botun aktif kalmasını sağlar
-const https = require('https');
-const fs = require('fs');
+import https from 'https';
+import fs from 'fs';
 
 // Ping atılacak URL - kullanıcının istediği URL
-const TARGET_URL = "https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping";
+const TARGET_URL = "https://discord-halisaha-manager.emilswd.repl.co/ping";
 
 // Ping aralığı (5 dakika)
 const PING_INTERVAL = 5 * 60 * 1000;
