@@ -1,0 +1,21 @@
+{
+  "botName": "Discord Halisaha Bot",
+  "status": "checking",
+  "uptime": "0s 0dk 2sn",
+  "totalPings": 4,
+  "successPings": 0,
+  "failPings": 4,
+  "successRate": "0%",
+  "lastSuccessTime": null,
+  "nextPingTime": "2025-04-06T18:16:43.685Z",
+  "targetUrl": "https://discord-halisaha-manager.emilswd.repl.co",
+  "pingEndpoints": [
+    "/ping",
+    "/api/health",
+    "/uptime-check",
+    "/always-online.html"
+  ],
+  "pingInterval": "2 dakika",
+  "serverTime": "2025-04-06T18:14:43.685Z",
+  "randomId": "79f0fols"
+}
