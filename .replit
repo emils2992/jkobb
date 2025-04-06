@@ -178,3 +178,16 @@ args = "# Botu yeniden başlat"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[[workflows.workflow]]
+name = "UptimeService"
+author = 41185715
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Start the enhanced uptime service"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node keep-alive-forever.js"
