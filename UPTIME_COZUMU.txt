@@ -1,0 +1,54 @@
+# UptimeRobot Pause Sorunu İçin Çözüm
+
+Görüldüğü üzere UptimeRobot'ta monitörleriniz "pause" durumunda. Bu Replit'in ücretsiz planında sık karşılaşılan bir sorundur. İşte çözüm:
+
+## 1. CRON-JOB.ORG KULLANIMI (ÖNERİLEN)
+
+UptimeRobot alternatifi olarak Cron-Job.org kullanabilirsiniz:
+
+1. [Cron-Job.org](https://cron-job.org) sitesine gidin
+2. Ücretsiz hesap oluşturun
+3. "Create cronjob" butonuna tıklayın
+4. Aşağıdaki ayarları yapın:
+   - **Title**: Discord Bot Uptime
+   - **URL**: https://discord-halisaha-manager.emilswd.repl.co/ping?random=123
+   - **Schedule**: Her 5 dakikada bir
+   - **Metot**: GET
+
+Cron-Job.org, Replit'in kısıtlamalarını aşmada UptimeRobot'tan daha başarılıdır.
+
+## 2. REPLIT'İN KENDİ ADRESLEME SİSTEMİNİ KULLANMA
+
+Botunuzu ping etmek için Replit'in kendisine özel URL yapısını kullanabilirsiniz:
+
+1. Projenizin ID'sini alın (örn: 9f27368b-0b17-4ac7-8928-fc20e6cf4a11)
+2. UptimeRobot'ta aşağıdaki formatta bir URL ekleyin:
+   - https://{PROJE_ID}-00-{REPLIT_KULLANICI_ADI}.{BÖLGE}.replit.dev/ping
+
+## 3. ÖZEL HTTP HEADER'LAR EKLEME
+
+UptimeRobot'ta monitör ayarlarınıza özel HTTP header'lar ekleyin:
+
+1. Monitörünüzü düzenleyin
+2. "Advanced Settings" bölümünü açın 
+3. "Custom HTTP Headers" kısmına aşağıdakileri ekleyin:
+   ```
+   User-Agent: UptimeRobot/2.0
+   Cache-Control: no-cache
+   ```
+
+## 4. FARKLI IP ADRESİNDEN PING
+
+Kendi bilgisayarınızdan veya başka bir sunucudan ping atabilirsiniz:
+
+1. Bir zamanlayıcı script oluşturun (Python, Node.js vb.)
+2. 5 dakikada bir projenize ping atmasını sağlayın
+3. Bu scripti 7/24 çalışan bir bilgisayarda veya sunucuda çalıştırın
+
+## 5. REPLIT HACKER PLAN
+
+Son çare olarak, Replit'in ücretli planlarından birini kullanmak sorunu çözebilir. Hacker planı ile bu tür kısıtlamalar ortadan kalkacaktır.
+
+---
+
+NOT: Sunucu şu anda düzgün çalışıyor ve botunuz da aktif. Sadece dışarıdan ping atılmasında sorun yaşanıyor. Yukarıdaki yöntemlerden birini kullansanız yeterli olacaktır.
