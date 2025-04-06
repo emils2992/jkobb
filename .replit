@@ -191,3 +191,16 @@ args = "# Start the enhanced uptime service"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node keep-alive-forever.js"
+
+[[workflows.workflow]]
+name = "SuperUptime"
+author = 41185715
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Gelişmiş uptime servisini başlat (503 hatasını düzeltir)"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node keep-alive-forever.js"
