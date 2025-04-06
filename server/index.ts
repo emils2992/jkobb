@@ -7,12 +7,10 @@ import { setupVite, serveStatic, log } from "./vite";
 import { initDiscordBot } from "./discord";
 import { initDatabase } from "./db";
 import { pool } from "./db";
-import { startUptimeService } from "./uptime";
-import { startEnhancedKeepAliveService } from "./keepalive";
-import { startEnhancedUptimeService } from "./enhanced-uptime";
+// import { startUptimeService } from "./uptime"; // Kaldırıldı - yeni uptime servisi kullanılıyor
+// import { startEnhancedKeepAliveService } from "./keepalive"; // Kaldırıldı - yeni uptime servisi kullanılıyor
+// import { startEnhancedUptimeService } from "./enhanced-uptime"; // Kaldırıldı - yeni uptime servisi kullanılıyor
 import ConnectPgSimple from "connect-pg-simple";
-// Özel uptime handler'ı import et
-import * as pingHandler from "../ping-handler";
 // Özel ping rotalarını import et
 import { addPublicPingRoutes } from "./public-ping";
 
@@ -140,14 +138,10 @@ app.use((req, res, next) => {
         await initDiscordBot();
         log('Discord bot başlatılıyor - Client ID mevcut');
         
-        // Uptime ve Keepalive servislerini başlat
-        startUptimeService();
-        startEnhancedKeepAliveService();
-        startEnhancedUptimeService(); // Süper gelişmiş uptime servisi
-        
-        // Ek olarak yeni uptime handler'ı çalıştır - daha güçlü 7/24 çalışma
-        pingHandler.startUptimeSystem();
-        log('Tüm uptime servisleri başlatıldı - Sistem sürekli çalışmaya hazır (internet bağlantısı kopsa bile)');
+        // Not: Artık uptime servisleri ayrı süreçler olarak çalışacak
+        // Eski uptime servisleri kaldırıldı, yeni script temiz bir çözüm sunuyor
+        log('Yeni uptime çözümü hazır - keep-bot-online.js ve ping-target-bot.js dosyaları ayrı olarak çalıştırılabilir');
+        log('Dikkat: Sistemi 7/24 aktif tutmak için UptimeRobot ayrıca ayarlanmalıdır (UPTIME_GUIDE.md dosyasına bakınız)');
       } catch (error) {
         console.error('Error in initialization:', error);
       }

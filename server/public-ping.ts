@@ -5,29 +5,45 @@ import express from 'express';
  * Bu rotayı UptimeRobot'ta kullanabilirsiniz
  */
 export function addPublicPingRoutes(app: express.Express) {
-  // Temel HTML sayfası - UptimeRobot için ana URL ping rotası
+  // UptimeRobot için ana URL ping rotası - Her istekte farklı içerik
   app.get('/', (req, res) => {
+    // Cache önleme headerları
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    
+    // Rastgele değerler oluştur
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const timestamp = Date.now();
+    
+    // HTML yanıtı
     res.send(`
       <!DOCTYPE html>
       <html>
       <head>
         <title>Discord Bot Server</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="pragma" content="no-cache">
+        <meta http-equiv="expires" content="0">
         <style>
           body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
           .online { color: green; font-weight: bold; }
+          .timestamp { color: #666; margin-top: 15px; }
         </style>
       </head>
       <body>
         <h1>Discord Bot Server</h1>
         <p>Bot Status: <span class="online">ONLINE</span></p>
         <p>Server Time: ${new Date().toLocaleString()}</p>
+        <p class="timestamp">UUID: ${randomId}-${timestamp}</p>
       </body>
       </html>
     `);
   });
 
-  // UptimeRobot noCache ayarlı ping rotası
+  // UptimeRobot için gelişmiş JSON ping rotası
   app.get('/ping', (req, res) => {
     // Cache'i önlemek için header'lar
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -35,12 +51,18 @@ export function addPublicPingRoutes(app: express.Express) {
     res.setHeader('Expires', '0');
     res.setHeader('Surrogate-Control', 'no-store');
     
+    // URL parametreleri kontrolü, zaman damgası varsa kullan
+    const timestamp = req.query.t || req.query.ts || req.query.time || req.query.timestamp || Date.now();
+    const clientId = req.query.id || req.query.client || Math.random().toString(36).substring(2, 10);
+    
     // Basit durum mesajı
     res.status(200).json({ 
       status: 'online', 
       time: new Date().toISOString(),
       uptime: process.uptime(),
       random: Math.random(), // Her istekte farklı bir değer
+      client_timestamp: timestamp,
+      client_id: clientId
     });
   });
 
@@ -52,11 +74,14 @@ export function addPublicPingRoutes(app: express.Express) {
     res.setHeader('Expires', '0');
     res.setHeader('Surrogate-Control', 'no-store');
     
+    // URL parametreleri kontrolü
+    const timestamp = req.query.ts || Date.now();
+    
     // Rastgele değerler oluştur (cache'lenmeyi engellemek için)
     const randomId = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now();
+    const serverTs = Date.now();
     
-    // Detaylı HTML yanıtı
+    // Detaylı HTML yanıtı - JavaScript ile cache'lenmeyi engelleyen içerik
     res.send(`
       <!DOCTYPE html>
       <html>
@@ -81,14 +106,25 @@ export function addPublicPingRoutes(app: express.Express) {
           <p>Status: <span class="online">ONLINE</span></p>
           <p>Uptime: ${Math.floor(process.uptime() / 3600)} hours, ${Math.floor((process.uptime() % 3600) / 60)} minutes</p>
           <p class="timestamp">Last checked: ${new Date().toISOString()}</p>
-          <p class="random">${randomId}-${timestamp}</p>
+          <p class="timestamp">Client timestamp: ${timestamp}</p>
+          <p class="random" id="random">${randomId}-${serverTs}</p>
         </div>
+        
+        <script>
+          // Her sayfa yüklendiğinde farklı içerik oluştur (cache önleme)
+          document.getElementById('random').textContent = Math.random().toString(36).substring(2) + '-' + Date.now();
+          
+          // Her saniye zamanı güncelle
+          setInterval(function() {
+            document.querySelector('.timestamp').textContent = 'Last checked: ' + new Date().toISOString();
+          }, 1000);
+        </script>
       </body>
       </html>
     `);
   });
 
-  // Yedek ping rotası - cache önleme iyileştirmeleriyle
+  // Gelişmiş uptime kontrolü - URL parametreleriyle cache önleme
   app.get('/uptime-check', (req, res) => {
     // Cache'i önlemek için header'lar
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -96,18 +132,35 @@ export function addPublicPingRoutes(app: express.Express) {
     res.setHeader('Expires', '0');
     res.setHeader('Surrogate-Control', 'no-store');
     
+    // URL parametreleri kontrolü 
+    const timestamp = req.query.ts || req.query.t || req.query.time || Date.now();
+    
     // Rastgele değerler oluştur
     const randomId = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now();
+    const serverTs = Date.now();
     
-    res.status(200).json({ 
-      status: 'alive',
-      memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
-      uptime: Math.floor(process.uptime() / 60) + ' minutes',
-      timestamp: new Date().toISOString(),
-      random_id: randomId,
-      ts: timestamp
-    });
+    // HTML yanıt - JSON yerine HTML (UptimeRobot'un pause durumunu engellemek için)
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Discord Bot - Always Online</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="pragma" content="no-cache">
+        <meta http-equiv="expires" content="0">
+      </head>
+      <body>
+        <h1 style="color: green; font-family: Arial;">ONLINE ✓</h1>
+        <p>Uptime: ${Math.floor(process.uptime() / 60)} dakika</p>
+        <p>Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB</p>
+        <p>Time: ${new Date().toISOString()}</p>
+        <p>Timestamp: ${serverTs}</p>
+        <p>Client Timestamp: ${timestamp}</p>
+        <p>ID: ${randomId}</p>
+      </body>
+      </html>
+    `);
   });
 
   // Sağlık kontrolü - cache önleme iyileştirmeleriyle
@@ -119,18 +172,35 @@ export function addPublicPingRoutes(app: express.Express) {
     res.setHeader('Surrogate-Control', 'no-store');
     res.setHeader('Access-Control-Allow-Origin', '*');
     
+    // URL parametreleri kontrolü
+    const timestamp = req.query.ts || req.query.t || req.query.time || Date.now();
+    
     // Rastgele değerler oluştur
     const randomId = Math.random().toString(36).substring(2, 15);
-    const timestamp = Date.now();
+    const serverTs = Date.now();
     
-    res.status(200).json({ 
-      healthy: true, 
-      version: '1.0.0',
-      server: 'discord-bot',
-      time: new Date().toISOString(),
-      random_id: randomId,
-      ts: timestamp
-    });
+    // HTML yanıt - JSON yerine HTML (UptimeRobot'un pause durumunu engellemek için)
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Discord Bot - Health Check</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="pragma" content="no-cache">
+        <meta http-equiv="expires" content="0">
+      </head>
+      <body>
+        <h1 style="color: green; font-family: Arial;">HEALTHY ✓</h1>
+        <p>Version: 1.0.0</p>
+        <p>Server: discord-bot</p>
+        <p>Time: ${new Date().toISOString()}</p>
+        <p>Timestamp: ${serverTs}</p>
+        <p>Client Timestamp: ${timestamp}</p>
+        <p>ID: ${randomId}</p>
+      </body>
+      </html>
+    `);
   });
 
   return app;

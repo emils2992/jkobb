@@ -4,8 +4,7 @@ import { Session } from "express-session";
 import { storage } from "./storage";
 import { initDiscordBot } from "./discord";
 import { client } from "./discord/bot";  // Discord client'ı import ediyoruz
-import { startUptimeService } from "./uptime";
-import { getUptimeStatus } from "./enhanced-uptime";
+// Uptime servisleri artık ayrı dosyalarda
 import { z } from "zod";
 import { createHash } from "crypto";
 import { Admin } from "../shared/schema";
@@ -45,8 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Discord bot
   await initDiscordBot();
   
-  // Start uptime service
-  startUptimeService();
+  // Start uptime service - artık daha iyi bir çözüm var
+  // startUptimeService(); // Yeni uptime çözümüyle değiştirildi
+  console.log('Uptime servisi, keep-bot-online.js ve ping-target-bot.js ile değiştirildi.');
   
   // Add health check endpoint specifically for uptime monitoring
   app.get('/api/health', (req, res) => {
@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       system: "Discord Halısaha Bot",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      uptimeStats: getUptimeStatus()
+      uptimeStats: { checks: 0, successes: 0, failures: 0 }
     });
   });
 

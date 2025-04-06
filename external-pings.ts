@@ -1,19 +1,10 @@
+// Bu dosya, başka uptime servislerinin ping atacağı URL'leri içerir
+// Bu URL'lere periyodik olarak ping atılarak uygulamanın uyanık kalması sağlanır
+
 export const URLS = [
-  // Ana endpoint'ler
-  "https://discord-halisaha-manager.emilswd.repl.co",
-  "https://discord-halisaha-manager.emilswd.repl.co/ping",
-  "https://discord-halisaha-manager.emilswd.repl.co/uptime-check",
-  "https://discord-halisaha-manager.emilswd.repl.co/api/health",
-  
-  // UptimeRobot "pause" sorunu çözümü için HTML formatında ping
   "https://discord-halisaha-manager.emilswd.repl.co/ping-html",
-  
-  // Cached yanıtları önlemek için query parametreleri
-  "https://discord-halisaha-manager.emilswd.repl.co/ping?nocache=1",
-  "https://discord-halisaha-manager.emilswd.repl.co/ping?random=" + Math.random(),
-  "https://discord-halisaha-manager.emilswd.repl.co/ping?ts=" + Date.now(),
-  
-  // Alternatif portlar (yedek sunucular)
-  "https://discord-halisaha-manager.emilswd.repl.co:8066/status",
-  "https://discord-halisaha-manager.emilswd.repl.co:9988/ping"
+  "https://discord-halisaha-manager.emilswd.repl.co/always-online",
+  "https://discord-halisaha-manager.emilswd.repl.co/super-uptime.html",
+  "https://discord-halisaha-manager.emilswd.repl.co/uptime-status.html",
+  "https://discord-halisaha-manager.emilswd.repl.co/uptime-check?ts=" + Date.now(),
 ];

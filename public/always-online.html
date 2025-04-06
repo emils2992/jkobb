@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Discord Bot Status</title>
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 30px; background: #f0f2f5; }
+    .status-box { background: white; max-width: 600px; margin: 0 auto; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .online { color: #4caf50; font-size: 24px; font-weight: bold; }
+    .timestamp { color: #666; margin-top: 20px; }
+    .unique { display: none; }
+  </style>
+</head>
+<body>
+  <div class="status-box">
+    <h1>Discord Bot Status</h1>
+    <p class="online">✓ ONLINE</p>
+    <p>Bot aktif ve çalışıyor</p>
+    <p class="timestamp">Son kontrol: <span id="time"></span></p>
+    <p class="unique" id="random"></p>
+  </div>
+
+  <script>
+    // Her sayfa yüklendiğinde farklı içerik göster (cache'lenmeyi önlemek için)
+    document.getElementById('time').textContent = new Date().toLocaleString();
+    document.getElementById('random').textContent = Math.random().toString(36).substring(2, 15) + "-" + Date.now();
+    
+    // Her 5 saniyede bir zamanı güncelle
+    setInterval(function() {
+      document.getElementById('time').textContent = new Date().toLocaleString();
+    }, 5000);
+  </script>
+</body>
+</html>
