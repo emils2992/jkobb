@@ -1,40 +1,60 @@
 
-# Özel Port (5000) Uptime Çözümü
+# Otomatik Yeşil Tık Uptime Çözümü
 
-Bu rehber, Discord botunuzu özelleştirilmiş port üzerinden 7/24 aktif tutmak için oluşturulmuştur.
+Bu çözüm, tarayıcıdan çıktığınızda bile Discord botunuzun 7/24 aktif kalmasını sağlar.
 
-## 1. Ayarladığınız Özel Uptime Hizmetleri
+## Nasıl Çalışır?
 
-1. **Özel Port Sunucusu (5000)**
-   - URL: https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping
-   - Dosya: `custom-uptime-server.js`
+Bu sistem şu özellikleri içerir:
+- **Otomatik Yeşil Tık Simülasyonu**: 5 dakikada bir otomatik ping atar
+- **Tarayıcı Bağımsız Çalışma**: Chrome'u kapatsanız bile çalışmaya devam eder
+- **Çoklu Endpoint Desteği**: Farklı ping noktaları ile güvenilirlik artar
+- **Otomatik Yenileme**: Uptime sayfası kendini 4 dakikada bir yeniler
+- **Hata Kurtarma**: Herhangi bir sorun durumunda kendi kendini düzeltir
 
-2. **Workflow**
-   - İsim: `CustomUptimeServer`
-   - Bu workflow özel uptime sunucunuzu başlatır
+## Kurulum Adımları
 
-## 2. Nasıl Kullanılır
+1. **Bot Çalıştırma**
+   - Ana bot çalışıyor olmalıdır (UptimeBot workflow)
+   
+2. **Özel Uptime Sunucusunu Başlat**
+   - Yeni bir terminal açın
+   - CustomUptimeServer workflow'unu çalıştırın
+   - Not: Bu workflow, port 5000'de ayrı bir sunucu başlatır
 
-1. Replit panelinden "CustomUptimeServer" workflow'unu başlatın
-2. Tarayıcıdan test edin: https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping
+3. **UptimeRobot Ayarları**
+   - UptimeRobot'ta aşağıdaki URL'leri ekleyin:
+   - `https://discord-halisaha-manager.emilswd.repl.co/ping` 
+   - `https://discord-halisaha-manager.emilswd.repl.co/uptime.html`
+   - `https://discord-halisaha-manager.emilswd.repl.co:5000/ping` ⭐ (Otomatik Yeşil Tık)
+   - Monitoring Interval: 5 dakika
+   - Timeout: 30 saniye
 
-## 3. UptimeRobot'a Eklemek İçin
+## Test Etme
 
-UptimeRobot'ta aşağıdaki URL'yi izlemeye alın:
-```
-https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping
-```
+Sistemin çalıştığını test etmek için:
 
-Ayarlar:
-- Monitor Type: HTTP(s)
-- Friendly Name: Discord Bot - Port 5000
-- Monitoring Interval: 5 dakika
+1. Tarayıcınızda şu adresi açın:
+   `https://discord-halisaha-manager.emilswd.repl.co:5000/ping`
 
-## 4. Sorun Giderme
+2. Yeşil bir nokta ve "BOT ONLINE ✓" görmelisiniz
 
-Eğer özel port sunucunuz çalışmayı durdurursa:
-1. Replit panelinden "CustomUptimeServer" workflow'unu yeniden başlatın
-2. Tarayıcıdan test edin
-3. Gerekirse "UptimeService" workflow'unu da yeniden başlatın
+3. Sayfanın otomatik olarak yenilendiğini göreceksiniz (4 dakika içinde)
 
-Bu özel port çözümü, ana uptime sisteminden bağımsız olarak çalışır ve botunuzun 7/24 aktif kalmasına ek bir güvence sağlar.
+4. **Tarayıcıyı kapatın** - sistem çalışmaya devam edecektir!
+
+## Sorun Giderme
+
+Eğer UptimeRobot 503 hatası vermeye devam ederse:
+
+1. Replit projenizi yeniden başlatın (Run butonu)
+2. CustomUptimeServer workflow'unu tekrar başlatın
+3. UptimeRobot monitörlerini duraklatıp tekrar etkinleştirin
+
+## Loglar
+
+Sistem loglarını kontrol etmek için:
+- `custom-uptime.log` - Özel uptime sunucusu logları
+- `super-uptime.log` - Ana uptime servisi logları
+
+Bu çözüm, tarayıcı kapalı olsa bile Discord botunuzun 7/24 aktif kalmasını sağlayacaktır.
