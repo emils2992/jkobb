@@ -54,7 +54,7 @@ function getReplicUrl() {
     return `https://${hostname}`;
   } catch (error) {
     log(`URL tespit hatası: ${error}`, 'uptime');
-    return 'https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev';
+    return 'https://discord-halisaha-manager.emilswd.repl.co';
   }
 }
 

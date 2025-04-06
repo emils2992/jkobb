@@ -4,7 +4,7 @@ import { createServer } from 'http';
 import * as fs from 'fs';
 
 // Replit URL'si - çevre değişkeninden al ya da hardcoded değeri kullan
-const REPLIT_URL = process.env.REPLIT_URL || "https://edd4ab32-9e68-45ea-9c30-ea0f7fd51d1d-00-xrddyi4151w7.pike.replit.dev";
+const REPLIT_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
 
 let pingInterval: NodeJS.Timeout | null = null;
 let healthCheckInterval: NodeJS.Timeout | null = null;

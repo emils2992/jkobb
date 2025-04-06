@@ -46,6 +46,14 @@ externalPort = 3000
 localPort = 8099
 externalPort = 8099
 
+[[ports]]
+localPort = 8899
+externalPort = 5173
+
+[[ports]]
+localPort = 9988
+externalPort = 6000
+
 [workflows]
 runButton = "Restart Bot"
 

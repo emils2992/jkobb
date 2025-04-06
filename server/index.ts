@@ -11,6 +11,8 @@ import { startUptimeService } from "./uptime";
 import { startEnhancedKeepAliveService } from "./keepalive";
 import { startEnhancedUptimeService } from "./enhanced-uptime";
 import ConnectPgSimple from "connect-pg-simple";
+// Özel uptime handler'ı import et
+import * as pingHandler from "../ping-handler";
 
 const app = express();
 app.use(express.json());
@@ -150,6 +152,9 @@ app.use((req, res, next) => {
         startUptimeService();
         startEnhancedKeepAliveService();
         startEnhancedUptimeService(); // Süper gelişmiş uptime servisi
+        
+        // Ek olarak yeni uptime handler'ı çalıştır - daha güçlü 7/24 çalışma
+        pingHandler.startUptimeSystem();
         log('Tüm uptime servisleri başlatıldı - Sistem sürekli çalışmaya hazır (internet bağlantısı kopsa bile)');
       } catch (error) {
         console.error('Error in initialization:', error);
