@@ -13,6 +13,8 @@ import { startEnhancedUptimeService } from "./enhanced-uptime";
 import ConnectPgSimple from "connect-pg-simple";
 // Özel uptime handler'ı import et
 import * as pingHandler from "../ping-handler";
+// Özel ping rotalarını import et
+import { addPublicPingRoutes } from "./public-ping";
 
 const app = express();
 app.use(express.json());
@@ -103,18 +105,8 @@ app.use((req, res, next) => {
   // Dinamik port kullanımı - hata durumunda yeni port deneyin
   let port = 3030; // Uptime servisleri için sabit bir port
   
-  // Temel uptime/health endpoint'leri için genişletilmiş rotalar
-  app.get('/', (req, res) => {
-    res.status(200).send('Discord Bot Server Running');
-  });
-  
-  app.get('/ping', (req, res) => {
-    res.status(200).send('Pong!');
-  });
-  
-  app.get('/uptime-check', (req, res) => {
-    res.status(200).json({ status: 'online', time: new Date().toISOString() });
-  });
+  // Gelişmiş özel ping rotalarını ekle - UptimeRobot için optimize edilmiş
+  addPublicPingRoutes(app);
   
   const startServer = async () => {
     // Dinamik port deneme mekanizması ile sunucu başlatma
