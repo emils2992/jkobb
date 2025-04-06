@@ -204,3 +204,16 @@ args = "# Gelişmiş uptime servisini başlat (503 hatasını düzeltir)"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node keep-alive-forever.js"
+
+[[workflows.workflow]]
+name = "CustomUptimeServer"
+author = 41185715
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Özel uptime sunucusunu başlat"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node custom-uptime-server.js"

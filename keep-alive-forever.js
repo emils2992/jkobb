@@ -13,12 +13,20 @@ import express from 'express';
 // Replit'in URL yapısı değişti - yeni URL formatı kullanılıyor
 const APP_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
 
+// Özel port uptime URL'si
+const CUSTOM_UPTIME_URL = "https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000";
+
 // Ping edilecek endpoint'ler - bunlar 503 hatası için optimize edildi
 const PING_ENDPOINTS = [
   "/ping",
   "/api/health",
   "/uptime-check",
   "/uptime.html"
+];
+
+// Özel uptime endpoint'leri
+const CUSTOM_PING_ENDPOINTS = [
+  "/ping"
 ];
 
 // Ping aralığı: 1 dakika (daha sık ping ile 503 hatasını önleme)
@@ -142,6 +150,30 @@ async function pingAllEndpoints() {
         successCount++;
       } catch (altError) {
         log(`❌ Alternatif URL hatası: ${altError.message}`);
+      }
+    }
+  }
+  
+  // Özel port uptime URL'si için ping
+  log(`===== Özel Port Uptime Ping Testi Başlatılıyor =====`);
+  for (const endpoint of CUSTOM_PING_ENDPOINTS) {
+    const fullUrl = `${CUSTOM_UPTIME_URL}${endpoint}`;
+    log(`Özel ping gönderiliyor: ${fullUrl}?t=${Date.now()}&id=${Math.random().toString(36).substring(2, 7)}`);
+    
+    try {
+      // Ping'i gönder ve sonucu bekle
+      const result = await pingUrl(fullUrl);
+      log(`✅ Özel port ping başarılı: ${result.statusCode} ${result.statusMessage}`);
+      successCount++;
+      // Başarı sayısını artırma (ana sistem ile karışmaması için)
+    } catch (error) {
+      log(`❌ Özel port ping hatası: ${error.message}`);
+      // Özel bir workflow yeniden başlatma işlemi ekleme
+      try {
+        log(`🔄 Özel uptime sunucusunu yeniden başlatma girişimi...`);
+        // Bu kısım sadece loglama amaçlı, gerçek işlem için bir shell script gerekli
+      } catch (restartError) {
+        log(`❌ Özel sunucu yeniden başlatma hatası: ${restartError.message}`);
       }
     }
   }
