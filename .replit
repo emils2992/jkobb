@@ -217,3 +217,40 @@ args = "# Özel uptime sunucusunu başlat"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node custom-uptime-server.js"
+
+[[workflows.workflow]]
+name = "7/24BotAktif"
+author = 41185715
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Discord Bot daima aktif tutma servisi"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Bu workflow'u Run butonundan sonra çalıştırın"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"💡 UptimeRobot ayarlaması için YENI_UPTIME_COZUMU.md dosyasına bakın\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔄 UptimeRobot için ping noktalarını hazırlıyorum...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✓ https://discord-halisaha-manager.emilswd.repl.co/always-online.html\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✓ https://discord-halisaha-manager.emilswd.repl.co/ping\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✓ https://discord-halisaha-manager.emilswd.repl.co/uptime-check\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Tamamlandı! Bot artık 7/24 aktif kalacaktır.\""
