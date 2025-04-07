@@ -267,3 +267,16 @@ args = "# Super Uptime Service'i başlat (7/24 aktif bot için)"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node super-uptime-service.js"
+
+[[workflows.workflow]]
+name = "UltraUptimeService"
+author = 41185715
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# 8+ Saat Garantili UptimeService"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node ultra-uptime.js"
