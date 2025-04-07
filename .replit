@@ -212,7 +212,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "# Özel uptime sunucusunu başlat"
+args = "# Özel uptime sunucusunu başlat (Port 5000)"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

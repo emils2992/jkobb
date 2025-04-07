@@ -6,9 +6,10 @@ Discord botunuzu 7/24 aktif tutmak için UptimeRobot'a aşağıdaki URL'leri ekl
 ## Ana URL'ler (Mutlaka Ekleyin)
 - `https://discord-halisaha-manager.emilswd.repl.co/ping`
 - `https://discord-halisaha-manager.emilswd.repl.co/uptime.html`
+- `https://discord-halisaha-manager.emilswd.repl.co/always-online.html`
 
-## Özel Port Uptime Sunucusu (CustomUptimeServer workflow'unu çalıştırdıktan sonra)
-- `https://discord-halisaha-manager.emilswd.repl.co:5000/ping` ⭐ (Otomatik Yeşil Tık)
+## Özel Port Uptime Sunucusu (Otomatik Yeşil Tık Özelliği)
+- `https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping` ⭐
 
 ## Yedek URL'ler (Ek Güvenlik İçin)
 - `https://discord-halisaha-manager.emilswd.repl.co/uptime-check`
