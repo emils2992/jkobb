@@ -3,7 +3,7 @@
 
 Bu rehber, Discord botunuzun **9 saat ve üzeri** kesintisiz çalışmasını sağlayacak adımları içerir.
 
-## 🚀 İki Adımda 9+ Saat Uptime
+## ⚡ İŞE YARAYAN 9+ SAAT ÇÖZÜMÜ
 
 ### 1. Ana Botu Başlat
 İlk olarak ana Discord botunu başlatın:
@@ -12,7 +12,7 @@ Bu rehber, Discord botunuzun **9 saat ve üzeri** kesintisiz çalışmasını sa
 ### 2. MAX Uptime Servisini Başlat
 Yeni bir terminal açın ve şu workflow'u çalıştırın:
 - Sol paneldeki Workflows listesinden "MaxUptimeService" workflow'unu seçin ve çalıştırın
-- Terminal penceresini kapatmayın!
+- **ÖNEMLİ:** Bu terminal penceresini kapatmayın!
 
 ### 3. UptimeRobot'a URL'leri Ekle
 [UptimeRobot.com](https://uptimerobot.com)'da ücretsiz hesap oluşturun ve şu URL'leri ekleyin:
@@ -26,43 +26,51 @@ Her URL için ayarlar:
 - Monitoring Interval: 5 dakika
 - Timeout: 30 saniye
 
-## 🔍 Nasıl Çalışır?
+## 🔧 Nasıl Çalışır?
 
-Bu yeni sistem diğer sürümlerden daha güvenilirdir çünkü:
+MAX Uptime Service, aşağıdaki özellikleri içerir:
 
-1. **Daha Kısa Aralıklarla Ping**: 
-   - Ana kontroller her 2 dakikada bir yapılır
-   - Hızlı kontroller her 25 saniyede bir yapılır
-   - Otomatik yenileme her 3 dakikada bir gerçekleşir
+1. **Multi-Katmanlı Ping Sistemi**:
+   - Her 3 dakikada bir tüm endpoint'leri kontrol eder
+   - Her 45 saniyede bir rastgele endpoint'lere ping atar
+   - Her 20 saniyede bir disk aktivitesi oluşturur
 
-2. **Özel Disk Aktivitesi**:
-   - Her 15 saniyede bir disk aktivitesi oluşturur
-   - Çoklu dosya okuma/yazma işlemleri ile uyku moduna geçmesini engeller
-   - Daha güvenilir heartbeat sistemi
+2. **Otomatik Kurtarma Stratejisi**:
+   - Ping başarısız olduğunda alternatif endpoint'leri dener
+   - Hata durumunda otomatik yeniden başlatma
+   - Bellek optimizasyonu ve garbage collection
 
-3. **Çoklu Kurtarma Mekanizmaları**:
-   - 3 aşamalı kurtarma stratejisi
-   - Acil durum disk aktivitesi
-   - Alternatif HTTP protokollerini dener
+3. **Gelişmiş Cache Önleme**:
+   - Her ping'e benzersiz ID ve zaman damgası ekler
+   - Cache'i engelleyen HTTP başlıkları kullanır
+   - Rastgele endpoint sırası ile cache davranışını önler
 
-4. **Hata Yakalama ve Kurtarma**:
-   - Beklenmeyen tüm hataları yakalar
-   - İşlenmeyen Promise reddedilmelerini işler
-   - Her hata sonrası otomatik yeniden deneme
+4. **Disk Aktivitesi ile Uyanık Tutma**:
+   - Düzenli dosya yazma/okuma işlemleri
+   - Döngüsel dosya oluşturma/silme ile aktif disk I/O
+   - Son durum bilgilerini sürekli güncelleyen JSON dosyası
 
-## 📱 Durumu Kontrol Etme
+## 📊 Uptime Takibi
 
-Servisin durumunu şu URL'den kontrol edebilirsiniz:
+MAX Uptime servisinin durumunu görmek için tarayıcınızda şu adresi açın:
 ```
-https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/status
+https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping
 ```
 
-## ⚠️ Sorun Giderme
+Bu sayfada yeşil bir nokta ve "BOT ONLINE ✓" yazısını göreceksiniz.
 
-Botun aktif olmadığını düşünüyorsanız:
+## 🔍 Sorun Giderme
 
-1. Replit projesini yeniden başlatın (Run butonuna basın)
-2. "MaxUptimeService" workflow'unu çalıştırın
-3. UptimeRobot monitörlerini duraklatıp yeniden etkinleştirin
+Bot uyanık kalmaya devam etmiyorsa:
 
-Bu rehberdeki adımları uyguladığınızda, Discord botunuz en az 9 saat boyunca kesintisiz çalışacaktır.
+1. Her iki workflow'un da çalıştığından emin olun:
+   - UptimeBot (Ana Discord botu)
+   - MaxUptimeService (9+ saat uptime servisi)
+
+2. Botun çalışmadığını düşünüyorsanız, şu adımları izleyin:
+   - MaxUptimeService workflow'unu yeniden başlatın
+   - UptimeRobot'ta tüm monitörleri duraklatıp tekrar etkinleştirin
+   - Tarayıcıdan MAX Uptime servisinin çalışıp çalışmadığını kontrol edin:
+     `https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000/ping`
+
+Bu gelişmiş sistem, Discord botunuzun 9 saat ve üzerinde kesintisiz çalışmasını garanti eder.
