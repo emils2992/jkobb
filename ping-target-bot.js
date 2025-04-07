@@ -2,8 +2,11 @@
 import https from 'https';
 import fs from 'fs';
 
-// Ping atılacak URL - kullanıcının istediği URL
-const TARGET_URL = "https://discord-halisaha-manager.emilswd.repl.co/ping";
+// Ping atılacak URL - dinamik URL oluşturma
+const REPL_SLUG = process.env.REPL_SLUG || 'discord-halisaha-manager';
+const REPL_OWNER = process.env.REPL_OWNER || 'emilswd';
+const BASE_URL = process.env.REPLIT_URL || `https://${REPL_SLUG}.${REPL_OWNER}.repl.co`;
+const TARGET_URL = `${BASE_URL}/ping`;
 
 // Ping aralığı (5 dakika)
 const PING_INTERVAL = 5 * 60 * 1000;

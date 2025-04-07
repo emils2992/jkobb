@@ -10,7 +10,10 @@ const PORT = 5000;
 const LOG_FILE = './max-uptime.log';
 
 // ===== AYARLAR =====
-const REPLIT_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
+// Replit'in URL yapısına uygun dinamik URL oluştur
+const REPL_SLUG = process.env.REPL_SLUG || 'discord-halisaha-manager';
+const REPL_OWNER = process.env.REPL_OWNER || 'emilswd';
+const REPLIT_URL = process.env.REPLIT_URL || `https://${REPL_SLUG}.${REPL_OWNER}.repl.co`;
 const PING_INTERVAL = 180000; // 3 dakika
 const QUICK_PING_INTERVAL = 45000; // 45 saniye
 const DISK_ACTIVITY_INTERVAL = 20000; // 20 saniye

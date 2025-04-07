@@ -5,8 +5,44 @@ import https from 'https';
 import http from 'http';
 import fs from 'fs';
 
-// Ping atılacak URL
-const TARGET_URL = "https://discord-halisaha-manager.emilswd.repl.co/ping";
+// Ping atılacak URL - dinamik URL oluşturma
+function getBaseUrl() {
+  // Replit ortam değişkenlerini kontrol et
+  const replSlug = process.env.REPL_SLUG;
+  const replOwner = process.env.REPL_OWNER;
+  const replId = process.env.REPL_ID;
+  
+  // İkisi de varsa Replit URL'ini kullan
+  if (replSlug && replOwner) {
+    return `https://${replSlug}.${replOwner}.repl.co`;
+  }
+  
+  // Yeni Replit alanını kontrol et
+  if (replId) {
+    return `https://${replId}.id.repl.co`;
+  }
+  
+  // Hazır Replit URL'i varsa kullan
+  if (process.env.REPLIT_URL) {
+    return process.env.REPLIT_URL;
+  }
+  
+  // Hostname dosyasını kontrol et
+  try {
+    const hostname = fs.readFileSync('.hostname', 'utf-8').trim();
+    if (hostname && hostname.includes('.')) {
+      return `https://${hostname}`;
+    }
+  } catch (err) {
+    // hostname dosyası yok, bu normal
+  }
+  
+  // Son çare olarak varsayılan değeri kullan
+  return 'https://discord-halisaha-manager.emilswd.repl.co';
+}
+
+const BASE_URL = getBaseUrl(); 
+const TARGET_URL = `${BASE_URL}/ping`;
 
 // Log dosyası
 const LOG_FILE = './bot-uptime.log';
@@ -189,7 +225,7 @@ const server = http.createServer((req, res) => {
 const SERVER_PORT = 3500;
 server.listen(SERVER_PORT, '0.0.0.0', () => {
   log(`Ping izleme sunucusu başlatıldı: Port ${SERVER_PORT}`);
-  log(`İzleme URL: https://discord-halisaha-manager.emilswd.repl.co:${SERVER_PORT}`);
+  log(`İzleme URL: ${BASE_URL}:${SERVER_PORT}`);
 });
 
 // Başlangıç mesajı
@@ -219,7 +255,7 @@ log('');
 log('⚠️ ÖNEMLİ: Bu terminal penceresini kapatmayın!');
 log('');
 log('📌 UptimeRobot için şu URL\'i kullanın:');
-log(`  https://discord-halisaha-manager.emilswd.repl.co:${SERVER_PORT}`);
+log(`  ${BASE_URL}:${SERVER_PORT}`);
 log('');
 log('💡 UptimeRobot ayarları:');
 log('  - Monitor Type: HTTP(s)');

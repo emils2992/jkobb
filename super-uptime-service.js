@@ -17,8 +17,10 @@ function log(message) {
   fs.appendFileSync(LOG_FILE, logMessage + '\n');
 }
 
-// Replit URL'si
-const REPLIT_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
+// Replit URL'si - dinamik URL oluşturma
+const REPL_SLUG = process.env.REPL_SLUG || 'discord-halisaha-manager';
+const REPL_OWNER = process.env.REPL_OWNER || 'emilswd';
+const REPLIT_URL = process.env.REPLIT_URL || `https://${REPL_SLUG}.${REPL_OWNER}.repl.co`;
 
 // Ping fonksiyonu - belirli bir URL'yi ping eder
 function pingUrl(url) {

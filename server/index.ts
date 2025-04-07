@@ -7,12 +7,11 @@ import { setupVite, serveStatic, log } from "./vite";
 import { initDiscordBot } from "./discord";
 import { initDatabase } from "./db";
 import { pool } from "./db";
-// import { startUptimeService } from "./uptime"; // Kaldırıldı - yeni uptime servisi kullanılıyor
-// import { startEnhancedKeepAliveService } from "./keepalive"; // Kaldırıldı - yeni uptime servisi kullanılıyor
-// import { startEnhancedUptimeService } from "./enhanced-uptime"; // Kaldırıldı - yeni uptime servisi kullanılıyor
 import ConnectPgSimple from "connect-pg-simple";
 // Özel ping rotalarını import et
 import { addPublicPingRoutes } from "./public-ping";
+// Geliştirilmiş uptime servisi
+import { startUptimeServicesAsync } from "./uptime";
 
 const app = express();
 app.use(express.json());
@@ -101,10 +100,35 @@ app.use((req, res, next) => {
   }
 
   // Dinamik port kullanımı - hata durumunda yeni port deneyin
-  let port = 3030; // Uptime servisleri için sabit bir port
+  let port = 4040; // Uptime servisleri için sabit bir port - 3030 meşgulse 4040 kullan
   
   // Gelişmiş özel ping rotalarını ekle - UptimeRobot için optimize edilmiş
   addPublicPingRoutes(app);
+
+  // Süper uptime servisi için
+  app.get('/always-online', (req, res) => {
+    res.status(200).json({
+      status: 'active',
+      timestamp: new Date().toISOString(),
+      message: 'Discord bot active and running',
+      server: 'Replit Node.js Server',
+      noCache: Date.now()
+    });
+  });
+
+  // Sunucuyu çalışır durumda tutmak için zorla özel endpoint - Replit uyutmaya çalışırsa uyandırır
+  app.get('/force-active', (req, res) => {
+    // Random karakter oluştur - tarayıcı önbelleği engeller
+    const randomChars = Math.random().toString(36).substring(2, 15);
+    
+    // İşlemciyi biraz çalıştır - RAM ve CPU kullanımı oluşturur
+    let result = 0;
+    for (let i = 0; i < 10000; i++) {
+      result += Math.sqrt(i);
+    }
+    
+    res.status(200).send(`Discord Bot Aktif: ${new Date().toISOString()}, Random: ${randomChars}, Calc: ${result}`);
+  });
   
   const startServer = async () => {
     // Dinamik port deneme mekanizması ile sunucu başlatma
@@ -119,8 +143,11 @@ app.use((req, res, next) => {
           log(`✅ Server çalışıyor: port ${currentPort} (http://0.0.0.0:${currentPort})`);
           
           // Replit URL'sini al ve UptimeRobot için ping endpoint'lerini logla
+          // Replit'in yeni URL yapısına uygun dinamik URL oluştur
+          const replitSlug = process.env.REPL_SLUG || 'discord-halisaha-manager';
+          const replitOwner = process.env.REPL_OWNER || 'emilswd';
           const baseUrl = process.env.REPLIT_URL || 
-                          'https://discord-halisaha-manager.emilswd.repl.co';
+                          `https://${replitSlug}.${replitOwner}.repl.co`;
           log(`🌐 Dış erişim URL'si: ${baseUrl}`);
           
           // UptimeRobot için URL'leri logla
@@ -128,34 +155,44 @@ app.use((req, res, next) => {
           log(`   • ${baseUrl}/ping`);
           log(`   • ${baseUrl}/uptime-check`);
           log(`   • ${baseUrl}/api/health`);
+          log(`   • ${baseUrl}/always-online`);
+          log(`   • ${baseUrl}/force-active`);
           
           try {
             // Veritabanını başlat
-        await initDatabase();
-        log('Veritabanı başarıyla başlatıldı');
-        
-        // Discord botu başlat
-        await initDiscordBot();
-        log('Discord bot başlatılıyor - Client ID mevcut');
-        
-        // Not: Artık uptime servisleri ayrı süreçler olarak çalışacak
-        // Eski uptime servisleri kaldırıldı, yeni script temiz bir çözüm sunuyor
-        log('Yeni uptime çözümü hazır - keep-bot-online.js ve ping-target-bot.js dosyaları ayrı olarak çalıştırılabilir');
-        log('Dikkat: Sistemi 7/24 aktif tutmak için UptimeRobot ayrıca ayarlanmalıdır (UPTIME_GUIDE.md dosyasına bakınız)');
-      } catch (error) {
-        console.error('Error in initialization:', error);
+            await initDatabase();
+            log('Veritabanı başarıyla bağlandı');
+            
+            // Discord botu başlat
+            await initDiscordBot();
+            log('Discord bot başlatılıyor - Client ID mevcut');
+            
+            // Tüm uptime servislerini arka planda başlat
+            await startUptimeServicesAsync();
+            
+            // Not: Artık uptime servisleri daha gelişmiş ve redundant
+            log('✅ Gelişmiş uptime çözümü aktif - Bot 7/24 çalışacak');
+            log('📋 UptimeRobot Yapılandırma Talimatları:');
+            log('   1. UptimeRobot hesabınıza giriş yapın');
+            log('   2. Yeni bir HTTP(S) monitör ekleyin (PING DEĞİL!)');
+            log('   3. Yukarıdaki URL\'lerden birini veya tümünü ekleyin');
+            log('   4. 5 dakikalık kontrol aralığı ayarlayın');
+            log('   5. Bot şimdi 7/24 çalışacak!');
+            
+          } catch (error) {
+            console.error('Error in initialization:', error);
+          }
+        });
+      } catch (err: any) {
+        if (err.code === 'EADDRINUSE') {
+          log(`Port ${currentPort} meşgul, port ${currentPort + 1} deneniyor...`);
+          // Bir sonraki portu dene
+          tryStartServer(currentPort + 1, maxRetries - 1);
+        } else {
+          console.error('Server error:', err);
+        }
       }
-    });
-  } catch (err: any) {
-    if (err.code === 'EADDRINUSE') {
-      log(`Port ${currentPort} meşgul, port ${currentPort + 1} deneniyor...`);
-      // Bir sonraki portu dene
-      tryStartServer(currentPort + 1, maxRetries - 1);
-    } else {
-      console.error('Server error:', err);
-    }
-  }
-};
+    };
 
     // İlk portu kullanarak sunucuyu başlatmayı dene
     tryStartServer(port);

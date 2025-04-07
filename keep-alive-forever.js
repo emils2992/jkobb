@@ -11,7 +11,9 @@ import express from 'express';
 // ===== AYARLAR =====
 // Ana uygulama URL'si (Replit'in atadığı URL - 503 hatası için düzeltildi)
 // Replit'in URL yapısı değişti - yeni URL formatı kullanılıyor
-const APP_URL = process.env.REPLIT_URL || "https://discord-halisaha-manager.emilswd.repl.co";
+const REPL_SLUG = process.env.REPL_SLUG || 'discord-halisaha-manager';
+const REPL_OWNER = process.env.REPL_OWNER || 'emilswd';
+const APP_URL = process.env.REPLIT_URL || `https://${REPL_SLUG}.${REPL_OWNER}.repl.co`;
 
 // Özel port uptime URL'si
 const CUSTOM_UPTIME_URL = "https://9f27368b-0b17-4ac7-8928-fc20e6cf4a11-00-exkoqowlthzq.sisko.replit.dev:5000";

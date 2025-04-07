@@ -1,6 +1,11 @@
 import { initBot } from './bot';
 import { setupEventHandlers } from './events';
+import { client } from './bot';
 // Commands are now imported directly in initBot(), so no additional import needed here
+
+// Maksimum yeniden bağlanma denemesi
+const MAX_RECONNECT_ATTEMPTS = 5;
+let reconnectAttempts = 0;
 
 export async function initDiscordBot() {
   try {
@@ -12,23 +17,49 @@ export async function initDiscordBot() {
     
     console.log('Discord tokens found, bot will initialize in the background');
     
-    // Start bot initialization in the background without waiting
-    setTimeout(async () => {
+    // Yeniden bağlanma işlevi - sorun olursa yeniden deneyecek
+    const connectWithRetry = async () => {
       try {
         // Properly handle the Discord bot initialization flow to avoid circular dependencies
         const botClient = await initBot();
         
         // Check if bot initialized correctly
         if (botClient) {
-          console.log('Bot logged in successfully, setup already completed in initBot...');
-          console.log('Discord bot initialized successfully');
+          console.log('✅ Discord bot başarıyla bağlandı! Bot artık aktif.');
+          console.log(`Bot olarak giriş yapıldı: ${botClient.user?.tag}`);
+          
+          // Bot bağlantı durumunu kontrol etmek için bir interval başlat
+          setInterval(() => {
+            if (!client.isReady()) {
+              console.log('⚠️ Bot bağlantısı koptu, yeniden bağlanmaya çalışılıyor...');
+              reconnectBot();
+            }
+          }, 30000); // Her 30 saniyede bir kontrol et
+          
+          reconnectAttempts = 0; // Başarılı bağlantıda sayacı sıfırla
         } else {
-          console.log('Bot client not initialized properly');
+          console.log('❌ Bot istemcisi düzgün başlatılamadı');
+          reconnectBot();
         }
       } catch (error) {
-        console.error('Failed to initialize Discord bot:', error);
+        console.error('Discord bot başlatma hatası:', error);
+        reconnectBot();
       }
-    }, 5000);
+    };
+    
+    // Yeniden bağlanma işlevi
+    const reconnectBot = () => {
+      reconnectAttempts++;
+      if (reconnectAttempts <= MAX_RECONNECT_ATTEMPTS) {
+        console.log(`🔄 Yeniden bağlanma denemesi ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
+        setTimeout(connectWithRetry, 5000 * reconnectAttempts); // Her denemede biraz daha uzun bekle
+      } else {
+        console.log('❌ Maksimum yeniden bağlanma denemesi aşıldı. Bot başlatılamıyor.');
+      }
+    };
+    
+    // İlk bağlantıyı başlat (5 saniye sonra)
+    setTimeout(connectWithRetry, 5000);
     
     // Return immediately to not block server startup
     return;
