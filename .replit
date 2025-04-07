@@ -59,7 +59,7 @@ localPort = 9988
 externalPort = 6000
 
 [workflows]
-runButton = "UptimeBot"
+runButton = "MaxUptimeService"
 
 [[workflows.workflow]]
 name = "Project"
