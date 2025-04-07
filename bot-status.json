@@ -1,17 +1,17 @@
 {
   "botName": "Discord Halisaha Bot",
-  "uptime": 0.355507793,
+  "uptime": 0.211984439,
   "totalPings": 1,
   "successPings": 0,
   "failPings": 1,
   "successRate": "0.00%",
   "lastPing": {
-    "lastPing": "2025-04-07T19:09:28.001Z",
+    "lastPing": "2025-04-07T19:20:38.023Z",
     "status": "error",
-    "error": "getaddrinfo ENOTFOUND workspace.motas26942.repl.co"
+    "error": "getaddrinfo ENOTFOUND workspace.emineeliyeva282.repl.co"
   },
-  "nextPingTime": "2025-04-07T19:14:28.091Z",
-  "targetUrl": "https://workspace.motas26942.repl.co/ping",
+  "nextPingTime": "2025-04-07T19:25:38.052Z",
+  "targetUrl": "https://workspace.emineeliyeva282.repl.co/ping",
   "pingInterval": "5 dakika",
-  "serverTime": "2025-04-07T19:09:28.091Z"
+  "serverTime": "2025-04-07T19:20:38.052Z"
 }
