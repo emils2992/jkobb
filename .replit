@@ -280,3 +280,16 @@ args = "# 8+ Saat Garantili UptimeService"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node ultra-uptime.js"
+
+[[workflows.workflow]]
+name = "MaxUptimeService"
+author = 41185715
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# 9+ Saat garantili MAX Uptime Service"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node max-uptime-service.js"
