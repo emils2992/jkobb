@@ -19,6 +19,10 @@ localPort = 3500
 externalPort = 6800
 
 [[ports]]
+localPort = 4040
+externalPort = 8000
+
+[[ports]]
 localPort = 5000
 externalPort = 3000
 
@@ -59,7 +63,7 @@ localPort = 9988
 externalPort = 6000
 
 [workflows]
-runButton = "MaxUptimeService"
+runButton = "UptimeBot"
 
 [[workflows.workflow]]
 name = "Project"
@@ -173,7 +177,7 @@ args = "sleep 3"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "# Botu yeniden başlat"
+args = "# Ana Discord botunu başlat"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
