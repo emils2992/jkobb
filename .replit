@@ -254,3 +254,16 @@ args = "echo \"✓ https://discord-halisaha-manager.emilswd.repl.co/uptime-check
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "echo \"✅ Tamamlandı! Bot artık 7/24 aktif kalacaktır.\""
+
+[[workflows.workflow]]
+name = "SuperUptimeService"
+author = 41185715
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Super Uptime Service'i başlat (7/24 aktif bot için)"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node super-uptime-service.js"

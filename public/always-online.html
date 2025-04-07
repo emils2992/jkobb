@@ -103,3 +103,127 @@
   </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="pragma" content="no-cache">
+  <meta http-equiv="expires" content="0">
+  <title>Discord Bot - Always Online</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .status-indicator {
+      width: 20px;
+      height: 20px;
+      background-color: #2ecc71;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 10px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .info {
+      margin-top: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+    .timestamp {
+      font-size: 12px;
+      color: #999;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Discord Bot - Always Online</h1>
+    
+    <div class="status">
+      <div class="status-indicator"></div>
+      <span>BOT AKTİF</span>
+    </div>
+    
+    <p>Discord Halisaha Bot 7/24 çalışmaya devam ediyor.</p>
+    
+    <div class="info">
+      <p>Bu sayfa otomatik olarak kendini yeniler.</p>
+      <p>Her yenileme, botun aktif kalmasını sağlar.</p>
+      <p>Bir sonraki yenileme: <span id="countdown">05:00</span></p>
+    </div>
+    
+    <div class="timestamp">
+      <p>Sunucu Zamanı: <span id="server-time"></span></p>
+      <p>Sayfa Kimliği: <span id="page-id"></span></p>
+    </div>
+  </div>
+
+  <script>
+    // Rastgele sayfa kimliği oluştur (caching önleme)
+    const pageId = Math.random().toString(36).substring(2, 15);
+    document.getElementById('page-id').textContent = pageId;
+    
+    // Sunucu zamanını güncelle
+    function updateServerTime() {
+      document.getElementById('server-time').textContent = new Date().toISOString();
+    }
+    updateServerTime();
+    setInterval(updateServerTime, 1000);
+    
+    // Geri sayım zamanlayıcısı
+    let totalSeconds = 5 * 60; // 5 dakika
+    function updateCountdown() {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      document.getElementById('countdown').textContent = 
+        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      
+      totalSeconds--;
+      
+      if (totalSeconds >= 0) {
+        setTimeout(updateCountdown, 1000);
+      }
+    }
+    updateCountdown();
+    
+    // 5 dakika sonra sayfayı yenile (UptimeRobot 5 dakikada bir kontrol eder)
+    setTimeout(() => {
+      window.location.reload();
+    }, 5 * 60 * 1000);
+    
+    // Her 30 saniyede bir arka planda ping gönder
+    setInterval(() => {
+      const timestamp = Date.now();
+      fetch(`/ping?t=${timestamp}&id=${pageId}`)
+        .catch(error => console.error('Ping error:', error));
+    }, 30 * 1000);
+  </script>
+</body>
+</html>
