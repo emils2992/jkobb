@@ -1,0 +1,6 @@
+[2025-04-06T17:39:38.381Z] Target Bot Ping Servisi başlatıldı
+[2025-04-06T17:39:38.386Z] Hedef URL: https://discord-halisaha-manager.emilswd.repl.co/ping
+[2025-04-06T17:39:38.386Z] Ping aralığı: 5 dakika
+[2025-04-06T17:39:38.386Z] Hedef bota ping gönderiliyor: https://discord-halisaha-manager.emilswd.repl.co/ping?t=1743961178386&id=56bvxo
+[2025-04-06T17:39:38.416Z] Ping servisi çalışıyor, bu terminal penceresini kapatmayın!
+[2025-04-06T17:39:38.421Z] ❌ Ping hatası: getaddrinfo ENOTFOUND discord-halisaha-manager.emilswd.repl.co

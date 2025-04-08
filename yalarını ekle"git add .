@@ -1,0 +1,338 @@
+[33m64c63f2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Merge remote-tracking branch 'origin/main'
+[33m0dc5984[m Dosyalar yüklendi
+[33m09ec812[m Initial commit
+[33m3b4340e[m Initial checkpoint
+[33m579eb92[m Update bot uptime solution documentation to improve reliability
+[33md2a8658[m Add enhanced uptime solution to keep the bot online
+[33md1428ae[m Improve Discord bot uptime reliability by implementing enhanced monitoring and automatic recovery strategies using UptimeRobot and custom scripts.
+[33m7491233[m Assistant checkpoint: UptimeBot ve MaxUptimeService için 9+ saatlik uptime çözümü
+[33m4e45218[m Assistant checkpoint: Sadeleştirilmiş uptime çözümü yapılandırması
+[33maf1a83f[m Assistant checkpoint: 9+ saat garantili uptime çözümü oluşturuldu
+[33m98317b7[m Assistant checkpoint: 9+ saat garantili MAX uptime servisi oluşturuldu
+[33me163bee[m Assistant checkpoint: 8+ saat garantili uptime çözümü oluşturuldu
+[33m32c6dd3[m Assistant checkpoint: SuperUptimeService ile 7/24 bot çözümü
+[33m42a39b8[m Assistant checkpoint: CustomUptimeServer workflow güncellemesi ve URL dokümanı
+[33me039215[m Assistant checkpoint: Otomatik Yeşil Tık uptime çözümü önerildi
+[33m7e140e4[m Checkpoint before assistant change: Implement 24/7 uptime for Discord bot using UptimeRobot.
+[33m0583b97[m Assistant checkpoint: 7/24 Kesintisiz Bot Çözümü
+[33m9912ec3[m Assistant checkpoint: Otomatik yeşil tık ile uptime sistemi iyileştirildi
+[33m9f99542[m Assistant checkpoint: Özel uptime sunucusu port 5000'de oluşturuldu
+[33m5a9eae2[m Assistant checkpoint: UptimeRobot 503 hatası için çözüm uygulandı
+[33mf9300e9[m Checkpoint before assistant change: Fix 503 error reported by uptime robot by adding a new uptime monitoring service.
+[33me7454df[m Assistant checkpoint: Added comprehensive uptime monitoring page
+[33mfe95c7e[m Checkpoint before assistant change:
+[33m56b9755[m Improve Discord bot uptime by implementing a robust, multi-endpoint pinging system with automatic recovery.
+[33m17512b3[m Update bot monitoring URL and add bot status logging
+[33mde826c3[m Improve Discord bot uptime by implementing a robust uptime monitoring system using multiple ping endpoints and a new, self-sustaining keep-alive mechanism.
+[33mbf91e9a[m Improve bot uptime reliability by implementing multiple ping endpoints and switching to Cron-Job.org for monitoring.
+[33mda2a4e6[m Checkpoint
+[33mcd7998e[m Initial commit for GitHub export
+[33m0a4ad0f[m Add instructions for migrating the football roleplay bot project from Replit to Glitch, and update keepalive monitoring data.
+[33m8e504a2[m Add instructions for maintaining Discord bot uptime using Cron-Job.org and alternative methods.
+[33ma643c8f[m Improve uptime monitoring by adding multiple ping endpoints and a detailed guide for UptimeRobot integration.
+[33m8631549[m Improve bot uptime reliability by adding a robust uptime monitoring system and multiple ping URLs.
+[33mcee8a91[m Update training log to display session count instead of duration
+[33m313c497[m Update keepalive data and improve training message handling
+[33me1f979a[m Improve player attribute display and add training point system.  Added pagination to player attribute display and implemented a system for awarding training points based on time spent in training channels.
+[33maf1ee5d[m Fix training command issue by improving attribute handling and adding "Short Pass" attribute.
+[33m63b6db8[m Update bot registration and command handling
+[33mf4a1432[m Initial checkpoint
+[33ma1b5f01[m Assistant checkpoint: Fixed truncated function call in ticket-card.tsx
+[33me88a947[m Assistant checkpoint: antren komutunu serbest metin girişine çevir
+[33m0d052d0[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m3954317[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m64b1205[m Assistant checkpoint: Update database schema and recreate server_config table
+[33mea8906c[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m3d69801[m Assistant checkpoint: Remove point system from training, keep duration tracking
+[33m62d526e[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m4888337[m Assistant checkpoint: Fix training channel detection and point calculation
+[33m3feb919[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33mf22c3c3[m Assistant checkpoint: Fix duplicate attributeName variable declaration
+[33m70b0019[m Assistant checkpoint: Nitelik seçimini serbest yazıya çevir
+[33m95a40c4[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m0cded7a[m Assistant checkpoint: Nitelik ismi kontrolü iyileştirildi
+[33mc14eb14[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33me4e8ab8[m Assistant checkpoint: Cooldown süresini 5 saniyeye düşür
+[33m68c5bdb[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m4505199[m Assistant checkpoint: Add message_id and channel_id columns to training_sessions
+[33m5b54886[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m6649863[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m9be5b24[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33md1d7282[m Checkpoint before assistant change: Update keepalive timestamp
+[33m5c75f72[m Assistant checkpoint: Update server_config table schema with new columns
+[33m3b4ca19[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m4ed38fb[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m44c5094[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m3e1da35[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m379871f[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33mcf3637e[m Fix training command issues and improve attribute creation.  Added Levenshtein distance calculation for better attribute name suggestions.
+[33m0e6fa49[m Enhance training command and event handling to allow for attribute selection and improved error handling.
+[33m567b8f1[m Improve Discord bot command registration and add debug logging.
+[33m3594dac[m Update bot configuration with new token and client ID
+[33m07c3fa2[m Update Discord bot commands and add new ones.  Improved command descriptions and added functionality for player statistics and server configuration.
+[33mefb2a87[m Add training channel configuration command to Discord bot
+[33m7ab53e7[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33mef38aa5[m Fix training attribute recording errors and remove outdated command
+[33mc7cd126[m Fix multiple bugs in training commands and attribute creation
+[33m11cc92a[m Fix: Duplicate Discord commands removed
+[33m89bebda[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33me0a15bc[m Refactor training channel command: Combine multiple subcommands into a single command with a duration option.
+[33mad01778[m Add new training command and improve training channel management
+[33m9b3c630[m Improve Discord bot startup reliability by adding error handling and asynchronous initialization.
+[33m0039e32[m Initial checkpoint
+[33ma9aa074[m Update bot keepalive timestamp and uptime
+[33ma6ef7a8[m Restored to '59b6095274aba9cb37b20926754334482a5b9b04'
+[33m9d16940[m Checkpoint before revert - mock plan step
+[33m0d9e51c[m Assistant checkpoint: Sunucu port bağlantısını düzelt ve uptime servisini güncelle
+[33me235187[m Checkpoint before assistant change: Update keepalive timestamp to reflect recent ping
+[33m044f9ce[m Assistant checkpoint: Uptime servislerini basitleştirerek uygulamayı düzelt
+[33m172996a[m Checkpoint before assistant change: Fix: Address website downtime and improve training message handling.  Includes error handling and logging improvements.
+[33m062ffa3[m Enhance training system with per-channel duration and improved error handling.
+[33ma07eca9[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m0eca317[m Add command to update user display names from Discord server nicknames
+[33ma5fce33[m Assistant checkpoint: Events.ts dosyasındaki sözdizimi hatasını düzelt
+[33m8565d4a[m Assistant checkpoint: Fazla kapanış parantezini kaldırdım ve botu yeniden başlattım
+[33ma82d943[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m20e64fe[m Assistant checkpoint: Fazla kapanış parantezini kaldırarak sözdizimi hatasını düzelt
+[33m1bd0496[m Assistant checkpoint: events.ts dosyasındaki sözdizimi hatasını düzelttim
+[33md019455[m Checkpoint before assistant change: Fix: Improved Discord bot interaction handling
+[33m8f5b086[m Restored to '32588101ff84a18897e6cd10b742ab1d7e97a824'
+[33m3eccb5b[m Assistant checkpoint: Fixed displayName issue in events.ts
+[33m3258810[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m04049cb[m Assistant checkpoint: Discord görünen adlarını gösterme problemi çözüldü
+[33m00e43d5[m Checkpoint before assistant change: Fix display of player names in stats using display name instead of username.
+[33m59b6095[m Enhance training system with configurable channels and improved data handling.
+[33m76bf168[m Initial checkpoint
+[33mf87de33[m Restored to '807161c703c3b6978ed5301d858671689c89849a'
+[33m9dd2cd0[m Checkpoint before revert - mock plan step
+[33m9f11fb4[m Fix server deployment issues by updating port configuration and improving Replit integration.
+[33m2dafb32[m Update Discord bot with new commands and improved functionality
+[33m34cda6e[m Add new Discord bot commands and improve training time management
+[33m93a3a10[m Assistant checkpoint: Fixed enhanced-uptime.ts and restarted server
+[33m2013328[m Checkpoint before assistant change:
+[33mdebc2ae[m Assistant checkpoint: Enhanced uptime servisini düzelt ve sunucuyu yeniden başlat
+[33m816f6d6[m Checkpoint before assistant change: Fix server downtime by improving training session logic and handling role-based access control.
+[33mdbce1c5[m Fix various bugs and improve bot performance.  Includes updated error handling and improved command registration.
+[33mff0d4ec[m Assistant checkpoint: Fixed Discord bot command for ayarla antrenman
+[33m737e45e[m Checkpoint before assistant change: Add role-based training time limits.  This allows setting different training durations based on user roles.
+[33m807161c[m Initial checkpoint
+[33mccab1eb[m Assistant checkpoint: UptimeRobot entegrasyonu için URL'ler ve sunucu düzeltmeleri
+[33mfbfa202[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m7d3cb9f[m Checkpoint before assistant change: Update bot uptime information
+[33m0e961e3[m Assistant checkpoint: Port değiştirildi ve yeni başlatma iş akışı oluşturuldu
+[33m3f98f57[m Assistant checkpoint: URL kontrollerini düzelt ve hata yakalama ekle
+[33m190190e[m Checkpoint before assistant change: Fix keepalive error by increasing request limits and updating URLs.
+[33m0097c40[m Assistant checkpoint: Uptime servislerine eklenecek çalışan URL'leri güncelleme
+[33mf14fb32[m Checkpoint before assistant change: Fix keepalive issue by simplifying ping URLs and updating keepalive status.
+[33m7556248[m Checkpoint before assistant change: Improve keepalive JSON structure to include detailed service health and resource usage information.
+[33m4953905[m Assistant checkpoint: Uptime kontrol endpoint'lerini iyileştir
+[33m8561e49[m Checkpoint before assistant change: Fix port conflict causing errors by adjusting port configurations.
+[33mfa46f9d[m Assistant checkpoint: Uptime URL'lerini ve keep-alive sistemini düzelt
+[33mb50876b[m Checkpoint before assistant change: Fix link clicking error
+[33mea541c1[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m31fcfe5[m Assistant checkpoint: Uptime servisleri için daha fazla link ekle
+[33m1db1978[m Checkpoint before assistant change: Update uptime information
+[33mee879eb[m Assistant checkpoint: Uptime servisleri için linkler eklendi
+[33m3bf4cee[m Checkpoint before assistant change: Add uptime bot link
+[33m58b9ed9[m Assistant checkpoint: Yedek sunucu port çakışmasını düzelt
+[33m4f610f4[m Assistant checkpoint: Sunucu başlatma kodunu tamamen yeniledim ve yeni port ekledim
+[33mcaefb13[m Checkpoint before assistant change: Fix server port conflict by using a new port and simplifying server startup.
+[33m45fcfe3[m Checkpoint before assistant change: Update application ports and keepalive data
+[33mcef340b[m Assistant checkpoint: Sunucu port çakışması hatası düzeltildi
+[33m0189b4c[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m0881ce0[m Assistant checkpoint: Discord bot başlatma kodunu etkinleştirme ve sunucuyu başlatma
+[33m2ce28d9[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m2ff89a9[m Assistant checkpoint: axios paketini ekleyip botu yeniden başlat
+[33m00070dd[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m1b693b9[m Assistant checkpoint: Fixreset modalını düzelttim, hata yakalama ekledim
+[33mc7ca69c[m Checkpoint before assistant change: Update keepalive timestamp
+[33mac08b85[m Assistant checkpoint: MemStorage sınıfındaki closeTicket metodunu düzelt
+[33m2470d67[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33mb4de615[m Assistant checkpoint: Nitelik onay endpoint'lerini düzelt
+[33m6564f7c[m Checkpoint before assistant change: Fix keepalive status reporting.
+[33m276003d[m Assistant checkpoint: Sözdizimi hatasını düzelt
+[33m03a3eba[m Checkpoint before assistant change: Fix bot startup error by improving keepalive monitoring
+[33m8afd50d[m Assistant checkpoint: Fixreset API entegrasyonlarını düzelt
+[33m39a48fa[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33mea6adfa[m Checkpoint before assistant change: Update keepalive timestamp
+[33mb81c7f5[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m17f505e[m Improve player stats page refresh and fix reset modal
+[33m8a69091[m Improve bot uptime reliability by adding multiple uptime monitoring services and implementing a backup server.
+[33m4ead280[m Update bot keepalive timestamp
+[33mdad3741[m Update bot keepalive timestamp.
+[33m0a930ca[m Update training command to include source tracking
+[33mdf4bfb2[m Fix slow attribute addition and error handling in the Discord bot
+[33m8c71001[m Improve ticket creation performance by optimizing database queries and parallelizing operations.
+[33m903ca6c[m Improve bot performance and leaderboard display.  Reduced response time by optimizing cache and websocket settings, and added missing user names to the leaderboard.
+[33m0160bb4[m Update ticket closing logic to include closer's ID and improve error handling.
+[33m3afee03[m Enable Discord bot functionality.
+[33m6d77b92[m Update server status and temporarily disable Discord bot.
+[33m3e4fd93[m Update bot connection settings to improve stability
+[33m17cb18c[m Initial checkpoint
+[33m8a03b7a[m Update bot status and uptime information
+[33m804c4fd[m Assistant checkpoint: Fix ticket closing permissions and staff tracking
+[33m7ef3f1a[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m99e0d0e[m Assistant checkpoint: Server port sorununu çöz ve yetkili sıralamasını düzelt
+[33m9618d2f[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33md7b15f5[m Assistant checkpoint: Uygulamayı yeniden başlat
+[33me4234ed[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m445f03c[m Assistant checkpoint: Sunucu bağlantı sorunlarını çözme
+[33mbdf7c90[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m87276ce[m Checkpoint before assistant change: Update server keepalive timestamp to reflect recent activity.
+[33m229c312[m Assistant checkpoint: Yetkili sıralaması sayfasına kullanıcı dostu hata mesajı eklendi
+[33m4f847ca[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m9e64b80[m Assistant checkpoint: Eksik pool import'unu ekleyerek yetkili sıralaması hatasını düzeltme
+[33m42ab453[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m3cd46b1[m Assistant checkpoint: Sidebar yönlendirme sorununu düzelttim
+[33m6d2073f[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33maf6630d[m Assistant checkpoint: Sidebar yönlendirme ve Route sorunlarını çözme
+[33mfef9142[m Checkpoint before assistant change: Update keepalive timestamp
+[33m003a25d[m Assistant checkpoint: Yönlendirme ve sayfa geçişlerini düzeltme
+[33md23127c[m Checkpoint before assistant change: Update server keepalive timestamp
+[33mb6bd02d[m Assistant checkpoint: Botun çalışmasını engelleyen fazla parantezi düzeltme
+[33mc94b863[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33mb949654[m Assistant checkpoint: Yetkili ticket leaderboard özelliği ekle
+[33m8edaacc[m Checkpoint before assistant change: Update keepalive timestamp
+[33m74e6f08[m Assistant checkpoint: Ticket açıldığında yetkili ekibini etiketleme özelliği eklendi
+[33m7ccd32b[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m359d68f[m Checkpoint before assistant change: Update development environment to use `npm run dev`
+[33mcdb29de[m Assistant checkpoint: Sistem ölçeklenebilirliğini 100 kullanıcı için iyileştirme
+[33m2572360[m Checkpoint before assistant change: Update keepalive monitoring system to include additional ping URLs.
+[33mad3f003[m Assistant checkpoint: Workflow ve deployment ayarlarını düzelt
+[33m7708567[m Assistant checkpoint
+[33mb22d328[m Assistant checkpoint: Sürekli çalışma için deployment ve workflow ayarları
+[33mad573cc[m Checkpoint before assistant change: Update uptime record after device restart
+[33m7bcff2b[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33mff900b7[m Checkpoint before assistant change: Fix statistics retrieval error in /fixson command
+[33m1af3d57[m Assistant checkpoint: Sunucu ayarlarını herkese açık olacak şekilde güncelledim
+[33me8d258e[m Checkpoint before assistant change: Update server keepalive timestamp
+[33m232943b[m Assistant checkpoint: Antrenman puanlarında sabit +1 değeri kullanıldı
+[33mc30c9e5[m Checkpoint before assistant change: Fix: Incorrect pass count display on training page
+[33m14a8ceb[m Assistant checkpoint: Veritabanı sorgu hatalarını düzelttim
+[33m7197944[m Checkpoint before assistant change: Update keepalive timestamp and uptime
+[33m56de98d[m Assistant checkpoint: Veritabanı sorunlarını düzeltme
+[33mefe3801[m Assistant checkpoint: Discord botunu aktif et
+[33m39e849b[m Checkpoint before assistant change: Update bot status to active
+[33ma8c6130[m Add admin profile update functionality.  Allows admins to change their display name, which is then reflected in the chat and persistently saved.
+[33m87edcbc[m Improve admin chat display:  New messages now appear at the bottom and are immediately visible.
+[33mc0ebd60[m Add admin user authentication and authorization.
+[33mf50de71[m Fix bot keepalive and port issues.  Improved keepalive monitoring and added a new port for the application.
+[33me5275f5[m Fix login issue by implementing server-side authentication
+[33m4e4ad94[m Update bot keepalive timestamp and uptime
+[33md953f5d[m Update API request handling and bot keepalive timestamp
+[33m383cd6a[m Checkpoint
+[33mdf34c9d[m Fix admin chat API error
+[33mcabe952[m Temporarily disable Discord bot for testing and update application port.
+[33mb101cd9[m Restored to 'af2e53d65f8e2d8cf11f3a8b4e45181a6e5ea75a'
+[33ma8b719e[m Checkpoint before revert - mock plan step
+[33me5d4428[m Remove outdated ticket management panel and simplify frontend serving
+[33m2ea7e2a[m Revert frontend deployment to previous version.
+[33mc6ded14[m Update website styling and implement a basic uptime check endpoint.
+[33m2f85bc2[m Improve bot uptime reliability by implementing a simplified uptime service.
+[33maf2e53d[m Add enhanced keep-alive service to ensure application uptime.
+[33m7e31c58[m Add server uptime monitoring and health checks
+[33m57e15aa[m Add admin chat feature with name display
+[33m793cc0c[m Add admin authentication and chat features.  Includes database schema updates and session management.
+[33ma5bfd59[m Checkpoint before assistant change: Add admin panel with user authentication and chat functionality.
+[33m4468505[m Assistant checkpoint: Nitelik:sut formatı ile nitelik ekleme engellendi
+[33m157ab67[m Fix display issue in dashboard
+[33m2566271[m Assistant checkpoint: Updated bot owner name to emilswd on dashboard page
+[33m759d408[m Update uptime service to use a hardcoded Replit URL.
+[33m4be5904[m Improve bot uptime monitoring by enhancing the pinging mechanism and adding health checks.
+[33m9409550[m Initial checkpoint
+[33mc960e38[m Restored to 'ed5edbe6b1abb2e6643efd458ae99c0cb5656a7c'
+[33m692d2c7[m Assistant checkpoint: Bot durumu ve grafik sorunları düzeltildi
+[33med5edbe[m Assistant checkpoint: AI Chat sayfasını Router bileşenine ekle
+[33mb6a986d[m Assistant checkpoint: Bot sahibi ismini 'emilswd' olarak değiştir
+[33m5991773[m Assistant checkpoint: Canlı grafik ve istatistik göstergeleri eklendi
+[33me607948[m Assistant checkpoint: Yapay zeka (AI) sohbet özelliği eklendi
+[33mc0ee3ec[m Assistant checkpoint: Sayfaya zengin animasyonlar ve görsel efektler eklendi
+[33m329b987[m Assistant checkpoint: Bot sahibi bilgisi ve animasyonlar eklendi
+[33m340787c[m Checkpoint before assistant change: Update framer-motion library to version 11.18.2
+[33mc4c40fb[m Checkpoint before assistant change: Add animated charts to the website using AI-powered tools.
+[33m1330e09[m Assistant checkpoint: Logo görüntülenme sorununu düzeltme
+[33m415b593[m Assistant checkpoint: UptimeRobot için yeni endpoint eklendi
+[33m1ccc99b[m Assistant checkpoint: Uptime servisini daha sık ve güvenilir hale getir
+[33m7b83bdb[m Checkpoint before assistant change: Update development startup command to use `npm run dev`
+[33m999ec79[m Assistant checkpoint: Sözdizimi hatasını düzelt
+[33m6b5bdf2[m Assistant checkpoint: Add rate limiting and performance improvements
+[33m0a86400[m Fix various issues related to attribute resets, command permissions, and ticket creation.  Improvements include fixing the `fixreset` command to reset training logs and handling unauthorized access, along with optimizing ticket creation speed.
+[33md7dd28e[m Restored to '53d2de98eb6e972a8c8f8fe7037d2c9fa8567f9d'
+[33ma3d7e92[m Checkpoint before revert - mock plan step
+[33m3589875[m Improve message processing and ticket creation.  Refactor database interaction for ticket creation.
+[33ma6103ec[m Improve ticket and training command functionality.  Fixes issues with ticket creation messaging and training command regex.
+[33mb3598e2[m Improve training session logging and error handling.
+[33mbba4fb1[m Assistant checkpoint: Fix approve button functionality in ticket card
+[33md401cad[m Assistant checkpoint: REPLIT_URL'yi dinamik hale getir
+[33m6a0a17c[m Update uptime monitoring URL
+[33m65fc8e0[m Fix ticket command responsiveness by improving error handling and interaction management.
+[33m0f8608f[m Fix multiple Discord bot interaction issues. Improved error handling and added checks to prevent duplicate processing of interactions.
+[33mbf5f459[m Improve database connection reliability and add admin-only command permissions.
+[33me4d84d2[m Add role assignment command and improve ticket channel permissions
+[33meeea500[m Update training page display to show weekly progress instead of overall stats
+[33mff6b32e[m Update training page to display separate leaderboards for training and total attributes
+[33m91868c9[m Improve training point sorting in player rankings.
+[33mc84ea3b[m Add training points to player ranking.  This includes a new API endpoint and frontend updates to display only training-based attributes in the ranking.
+[33mae08541[m Update ticket display to show all tickets and improve UI
+[33mfcf9bed[m Add server uptime monitoring
+[33m86403ab[m Add uptime monitoring to ensure server availability
+[33m87a4d15[m Update ticket panel with improved UI and backend functionality.  Added features include in-app ticket editing and attribute request management.
+[33m825f6cc[m Initial checkpoint
+[33mde4e9fd[m Assistant checkpoint: Ticket niteliklerini haftalık değere dahil etme
+[33m54688e2[m Assistant checkpoint: Ticket niteliklerini haftalık değere dahil etme
+[33me87073e[m Assistant checkpoint: Fix training session filtering to exclude ticket data
+[33m2a87fd9[m Fix: Exclude "ticket" source from weekly training leaderboards.  Improves accuracy of training data calculations.
+[33mc3a8cd5[m Improve attribute request handling to prevent duplicate requests and ensure only the latest request for each attribute is processed.
+[33m2885bd4[m Assistant checkpoint: Sözdizimi hatası düzeltildi ve bot yeniden başlatıldı
+[33made4aec[m Assistant checkpoint: Beklenmeyen kapanış parantezini kaldır
+[33m60b57ff[m Assistant checkpoint: Discord bot komut yanıt sürelerini iyileştir
+[33m168719e[m Assistant checkpoint: Hata mesajlarının gösterimini devre dışı bırak
+[33me36e343[m Checkpoint before assistant change: Add screenshot showing persistent error
+[33md8a5210[m Enhance player attribute updates by adding source tracking for ticket-based modifications.
+[33m3a4247c[m Add attribute source tracking to improve data logging and management.  This includes adding a 'source' field to the database and updating relevant logic to record the origin of attribute changes (manual, ticket, training).
+[33m9700998[m Fix multiple bugs related to attribute management and reset functionality.  The fix includes improved attribute reset, data deletion, and error handling.
+[33m7117444[m Separate training and ticket attribute gains.  Add new endpoint to retrieve only training-based attributes.
+[33mbd7c7db[m Fix duplicate message processing bug by adding a message ID tracking system
+[33me4eb218[m Fix: Prevent duplicate training session entries by checking for existing entries based on message ID
+[33m2c8a91d[m Checkpoint
+[33m9992675[m Fix training record creation error
+[33m2d620a2[m Fix training record creation error and prevent spamming
+[33m3e0342a[m Add in-game training system allowing players to earn attributes via Discord messages.
+[33m055436d[m Add new settings command and remove training, verification, and closing commands.  Update sidebar to reflect change.
+[33m9038882[m Fix: Correct attribute value application to prevent incorrect addition
+[33m0ae2564[m Fix: Correct attribute value addition logic and improve logging in attribute request processing.
+[33mbba14c7[m Fix: Correct attribute value addition logic in ticket handling.  The previous logic incorrectly compounded attribute values; this commit ensures that requested attribute values are directly added.
+[33mca46346[m Fix: Correctly add attribute values; always add requested value instead of multiplying.
+[33m0917a5c[m Fix: Improve attribute request processing logic to use only the latest request for each attribute.
+[33m4cadcf8[m Fix: Improve attribute request embed display by consolidating identical attribute requests and displaying total values.
+[33md53cf4a[m Fix: Correct attribute updating to additive instead of overwriting.
+[33ma3ef8ed[m Initial checkpoint
+[33m16b1192[m Assistant checkpoint: Fix attribute value accumulation in events.ts
+[33m33d3c92[m Assistant checkpoint: Fix attribute value multiplication in tickets
+[33m5692eb4[m Fix: Correctly calculate attribute points; prevent multiple additions of the same attribute.
+[33m18f39a8[m Assistant checkpoint: Fix ticket closing attribute calculation
+[33mc070aee[m Assistant checkpoint: Fix ticket closing error by correcting attribute requests
+[33m1c50221[m Assistant checkpoint: Fix attribute value calculation in ticket close
+[33mb3a3e38[m Refactor: Improve attribute update logic in storage module.  Add `onlyUpdateWeekly` flag to selectively update weekly attribute values.
+[33me876031[m Enhance training session tracking and attribute updates:  Improved data handling and added intensity tracking to training sessions, along with weekly attribute progress.
+[33m6516bbc[m Fix: Implement API endpoint and frontend functionality for resetting player attributes, including visual improvements and error handling.
+[33mc6e56c3[m Refactor: Improve navigation by introducing a routes constants file and updating navigation links accordingly.
+[33m32e7d32[m Refactor sidebar navigation: Remove hidden commands, replace with a new shortcut menu accessible via a dropdown.
+[33mad6aa9c[m Enhance sidebar navigation: Add dropdown menu for hidden bot commands.
+[33m98fc8df[m Enhance attribute reset functionality: Implement full attribute reset and refactor attribute update to use absolute values.
+[33m955413c[m Add user authentication with login page and protected routes.
+[33mb230409[m Fix: Prevent attribute multiplication in ticket processing and display attributes in player stats.
+[33m6c5e12d[m Fix: Implement automatic attribute updates and ticket closure upon button interaction.
+[33m7c89ab7[m Upgrade PostgreSQL dependency and migrate to PostgreSQL database.  Includes database schema creation and improved ticket closing logic.
+[33mfc2f3a4[m Fix: Improve ticket command, enhance error handling, and add admin-only restriction.
+[33ma0b7849[m Enhance ticket closing and attribute management: Improved ticket closing logic, added administrator permission checks for attribute modifications, and enhanced attribute embed displays with total attribute gain and formatting.
+[33med16abe[m Checkpoint
+[33mbef92be[m Improve Discord bot error handling and reliability; remove deprecated commands.
+[33mc04c476[m Refactor ticket creation process to use a button-based panel and implement ticket closing functionality with attribute processing and logging.
+[33mefa5e68[m Add confirmation dialog to ticket closing command
+[33maf3b94b[m Enhance training and ticket systems: Implement training message parsing, improve ticket closing, and add detailed attribute display.
+[33m7b337d0[m Checkpoint
+[33m0741383[m Add player verification command and improve ticket creation with player stats display.
+[33m6739139[m Add basic UI for Discord bot control panel.  Includes initial HTML, routing, and UI components.
+[33mf7e597a[m Initial checkpoint
+[33m01bca74[m Initial commit

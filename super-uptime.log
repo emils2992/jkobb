@@ -1,0 +1,11 @@
+file:///home/runner/workspace/super-uptime-service.js:189
+          <p><strong>Servis Çalışma Süresi:</strong> ${Math.floor(process.uptime() / 60)} dakika</p>
+
+SyntaxError: missing ) after argument list
+    at compileSourceTextModule (node:internal/modules/esm/utils:339:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:168:18)
+    at callTranslator (node:internal/modules/esm/loader:428:14)
+    at ModuleLoader.moduleProvider (node:internal/modules/esm/loader:434:30)
+    at async link (node:internal/modules/esm/module_job:87:21)
+
+Node.js v20.18.1

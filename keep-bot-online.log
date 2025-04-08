@@ -1,0 +1,34 @@
+[2025-04-07T19:25:39.573Z] Discord Bot Uptime Servisi başlatıldı
+[2025-04-07T19:25:39.576Z] Hedef URL: https://workspace.emineeliyeva282.repl.co/ping
+[2025-04-07T19:25:39.576Z] Ping aralığı: 5 dakika
+[2025-04-07T19:25:39.576Z] Ping #1 gönderiliyor: https://workspace.emineeliyeva282.repl.co/ping?t=1744053939576&id=0erplb6v
+[2025-04-07T19:25:39.599Z] 
+[2025-04-07T19:25:39.599Z] ⚠️ ÖNEMLİ: Bu terminal penceresini kapatmayın!
+[2025-04-07T19:25:39.599Z] 
+[2025-04-07T19:25:39.600Z] 📌 UptimeRobot için şu URL'i kullanın:
+[2025-04-07T19:25:39.600Z]   https://workspace.emineeliyeva282.repl.co:3500
+[2025-04-07T19:25:39.600Z] 
+[2025-04-07T19:25:39.600Z] 💡 UptimeRobot ayarları:
+[2025-04-07T19:25:39.600Z]   - Monitor Type: HTTP(s)
+[2025-04-07T19:25:39.600Z]   - Interval: 5 minutes
+[2025-04-07T19:25:39.600Z] 
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:3500
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1944:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 3500
+}
+
+Node.js v20.18.1
